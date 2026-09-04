@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+rules="$(ip rule show)"
+
+case "$rules" in
+  *"from all to 127.0.0.0/8 lookup local"*) ;;
+  *) ip rule add pref 0 to 127.0.0.0/8 lookup local ;;
+esac
+
+case "$rules" in
+  *"from all to 127.0.0.0/8 ipproto tcp lookup local"*) ;;
+  *) ip rule add pref 0 to 127.0.0.0/8 ipproto tcp lookup local ;;
+esac
+
+case "$rules" in
+  *"from all to 127.0.0.0/8 ipproto udp lookup local"*) ;;
+  *) ip rule add pref 0 to 127.0.0.0/8 ipproto udp lookup local ;;
+esac
+
+ip route flush cache
+
+if [[ "$(ip route get 127.0.0.1)" != local\ 127.0.0.1\ dev\ lo* ]]; then
+  printf 'WSL loopback route still bypasses lo\n' >&2
+  exit 1
+fi

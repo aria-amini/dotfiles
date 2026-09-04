@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore Linux loopback routing under WSL mirrored networking
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wsl-loopback-routes
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

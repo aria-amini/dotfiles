@@ -169,6 +169,13 @@ section "Developer Tools"
 run_task "Installing managed tools" mise install --quiet
 run_task "Installing repository tools" mise -C "$HOME/dotfiles" install --quiet --monorepo
 run_task "Configuring repository tools" mise -C "$HOME/dotfiles" --quiet //:install
+if [ -f "$HOME/ms-scripts/packages/ms-scripts/pyproject.toml" ]; then
+  run_task "Installing Microsoft scripts" uv tool install \
+    --python 3.14 \
+    --editable \
+    --reinstall \
+    "$HOME/ms-scripts/packages/ms-scripts"
+fi
 
 # Docker
 section "Docker"

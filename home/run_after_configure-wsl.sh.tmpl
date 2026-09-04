@@ -15,6 +15,12 @@ EOF
 cat > "$temp_dir/wslconfig" <<'EOF'
 {{ template "wslconfig" . -}}
 EOF
+cat > "$temp_dir/wsl-loopback-routes" <<'EOF'
+{{ template "wsl-loopback-routes" . -}}
+EOF
+cat > "$temp_dir/wsl-loopback-routes.service" <<'EOF'
+{{ template "wsl-loopback-routes.service" . -}}
+EOF
 
 system_changed=false
 cmp -s "$temp_dir/wsl.conf" /etc/wsl.conf || system_changed=true
@@ -33,4 +39,15 @@ if ! cmp -s "$temp_dir/wslconfig" "$windows_home/.wslconfig"; then
   [[ ! -f "$windows_home/.wslconfig" ]] || cp -a "$windows_home/.wslconfig" "$windows_home/.wslconfig.bak"
   install -m 644 "$temp_dir/wslconfig" "$windows_home/.wslconfig"
 fi
+
+service_changed=false
+cmp -s "$temp_dir/wsl-loopback-routes" /usr/local/sbin/wsl-loopback-routes || service_changed=true
+cmp -s "$temp_dir/wsl-loopback-routes.service" /etc/systemd/system/wsl-loopback-routes.service || service_changed=true
+
+if [[ "$service_changed" == true ]]; then
+  sudo install -m 755 "$temp_dir/wsl-loopback-routes" /usr/local/sbin/wsl-loopback-routes
+  sudo install -m 644 "$temp_dir/wsl-loopback-routes.service" /etc/systemd/system/wsl-loopback-routes.service
+  sudo systemctl daemon-reload
+fi
+sudo systemctl enable --now wsl-loopback-routes.service
 {{ end -}}

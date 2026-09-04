@@ -41,12 +41,22 @@
 	helper =
 	helper = !gh auth git-credential
 
+{{ if .work -}}
 [credential "https://dev.azure.com"]
-	helper = !git-credential-manager-windows
+{{- if .isWSL }}
+	helper = !'/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe'
+{{- else }}
+	helper = manager
+{{- end }}
 	useHttpPath = true
 
 [credential "https://*.visualstudio.com"]
-	helper = !git-credential-manager-windows
+{{- if .isWSL }}
+	helper = !'/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe'
+{{- else }}
+	helper = manager
+{{- end }}
+{{- end }}
 
 [coderabbit]
  	machineId = cli/3b6783e4de2f405aba3006a22ff8817a
