@@ -4,14 +4,21 @@ This document outlines global rules for Aria's agents to follow.
 
 ## Architecture
 
-Agents run on a Linux devbox. The devbox is the server: the code, dev
-servers, the reverse proxy, the private CA, and agent tooling live there.
-Clients are any device the user drives — Mac host, PC desktop. A client
-never runs the agent's tooling. Browser
+Agents run on a Linux devbox. The devbox is a Lima VM with no mount to the
+host filesystem. The devbox is the server: the code, dev servers, the
+reverse proxy, the private CA, and agent tooling live there. Clients are
+any device the user drives — Mac host, PC desktop, phone. The phone is a
+primary client. A client never runs the agent's tooling. Browser
 automation connects from the server to a browser on a client over CDP, or
 falls back to a headless browser on the server. URLs that a client must
 load stay reachable from the client network (Tailscale or published DNS),
-never server-side localhost.
+never server-side localhost. No shared filesystem exists between server
+and clients. When the user must view a file, start a loopback server and
+publish it with `tailscale serve --bg --set-path=/<unique-path> <port>`.
+Read the node DNS name with `tailscale status --json`, then hand over the
+full HTTPS URL. Inspect existing Serve mappings first. Do not replace or
+reset mappings you did not start. For T3 Code dev servers, use `vp run dev
+--share`; do not configure Tailscale Serve by hand. Keep output readable on
 
 ## Rules
 
