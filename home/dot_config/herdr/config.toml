@@ -77,11 +77,8 @@ onboarding = false
 # rename_workspace = "prefix+shift+w"
 # close_workspace = "prefix+shift+d"
 
-[[keys.command]]
-key = "prefix+shift+a"
-type = "plugin_action"
-command = "aamini.jj.new"
-description = "JJ workspace: create"
+# Create worktrees with herdr's built-in new_worktree (prefix+shift+g);
+# the aamini.jj plugin adopts them as jj workspaces automatically.
 
 [[keys.command]]
 key = "prefix+a"

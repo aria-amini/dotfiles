@@ -5821,18 +5821,8 @@ url = "https://github.com/LuaLS/lua-language-server/releases/download/3.18.2/lua
 url_api = "https://api.github.com/repos/LuaLS/lua-language-server/releases/assets/396269455"
 
 [[tools."github:aria-amini/jj"]]
-version = "0.44.0-aria.20260907-1"
+version = "v0.46.0-main.20260908.1"
 backend = "github:aria-amini/jj"
-
-[tools."github:aria-amini/jj"."platforms.linux-arm64"]
-checksum = "sha256:fae726927e57b49ac849214d7fc6066d6d482147a9c2ed70e5744fc79ac14926"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260907-1/jj-v0.44.0-aria.20260907-1-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/549198954"
-
-[tools."github:aria-amini/jj"."platforms.linux-arm64-musl"]
-checksum = "sha256:fae726927e57b49ac849214d7fc6066d6d482147a9c2ed70e5744fc79ac14926"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260907-1/jj-v0.44.0-aria.20260907-1-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/549198954"
 
 [[tools."github:aria-amini/jj-ryu"]]
 version = "0.2.3"

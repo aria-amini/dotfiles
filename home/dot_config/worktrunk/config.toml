@@ -1,0 +1,17 @@
+worktree-path = "~/.herdr/workspaces/{{ repo }}/{{ branch | sanitize_hash }}"
+
+[pre-start]
+jj = 'd="$(git rev-parse --git-common-dir 2>/dev/null)" || exit 0; [ -e "$(dirname "$d")/.jj" ] || exit 0; exec jj git worktree adopt'
+
+[post-start]
+copy = "wt step copy-ignored"
+
+[remove]
+foreground = true
+
+[post-remove]
+close-herdr = "herdr-jj close --name '{{ worktree_name }}' --path '{{ worktree_path }}' --primary '{{ primary_worktree_path }}'"
+forget-jj = "jj workspace forget {{ worktree_name }}; git show-ref --verify --quiet refs/heads/{{ branch }} || jj bookmark delete {{ branch }}"
+
+[step.copy-ignored]
+exclude = [".env.compose", "**/.venv/", "*node_modules/*"]

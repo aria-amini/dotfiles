@@ -53,24 +53,6 @@ jjui() {
   return "$exit_code"
 }
 
-wt() {
-  if [[ "$1" == "switch" ]]; then
-    local output exit_code destination result_file
-    result_file="$(mktemp "${TMPDIR:-/tmp}/wt-result.XXXXXX")" || return
-    output="$(WT_RESULT_FILE="$result_file" command wt "$@")"
-    exit_code=$?
-    [[ -n "$output" ]] && print -r -- "$output"
-    destination="$(<"$result_file")"
-    command rm -f -- "$result_file"
-    if [[ -n "$destination" ]]; then
-      print -r -- "$destination"
-      builtin cd -- "$destination"
-    fi
-    return "$exit_code"
-  fi
-  command wt "$@"
-}
-
 gr() {
   local root
   root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(jj root 2>/dev/null) || return 1
@@ -125,6 +107,8 @@ export OLLAMA_HOST="http://host.lima.internal:11434"
 # ── Completion ────────────────────────────────────────────────
 autoload -Uz compinit
 compinit
+
+eval "$(wt config shell init zsh)"
 
 # ── FZF ───────────────────────────────────────────────────────
 source <(fzf --zsh)
