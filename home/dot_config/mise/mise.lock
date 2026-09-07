@@ -5821,38 +5821,18 @@ url = "https://github.com/LuaLS/lua-language-server/releases/download/3.18.2/lua
 url_api = "https://api.github.com/repos/LuaLS/lua-language-server/releases/assets/396269455"
 
 [[tools."github:aria-amini/jj"]]
-version = "0.44.0-aria.20260831-1"
+version = "0.44.0-aria.20260907-1"
 backend = "github:aria-amini/jj"
 
 [tools."github:aria-amini/jj"."platforms.linux-arm64"]
-checksum = "sha256:cc2d0286c53a40f71073da3bf7671c19c8e84350961dbc59d58b1ada1a6b1db9"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260831-1/jj-v0.44.0-aria.20260831-1-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/545949571"
+checksum = "sha256:fae726927e57b49ac849214d7fc6066d6d482147a9c2ed70e5744fc79ac14926"
+url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260907-1/jj-v0.44.0-aria.20260907-1-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/549198954"
 
-[tools."github:aria-amini/jj"."platforms.linux-arm64-baseline"]
-checksum = "sha256:cc2d0286c53a40f71073da3bf7671c19c8e84350961dbc59d58b1ada1a6b1db9"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260831-1/jj-v0.44.0-aria.20260831-1-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/545949571"
-
-[tools."github:aria-amini/jj"."platforms.linux-x64"]
-checksum = "sha256:ee86a29a06ee4509bfdaded00bf5a268773c7bcc5bcad18caf9e37e4c74fa232"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260831-1/jj-v0.44.0-aria.20260831-1-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/538176662"
-
-[tools."github:aria-amini/jj"."platforms.linux-x64-baseline"]
-checksum = "sha256:ee86a29a06ee4509bfdaded00bf5a268773c7bcc5bcad18caf9e37e4c74fa232"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260831-1/jj-v0.44.0-aria.20260831-1-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/538176662"
-
-[tools."github:aria-amini/jj"."platforms.linux-x64-musl"]
-checksum = "sha256:ee86a29a06ee4509bfdaded00bf5a268773c7bcc5bcad18caf9e37e4c74fa232"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260831-1/jj-v0.44.0-aria.20260831-1-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/538176662"
-
-[tools."github:aria-amini/jj"."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:ee86a29a06ee4509bfdaded00bf5a268773c7bcc5bcad18caf9e37e4c74fa232"
-url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260831-1/jj-v0.44.0-aria.20260831-1-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/538176662"
+[tools."github:aria-amini/jj"."platforms.linux-arm64-musl"]
+checksum = "sha256:fae726927e57b49ac849214d7fc6066d6d482147a9c2ed70e5744fc79ac14926"
+url = "https://github.com/aria-amini/jj/releases/download/v0.44.0-aria.20260907-1/jj-v0.44.0-aria.20260907-1-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/jj/releases/assets/549198954"
 
 [[tools."github:aria-amini/jj-ryu"]]
 version = "0.2.3"
@@ -6330,6 +6310,65 @@ url_api = "https://api.github.com/repos/roblillack/imgap/releases/assets/4053338
 checksum = "sha256:4284af5a9c11ec7c9f42924d5c40fe3b4f100f3bd39e9c774c500afaf82038b7"
 url = "https://github.com/roblillack/imgap/releases/download/v0.4.0/imgap-windows-x86_64.exe"
 url_api = "https://api.github.com/repos/roblillack/imgap/releases/assets/405333889"
+
+[[tools."github:sjawhar/jj"]]
+version = "0.43.0-sami.20260722-194522"
+backend = "github:sjawhar/jj"
+
+[tools."github:sjawhar/jj"."platforms.linux-arm64"]
+checksum = "sha256:e8ee2171581439e6f7059fcecfec9c790217514e92d84fe6f2e012aa54056ced"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360723"
+
+[tools."github:sjawhar/jj"."platforms.linux-arm64-musl"]
+checksum = "sha256:e8ee2171581439e6f7059fcecfec9c790217514e92d84fe6f2e012aa54056ced"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360723"
+
+[tools."github:sjawhar/jj"."platforms.linux-x64"]
+checksum = "sha256:5cc142d6f9aa8f1bece9c841771949c01fb71b26846bfcceae60a0e155a169c8"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360724"
+
+[tools."github:sjawhar/jj"."platforms.linux-x64-baseline"]
+checksum = "sha256:5cc142d6f9aa8f1bece9c841771949c01fb71b26846bfcceae60a0e155a169c8"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360724"
+
+[tools."github:sjawhar/jj"."platforms.linux-x64-musl"]
+checksum = "sha256:5cc142d6f9aa8f1bece9c841771949c01fb71b26846bfcceae60a0e155a169c8"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360724"
+
+[tools."github:sjawhar/jj"."platforms.linux-x64-musl-baseline"]
+checksum = "sha256:5cc142d6f9aa8f1bece9c841771949c01fb71b26846bfcceae60a0e155a169c8"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360724"
+
+[tools."github:sjawhar/jj"."platforms.macos-arm64"]
+checksum = "sha256:b280e3de1a0a6babf52e6eb3a539a51548c0d33ba78728186e608582001cb999"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360725"
+
+[tools."github:sjawhar/jj"."platforms.macos-x64"]
+checksum = "sha256:6bc36741deca3a7129ab8fa456f4812081ac65fd41d0b7c66b7ca83900b9e880"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360717"
+
+[tools."github:sjawhar/jj"."platforms.macos-x64-baseline"]
+checksum = "sha256:6bc36741deca3a7129ab8fa456f4812081ac65fd41d0b7c66b7ca83900b9e880"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360717"
+
+[tools."github:sjawhar/jj"."platforms.windows-x64"]
+checksum = "sha256:5bc154f77eadd4da9c0438ba34f314c819233dc341342705eb2a9fef920ddb55"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360719"
+
+[tools."github:sjawhar/jj"."platforms.windows-x64-baseline"]
+checksum = "sha256:5bc154f77eadd4da9c0438ba34f314c819233dc341342705eb2a9fef920ddb55"
+url = "https://github.com/sjawhar/jj/releases/download/v0.43.0-sami.20260722-194522/jj-v0.43.0-sami.20260722-194522-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/sjawhar/jj/releases/assets/486360719"
 
 [[tools."github:tamasfe/taplo"]]
 version = "0.10.0"
@@ -8537,6 +8576,10 @@ backend = "npm:oxfmt"
 version = "1.69.0"
 backend = "npm:oxlint"
 
+[[tools."npm:playwriter"]]
+version = "0.4.0"
+backend = "npm:playwriter"
+
 [[tools."npm:pnpm"]]
 version = "11.17.0"
 backend = "npm:pnpm"
@@ -8739,11 +8782,11 @@ url = "https://github.com/earendil-works/pi/releases/download/v0.82.1/pi-windows
 url_api = "https://api.github.com/repos/earendil-works/pi/releases/assets/489434441"
 
 [[tools."pipx:azure-cli"]]
-version = "2.89.1"
+version = "2.90.0"
 backend = "pipx:azure-cli"
 
 [tools."pipx:azure-cli".options]
-uvx_args = "--prerelease=allow --overrides /home/aria-amini/.config/mise/azure-cli-overrides.txt"
+uvx_args = "--prerelease=allow --overrides /home/aamini.guest/.config/mise/azure-cli-overrides.txt"
 
 [[tools."pipx:basedpyright"]]
 version = "1.39.9"
@@ -9392,6 +9435,39 @@ provenance = "github-attestations"
 [[tools.vite-plus]]
 version = "0.2.6"
 backend = "vfox:vite-plus"
+
+[tools.vite-plus."platforms.linux-arm64"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-linux-arm64-gnu/-/vite-plus-cli-linux-arm64-gnu-0.2.6.tgz"
+
+[tools.vite-plus."platforms.linux-arm64-musl"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-linux-arm64-gnu/-/vite-plus-cli-linux-arm64-gnu-0.2.6.tgz"
+
+[tools.vite-plus."platforms.linux-x64"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-linux-x64-gnu/-/vite-plus-cli-linux-x64-gnu-0.2.6.tgz"
+
+[tools.vite-plus."platforms.linux-x64-baseline"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-linux-x64-gnu/-/vite-plus-cli-linux-x64-gnu-0.2.6.tgz"
+
+[tools.vite-plus."platforms.linux-x64-musl"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-linux-x64-gnu/-/vite-plus-cli-linux-x64-gnu-0.2.6.tgz"
+
+[tools.vite-plus."platforms.linux-x64-musl-baseline"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-linux-x64-gnu/-/vite-plus-cli-linux-x64-gnu-0.2.6.tgz"
+
+[tools.vite-plus."platforms.macos-arm64"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-darwin-arm64/-/vite-plus-cli-darwin-arm64-0.2.6.tgz"
+
+[tools.vite-plus."platforms.macos-x64"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-darwin-x64/-/vite-plus-cli-darwin-x64-0.2.6.tgz"
+
+[tools.vite-plus."platforms.macos-x64-baseline"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-darwin-x64/-/vite-plus-cli-darwin-x64-0.2.6.tgz"
+
+[tools.vite-plus."platforms.windows-x64"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-win32-x64-msvc/-/vite-plus-cli-win32-x64-msvc-0.2.6.tgz"
+
+[tools.vite-plus."platforms.windows-x64-baseline"]
+url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-win32-x64-msvc/-/vite-plus-cli-win32-x64-msvc-0.2.6.tgz"
 
 [[tools.worktrunk]]
 version = "0.67.0"
