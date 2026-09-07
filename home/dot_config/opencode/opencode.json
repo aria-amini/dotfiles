@@ -1,8 +1,7 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"instructions": [
-		"~/AGENTS.md",
-		"~/.config/opencode/instructions/workspaces.md"
+		"~/AGENTS.md"
 	],
 	"agent": {
 		"explore": {
@@ -12,13 +11,7 @@
 	"permission": {
 		"*": "allow",
 		"bash": {
-			"*": "allow",
-			"jj workspace add": "deny",
-			"jj workspace add *": "deny",
-			"jj ws add": "deny",
-			"jj ws add *": "deny",
-			"wt switch --create *": "deny",
-			"wt switch -c *": "deny"
+			"*": "allow"
 		}
 	},
 	"formatter": {
