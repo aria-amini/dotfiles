@@ -24,6 +24,14 @@ auto-track-bookmarks = "*"
 # prevents parallel agents from rewriting each other's commits.
 "immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ @)"
 
+# The quiet jjui view shows default-branch tips and only stacks that belong to
+# Aria or an active workspace. Everything remains tracked and searchable.
+"jjui_refs()" = 'present(trunk()) | present(bookmarks(exact:"main")) | remote_bookmarks(exact:"main")'
+"jjui_owned_refs()" = 'bookmarks(glob:"aamini/*") | remote_bookmarks(glob:"aamini/*") | (working_copies() & (bookmarks(glob:"aamini/*") | bookmarks(glob:"t3code/*"))::)'
+"main_delta()" = 'present(main@upstream..main)'
+"fork()" = 'jjui_refs() | present(fork_point(main | main@upstream)) | main_delta()'
+"daily()" = 'fork() | (mutable() & ::jjui_owned_refs())'
+
 # Only honored by sjawhar/jj fork (colocated-workspaces stack); ignored by stock jj.
 [git]
 auto-register-worktrees = true

@@ -2,7 +2,7 @@
 "selected" = { bg = "#313244" }
 
 [revisions]
-revset = "trunk() | (::(bookmarks() | working_copies()) ~ ::trunk()) | (bookmarks() | working_copies())::"
+revset = "daily()"
 
 [preview]
 position = "bottom"
