@@ -15,7 +15,7 @@ local function list_workspaces()
 	end
 	local workspaces = {}
 	for line in out:gmatch("[^\n]+") do
-		local name, root = line:match("^(.-)\t(.+)$")
+		local name, root = line:match("^(.-)\t(.*)$")
 		if name and root then
 			table.insert(workspaces, { name = name, root = root })
 		end
@@ -34,6 +34,13 @@ local function find_workspace(workspaces, root, name)
 			return ws
 		end
 	end
+end
+
+local function workspace_exists(root)
+	if not root or root == "" then
+		return false
+	end
+	return os.rename(root, root) ~= nil
 end
 
 local function record_workspace(root)
@@ -141,7 +148,7 @@ function setup(config)
 			end
 		end
 		for _, ws in ipairs(workspaces) do
-			if ws.root ~= current then
+			if ws.root ~= current and workspace_exists(ws.root) then
 				table.insert(ordered, ws)
 			end
 		end
@@ -247,7 +254,11 @@ function setup(config)
 		local removable = {}
 		for _, ws in ipairs(workspaces) do
 			if ws.root ~= current then
-				table.insert(removable, ws)
+				table.insert(removable, {
+					name = ws.name,
+					root = ws.root,
+					stale = not workspace_exists(ws.root),
+				})
 			end
 		end
 		if #removable == 0 then
@@ -257,7 +268,11 @@ function setup(config)
 
 		local options = {}
 		for _, ws in ipairs(removable) do
-			table.insert(options, ws.name .. "  (" .. ws.root .. ")")
+			if ws.stale then
+				table.insert(options, ws.name .. "  (dir missing, forget)")
+			else
+				table.insert(options, ws.name .. "  (" .. ws.root .. ")")
+			end
 		end
 
 		local choice = choose({
@@ -288,8 +303,15 @@ function setup(config)
 			return
 		end
 
-		local _, run_err =
-			jj("util", "exec", "--", "wt", "remove", "-y", target.root)
+		local ok, run_err
+		if target.stale then
+			-- The directory is gone, so wt remove has nothing to remove;
+			-- only jj still tracks the workspace.
+			ok, run_err = jj("workspace", "forget", target.name)
+		else
+			ok, run_err =
+				jj("util", "exec", "--", "wt", "remove", "-y", target.root)
+		end
 		if run_err then
 			flash({
 				text = "delete failed: " .. tostring(run_err),

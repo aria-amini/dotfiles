@@ -24,15 +24,16 @@ auto-track-bookmarks = "*"
 # prevents parallel agents from rewriting each other's commits.
 "immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ ((::bookmarks(glob:\"aamini/*\") | bookmarks(glob:\"aamini/*\")::) | @))"
 
-# The quiet jjui view shows default-branch tips and only stacks that belong to
-# Aria or an active workspace. Everything remains tracked and searchable.
-# t3code thread branches are plain git worktree branches (no jj workspace),
-# so their bookmark tips are shown directly.
+# The quiet jjui view shows default-branch tips, Aria's stacks, and the @
+# commit of every workspace, so each worktree stays visible and stays
+# protected from rewrites by immutable_heads(). Each detached worktree line
+# also shows its base commit, like builtin_log does. t3code/* thread
+# bookmarks are shown even when no workspace tracks them.
 "jjui_refs()" = 'present(trunk()) | present(bookmarks(exact:"main")) | remote_bookmarks(exact:"main") | bookmarks(glob:"t3code/*")'
-"jjui_owned_refs()" = 'bookmarks(glob:"aamini/*") | remote_bookmarks(glob:"aamini/*") | bookmarks(glob:"t3code/*") | (working_copies() & (bookmarks(glob:"aamini/*") | bookmarks(glob:"t3code/*"))::)'
+"jjui_owned_refs()" = 'bookmarks(glob:"aamini/*") | remote_bookmarks(glob:"aamini/*") | bookmarks(glob:"t3code/*") | working_copies()'
 "main_delta()" = 'present(main@upstream..main)'
 "fork()" = 'jjui_refs() | present(fork_point(main | main@upstream)) | main_delta()'
-"daily()" = 'fork() | present(trunk()::@) | (::jjui_owned_refs() ~ ::builtin_immutable_heads())'
+"daily()" = 'fork() | present(trunk()::@) | ancestors(::jjui_owned_refs() ~ ::builtin_immutable_heads(), 2)'
 
 # Merged upstream in jj 0.46: `jj workspace add` registers a git worktree.
 [git]
