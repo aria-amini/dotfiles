@@ -6,8 +6,8 @@ jj = 'd="$(git rev-parse --git-common-dir 2>/dev/null)" || exit 0; [ -e "$(dirna
 [post-start]
 copy = "wt step copy-ignored"
 
-[remove]
-foreground = true
+[list]
+json-schema = 2
 
 [post-remove]
 close-herdr = "herdr-jj close --name '{{ worktree_name }}' --path '{{ worktree_path }}' --primary '{{ primary_worktree_path }}'"
