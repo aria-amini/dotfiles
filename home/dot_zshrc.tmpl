@@ -16,7 +16,7 @@ export OLLAMA_HOST="http://127.0.0.1:11434"
 export DOTFILES={{ .chezmoi.workingTree | quote }}
 # Global-only mise setting (kept out of .config/mise/config.toml so jj
 # workspace copies of that file loaded as project configs don't warn).
-export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspaces/"
+export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspaces/:$HOME/.t3/worktrees/:$HOME/.t3/workspaces/"
 
 # ── Path ──────────────────────────────────────────────────────
 export PATH="$PATH:/usr/sbin:/sbin"
