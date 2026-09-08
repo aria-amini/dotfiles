@@ -168,3 +168,23 @@ fi
 pitchfork proxy status | grep -q 'Trusted: yes' || sudo "$pitchfork_bin" proxy trust
 echo "Setup complete. Reboot (or restart the supervisor) to run the boot service."
 '''
+
+[tasks.t3-fork-update]
+description = "Update the T3 Code background service to the newest fork runtime release"
+dir = "{{cwd}}"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+api="https://api.github.com/repos/aria-amini/t3code/releases/tags/fork-runtime"
+asset="$(curl -sf "$api" | jq -r '.assets[].name' | grep -E '^t3-[0-9]+\.[0-9]+\.[0-9]+-fork\.[0-9]+\.tgz$' | sort -V | tail -1)"
+if [ -z "$asset" ]; then
+  echo "No fork runtime tarball on the fork-runtime release yet." >&2
+  exit 1
+fi
+tgz="https://github.com/aria-amini/t3code/releases/download/fork-runtime/$asset"
+echo "Updating T3 Code with $asset"
+node_bin_dir="$(dirname "$(mise -C "$HOME/dotfiles" which node)")"
+export T3_RUNTIME_PACKAGE="$tgz"
+env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" \
+  "$node_bin_dir/npx" --yes "$tgz" service update
+'''
