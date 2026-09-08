@@ -289,7 +289,7 @@ function setup(config)
 		end
 
 		local _, run_err =
-			jj("util", "exec", "--", "wt", "remove", "-y", target.name)
+			jj("util", "exec", "--", "wt", "remove", "-y", target.root)
 		if run_err then
 			flash({
 				text = "delete failed: " .. tostring(run_err),
