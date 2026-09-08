@@ -1,0 +1,32 @@
+# Fork workflow for t3code clones: origin is the aamini fork, upstream is
+# the source repo. Track only our bookmarks; everything else stays untracked
+# (hidden from the default log, still addressable as name@remote, still
+# immutable via builtin_immutable_heads()). Add paths here for other clones.
+
+--when.repositories = ["~/apps/t3code", "~/forks"]
+
+[remotes]
+origin.auto-track-bookmarks = "aamini/* | main"
+# Upstream main stays untracked: a tracked main@upstream conflicts against
+# local main whenever the fork drifts, and conflicted bookmarks break
+# revsets that name `main` (jjui's daily()).
+upstream.auto-track-bookmarks = "aamini/*"
+# Upstream carries ~950 contributor branches; only main ever gets imported.
+upstream.fetch-bookmarks = "main"
+
+[revsets]
+# Keep upstream's tip on the default log so fork drift stays visible.
+log = 'builtin_log() | main@upstream'
+
+[revset-aliases]
+"trunk()" = "main@origin"
+
+# Everything reachable from another workspace's @ is off-limits to this one;
+# prevents parallel agents from rewriting each other's commits. Aamini work
+# stays mutable so stacks can be rebased freely.
+"immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ ((::bookmarks(glob:\"aamini/*\") | bookmarks(glob:\"aamini/*\")::) | @))"
+
+# `jj git push --change` lands work in the aamini/ namespace, where the
+# auto-track pattern above picks it back up on the next fetch.
+[templates]
+git_push_bookmark = '"aamini/push-" ++ change_id.short()'

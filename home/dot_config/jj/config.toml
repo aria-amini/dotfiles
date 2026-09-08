@@ -16,24 +16,11 @@ email = "amini5454@gmail.com"
 max-new-file-size = "10MiB"
 auto-update-stale = false
 
-[remotes.origin]
-auto-track-bookmarks = "*"
-
 [revset-aliases]
 # Everything reachable from another workspace's @ is off-limits to this one;
-# prevents parallel agents from rewriting each other's commits.
-"immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ ((::bookmarks(glob:\"aamini/*\") | bookmarks(glob:\"aamini/*\")::) | @))"
-
-# The quiet jjui view shows default-branch tips, Aria's stacks, and the @
-# commit of every workspace, so each worktree stays visible and stays
-# protected from rewrites by immutable_heads(). Each detached worktree line
-# also shows its base commit, like builtin_log does. t3code/* thread
-# bookmarks are shown even when no workspace tracks them.
-"jjui_refs()" = 'present(trunk()) | present(bookmarks(exact:"main")) | remote_bookmarks(exact:"main") | bookmarks(glob:"t3code/*")'
-"jjui_owned_refs()" = 'bookmarks(glob:"aamini/*") | remote_bookmarks(glob:"aamini/*") | bookmarks(glob:"t3code/*") | working_copies()'
-"main_delta()" = 'present(main@upstream..main)'
-"fork()" = 'jjui_refs() | present(fork_point(main | main@upstream)) | main_delta()'
-"daily()" = 'fork() | present(trunk()::@) | ancestors(::jjui_owned_refs() ~ ::builtin_immutable_heads(), 2)'
+# prevents parallel agents from rewriting each other's commits. Forks override
+# this to keep aamini stacks rebasable (see conf.d/t3code.toml).
+"immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ @)"
 
 # Merged upstream in jj 0.46: `jj workspace add` registers a git worktree.
 [git]
