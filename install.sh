@@ -273,11 +273,11 @@ else
   if [ -f "$HOME/.config/systemd/user/t3code.service" ]; then
     run_task "Updating T3 Code" \
       env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" \
-      "$node_bin_dir/npx" --yes t3@0.0.38 service update
+      "$node_bin_dir/npx" --yes t3@0.0.40 service update
   else
     run_task "Installing T3 Code" \
       env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" \
-      "$node_bin_dir/npx" --yes t3@0.0.38 service install
+      "$node_bin_dir/npx" --yes t3@0.0.40 service install
   fi
 fi
 
