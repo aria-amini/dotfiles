@@ -2,7 +2,7 @@
 "selected" = { bg = "#313244" }
 
 [revisions]
-revset = "builtin_log()"
+revset = ""
 
 [preview]
 position = "bottom"

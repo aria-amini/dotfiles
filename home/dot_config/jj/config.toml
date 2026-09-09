@@ -18,8 +18,8 @@ auto-update-stale = false
 
 [revset-aliases]
 # Everything reachable from another workspace's @ is off-limits to this one;
-# prevents parallel agents from rewriting each other's commits. Forks override
-# this to keep aamini stacks rebasable (see conf.d/t3code.toml).
+# prevents parallel agents from rewriting each other's commits. Work in your
+# own workspace and rebase to sync.
 "immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ @)"
 
 # Merged upstream in jj 0.46: `jj workspace add` registers a git worktree.
