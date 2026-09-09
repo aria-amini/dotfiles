@@ -169,6 +169,12 @@ section "Developer Tools"
 run_task "Installing managed tools" mise install --quiet
 run_task "Installing repository tools" mise -C "$HOME/dotfiles" install --quiet --monorepo
 run_task "Configuring repository tools" mise -C "$HOME/dotfiles" --quiet //:install
+run_task "Installing herdr jj integration" uv tool install \
+  --python 3.14 \
+  --editable \
+  --reinstall \
+  "$HOME/dotfiles/tools/herdr-jj"
+run_task "Linking herdr jj plugin" herdr plugin link "$HOME/dotfiles/tools/herdr-jj/herdr-plugin"
 if [ -f "$HOME/ms-scripts/packages/ms-scripts/pyproject.toml" ]; then
   run_task "Installing Microsoft scripts" uv tool install \
     --python 3.14 \

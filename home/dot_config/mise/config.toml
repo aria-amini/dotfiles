@@ -92,6 +92,7 @@ imagemagick = "latest"
 # VCS
 "github:aria-amini/jj" = "v0.46.0-adopt.20260908.1"
 "github:aria-amini/jj-ryu" = "0.2.3"
+worktrunk = "latest"
 "nix:jjui" = "latest"
 "npm:hunkdiff" = "latest"
 "difftastic" = "latest"
