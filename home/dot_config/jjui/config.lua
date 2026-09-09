@@ -40,7 +40,14 @@ local function workspace_exists(root)
 	if not root or root == "" then
 		return false
 	end
-	return os.rename(root, root) ~= nil
+	-- os.rename fails with "file exists" on existing paths under gopher-lua,
+	-- so probe the workspace's .jj entry instead.
+	local file = io.open(root .. "/.jj", "r")
+	if file then
+		file:close()
+		return true
+	end
+	return false
 end
 
 local function record_workspace(root)
