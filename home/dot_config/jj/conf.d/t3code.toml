@@ -15,10 +15,9 @@ upstream.auto-track-bookmarks = "aamini/*"
 upstream.fetch-bookmarks = "main"
 
 [revsets]
-# Default log: the stock view, minus foreign mutable commits. Synced upstream
-# history is immutable and still visible; junk left behind by forgotten
-# bookmarks or partial syncs is not.
-log = 'builtin_log() & ~(mutable() & ~mine())'
+# Default log: the stock view minus foreign mutable junk, plus the fork's own
+# mainline. Upstream appears only as the tagged tip each sync merge brought in.
+log = 'builtin_log() & ~(mutable() & ~mine()) | (::main ~ ::main@upstream) | (parents(merges() & ::main) & tags())'
 
 [revset-aliases]
 "trunk()" = "main@origin"
