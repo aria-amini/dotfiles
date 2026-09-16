@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#MISE description="One-time Pitchfork proxy setup: TLD, bind host, boot service, CA trust"
+#MISE dir="{{cwd}}"
+#USAGE arg "[host]" help="Proxy bind address: 127.0.0.1 (laptop) or 0.0.0.0 (remote devbox)" default="127.0.0.1"
+set -euo pipefail
+pitchfork_bin="$(mise which pitchfork)"
+pitchfork settings set proxy.tld lvh.ariaamini.com --global
+pitchfork settings set proxy.host "$usage_host" --global
+pitchfork settings set proxy.sync_hosts false --global
+pitchfork settings set supervisor.user "$(id -un)" --global
+if systemctl is-enabled pitchfork.service &>/dev/null; then
+  sudo "$pitchfork_bin" boot disable
+fi
+if [ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -gt 443 ]; then
+  sudo setcap cap_net_bind_service=+ep "$pitchfork_bin"
+fi
+sudo loginctl enable-linger "$(id -un)"
+pitchfork boot enable
+pitchfork supervisor status >/dev/null 2>&1 || pitchfork supervisor start
+ca="${XDG_STATE_HOME:-$HOME/.local/state}/pitchfork/proxy/ca.pem"
+for _ in $(seq 1 20); do
+  [ -f "$ca" ] && break
+  sleep 0.5
+done
+if [ ! -f "$ca" ]; then
+  echo "CA certificate was not generated at $ca" >&2
+  exit 1
+fi
+pitchfork proxy status | grep -q 'Trusted: yes' || sudo "$pitchfork_bin" proxy trust
+echo "Setup complete. Reboot (or restart the supervisor) to run the boot service."

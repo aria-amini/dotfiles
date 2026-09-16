@@ -1,41 +1,25 @@
 [env]
-_.file = [{ path = "~/.env" }, { path = "~/.env.local", required = false }]
-# mise-nix replays each nix package's build env (postgresql injects
-# CFLAGS=-flto, breaking all Rust builds); PATH entries are all we need
-MISE_NIX_ENV_MODE = "path-only"
+_.file = [{ path = "~/.env" }]
 
 [settings]
 experimental = true
 minimum_release_age = "1d"
-minimum_release_age_excludes = ["pipx:*"]
 idiomatic_version_file_enable_tools = ["node"]
-# trusted_config_paths is set via MISE_TRUSTED_CONFIG_PATHS in .zshrc: it is a
-# global-only setting and mise warns when this file is loaded as a project
-# config inside jj workspace copies of the dotfiles repo.
 
 [plugins]
 nix = "https://github.com/jbadeau/mise-nix.git"
 vite-plus = "{{ env.HOME }}/dotfiles/tools/mise-vite-plus"
 
 [tools]
-#===============================================================================
-# Language Toolchains
-#===============================================================================
-
-# Python
 python = "3.14"
 uv = "latest"
 "pipx:basedpyright" = "latest"
 "pipx:ruff" = "latest"
-"pipx:copier" = "latest"
 
-# Rust
 rust = "latest"
 
-# Dotnet
 dotnet = "10"
 
-# Node
 vite-plus = "latest"
 node = "22"
 bun = "latest"
@@ -60,18 +44,15 @@ hadolint = "2.14.0"
 "npm:jsonlint" = "1.6.3"
 shellcheck = "latest"
 
-#===============================================================================
-# CLIs/Editors
-#===============================================================================
-
 # Shell
 "github:herdrdev/herdr" = "0.8.2"
 "oh-my-posh" = "latest"
 
 # AI
 "opencode" = "latest"
-claude = "latest"
-"npm:lavish-axi" = "latest"
+"npm:@openai/codex" = "latest"
+pi = "latest"
+"npm:greptile" = "latest"
 
 # nvim
 "neovim" = "0.12.2"
@@ -82,8 +63,10 @@ claude = "latest"
 make = "latest"
 "nix:gcc" = "15.2.0"
 
-# misc
+# database 
 "nix:postgresql_18" = "latest"
+sqlite = "latest"
+
 # images
 imagemagick = "latest"
 "github:danielgatis/imgcat" = "latest"
@@ -100,13 +83,12 @@ worktrunk = "latest"
 "nix:gh-dash" = "latest"
 
 # Devops
-# uvx_args: every recent azure-cli pins azure-batch==15.0.0b1, deleted from
-# PyPI — override to 15.0.0b2 until upstream fixes the pin.
 "pipx:azure-cli" = { version = "latest", uvx_args = "--prerelease=allow --overrides {{ env.HOME }}/.config/mise/azure-cli-overrides.txt" }
 kubectl = "latest"
 helm = "latest"
 pulumi = "latest"
 railway = "5.23.0"
+"npm:varlock" = "1.11.0"
 
 # CLIs 
 "bat" = "latest"
@@ -119,73 +101,8 @@ jq = "latest"
 "zoxide" = "latest"
 "delta" = "latest"
 "ripgrep" = "latest"
-"lazygit" = "latest"
 "nix:erdtree" = "latest"
-pi = "latest"
-"npm:varlock" = "1.11.0"
-"npm:greptile" = "latest"
-"npm:chrome-devtools-axi" = "latest"
-# Pinned: the boot service unit records this install path; upgrades move it.
+"pipx:copier" = "latest"
 pitchfork = "2.21.0"
-sqlite = "latest"
-"npm:@openai/codex" = "latest"
 
-[tasks.new-tanstack-app]
-description = "Scaffold a new TanStack Start app from the dotfiles template"
-dir = "{{cwd}}"
-usage = 'arg "<target>" help="Destination directory for the new app"'
-run = 'copier copy --trust "$DOTFILES" "$usage_target"'
-
-[tasks.setup-pitchfork]
-description = "One-time Pitchfork proxy setup: TLD, bind host, boot service, CA trust"
-dir = "{{cwd}}"
-usage = 'arg "[host]" help="Proxy bind address: 127.0.0.1 (laptop) or 0.0.0.0 (remote devbox)" default="127.0.0.1"'
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-pitchfork_bin="$(mise which pitchfork)"
-pitchfork settings set proxy.tld lvh.ariaamini.com --global
-pitchfork settings set proxy.host "$usage_host" --global
-pitchfork settings set proxy.sync_hosts false --global
-pitchfork settings set supervisor.user "$(id -un)" --global
-if systemctl is-enabled pitchfork.service &>/dev/null; then
-  sudo "$pitchfork_bin" boot disable
-fi
-if [ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -gt 443 ]; then
-  sudo setcap cap_net_bind_service=+ep "$pitchfork_bin"
-fi
-sudo loginctl enable-linger "$(id -un)"
-pitchfork boot enable
-pitchfork supervisor status >/dev/null 2>&1 || pitchfork supervisor start
-ca="${XDG_STATE_HOME:-$HOME/.local/state}/pitchfork/proxy/ca.pem"
-for _ in $(seq 1 20); do
-  [ -f "$ca" ] && break
-  sleep 0.5
-done
-if [ ! -f "$ca" ]; then
-  echo "CA certificate was not generated at $ca" >&2
-  exit 1
-fi
-pitchfork proxy status | grep -q 'Trusted: yes' || sudo "$pitchfork_bin" proxy trust
-echo "Setup complete. Reboot (or restart the supervisor) to run the boot service."
-'''
-
-[tasks.t3-fork-update]
-description = "Update the T3 Code background service to the newest fork runtime release"
-dir = "{{cwd}}"
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-api="https://api.github.com/repos/aria-amini/t3code/releases/tags/fork-runtime"
-asset="$(curl -sf "$api" | jq -r '.assets[].name' | grep -E '^t3-[0-9]+\.[0-9]+\.[0-9]+-fork\.[0-9]+\.tgz$' | sort -V | tail -1)"
-if [ -z "$asset" ]; then
-  echo "No fork runtime tarball on the fork-runtime release yet." >&2
-  exit 1
-fi
-tgz="https://github.com/aria-amini/t3code/releases/download/fork-runtime/$asset"
-echo "Updating T3 Code with $asset"
-node_bin_dir="$(dirname "$(mise -C "$HOME/dotfiles" which node)")"
-export T3_RUNTIME_PACKAGE="$tgz"
-env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" \
-  "$node_bin_dir/npx" --yes "$tgz" service update
-'''
+"npm:chrome-devtools-axi" = "latest"
