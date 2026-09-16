@@ -106,3 +106,4 @@ jq = "latest"
 pitchfork = "2.21.0"
 
 "npm:chrome-devtools-axi" = "latest"
+tmux = "latest"
