@@ -37,6 +37,7 @@ alias k='kubectl'
 alias tree='erd'
 alias pr="gh-dash"
 alias gd='hunk diff --watch'
+alias wt='workmux'
 
 jjui() {
   local result_file destination exit_code
@@ -82,6 +83,14 @@ vim()
     nvim "$@"
 }
 
+ta() {
+  if [[ -n "${TMUX:-}" ]]; then
+    print 'already inside tmux' >&2
+    return 1
+  fi
+  exec tmux new-session -A -s main
+}
+
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	command yazi "$@" --cwd-file="$tmp"
@@ -108,8 +117,6 @@ export OLLAMA_HOST="http://host.lima.internal:11434"
 autoload -Uz compinit
 compinit
 
-eval "$(wt config shell init zsh)"
-
 # ── FZF ───────────────────────────────────────────────────────
 source <(fzf --zsh)
 export FZF_DEFAULT_COMMAND='fd --hidden'
@@ -127,6 +134,9 @@ source ~/.config/fzf/fzf-tab/fzf-tab.plugin.zsh
 
 # ── Zoxide ────────────────────────────────────────────────────
 eval "$(zoxide init zsh)"
+
+# ── Workmux ───────────────────────────────────────────────────
+eval "$(workmux completions zsh)"
 
 # ── Theme ─────────────────────────────────────────────────────
 eval "$(oh-my-posh init zsh --config ~/.config/oh-my-posh/themes/theme.toml)"

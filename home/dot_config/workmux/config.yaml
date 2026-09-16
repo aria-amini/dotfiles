@@ -1,0 +1,4 @@
+nerdfont: true
+mode: window
+window_placement: rightmost
+merge_strategy: rebase
