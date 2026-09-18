@@ -13,7 +13,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/aria-amini/dotfiles/main/ins
 | Path | What it is |
 | --- | --- |
 | `home/` | chezmoi source state for `$HOME` |
-| `tools/` | one directory per CLI capability (`dev`, `jj-ws`, `imgview`, `pix`) |
+| `tools/` | one directory per CLI capability (`dev`, `jj-ws`, `imgview`) |
 | `apps/tanstack` | copier template scaffolded by `new-tanstack-app` |
 | `home/dot_config/mise/config.toml` | machine-wide toolchains and global tasks |
 
@@ -21,9 +21,10 @@ Chezmoi templates detect macOS, WSL, and Lima guests during initialization.
 The WSL apply script manages `/etc/wsl.conf`, `/etc/hosts`, and Windows `.wslconfig`.
 The Lima template renders to `~/.config/lima/default.yaml` on macOS.
 
-Tools reach PATH two ways: python CLIs as editable uv tools, pix via a launcher
-script written by its install task. Everything else in `.local/bin` is invoked
-by other programs (git difftools).
+Tools reach PATH two ways: python CLIs as editable uv tools, and chezmoi-managed
+launchers in `home/dot_local/bin` (such as `pix`, which wraps television and
+imgap). Everything else in `.local/bin` is invoked by other programs (git
+difftools).
 
 ## Commands
 

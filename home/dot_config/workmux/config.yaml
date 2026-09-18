@@ -1,4 +1,4 @@
 nerdfont: true
-mode: window
+mode: session
 window_placement: rightmost
 merge_strategy: rebase
