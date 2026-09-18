@@ -80,6 +80,9 @@ imagemagick = "latest"
 "difftastic" = "latest"
 "github-cli" = "latest"
 "nix:gh-dash" = "latest"
+# 1.12.x ships no provenance (1.1.10 did), so aube no-downgrade blocks it.
+# Pinned to match the imdbgraph CI action; bump both together after review.
+"npm:@alibaba-group/open-code-review" = { version = "1.12.5", trust_policy_excludes = ["@alibaba-group/open-code-review@1.12.5"] }
 
 # Devops
 "pipx:azure-cli" = { version = "latest", uvx_args = "--prerelease=allow --overrides {{ env.HOME }}/.config/mise/azure-cli-overrides.txt" }
