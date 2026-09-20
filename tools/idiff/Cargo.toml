@@ -1,0 +1,28 @@
+[package]
+name = "imgap"
+version = "0.4.0"
+edition = "2024"
+description = "Visualize differences between two images directly in your terminal"
+authors = ["Rob Lillack <rob@lillack.net>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/roblillack/imgap"
+repository = "https://github.com/roblillack/imgap"
+documentation = "https://docs.rs/imgap"
+
+[features]
+default = ["svg"]
+svg = ["dep:resvg"]
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["rayon", "bmp", "dds", "exr", "ff", "gif", "hdr", "ico", "jpeg", "png", "pnm", "qoi", "tga", "tiff", "webp"] }
+base64 = "0.22"
+crossterm = "0.28"
+resvg = { version = "0.47", default-features = false, features = ["text", "raster-images"], optional = true }
+
+[profile.dev]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+lto = true
