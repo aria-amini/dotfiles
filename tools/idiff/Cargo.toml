@@ -1,24 +1,25 @@
 [package]
-name = "imgap"
-version = "0.4.0"
+name = "idiff"
+version = "0.1.0"
 edition = "2024"
-description = "Visualize differences between two images directly in your terminal"
-authors = ["Rob Lillack <rob@lillack.net>"]
+description = "Review image changes in a jj repository, rendered directly in your terminal"
+authors = ["Aria Amini <amini5454@gmail.com>"]
 license = "MIT"
-readme = "README.md"
-homepage = "https://github.com/roblillack/imgap"
-repository = "https://github.com/roblillack/imgap"
-documentation = "https://docs.rs/imgap"
 
 [features]
 default = ["svg"]
 svg = ["dep:resvg"]
 
 [dependencies]
+usage = { package = "usage-rs", version = "6", features = ["completions"] }
 image = { version = "0.25", default-features = false, features = ["rayon", "bmp", "dds", "exr", "ff", "gif", "hdr", "ico", "jpeg", "png", "pnm", "qoi", "tga", "tiff", "webp"] }
 base64 = "0.22"
 crossterm = "0.28"
+tempfile = "3"
 resvg = { version = "0.47", default-features = false, features = ["text", "raster-images"], optional = true }
+
+[dev-dependencies]
+usage = { package = "usage-rs", version = "6", features = ["test"] }
 
 [profile.dev]
 opt-level = 2

@@ -2,3 +2,7 @@ nerdfont: true
 mode: session
 window_placement: rightmost
 merge_strategy: rebase
+panes:
+  - command: opencode
+    focus: true
+  - split: horizontal

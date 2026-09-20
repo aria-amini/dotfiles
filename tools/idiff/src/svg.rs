@@ -92,7 +92,7 @@ pub fn rasterize(path: &Path, max_w: u32, max_h: u32) -> io::Result<DynamicImage
 
 fn demultiply(data: &[u8], w: u32, h: u32) -> Vec<u8> {
     let mut out = Vec::with_capacity((w * h * 4) as usize);
-    for px in data.chunks_exact(4) {
+    for px in data.as_chunks::<4>().0 {
         let (r, g, b, a) = (px[0], px[1], px[2], px[3]);
         let (ur, ug, ub) = match a {
             0 => (0, 0, 0),

@@ -1,140 +1,25 @@
 use image::{DynamicImage, Rgba, RgbaImage};
 use std::env;
 use std::io::{self, BufWriter, Write};
-use std::process;
+use std::path::PathBuf;
+use std::process::{self, Command};
 
 #[cfg(feature = "svg")]
 mod svg;
 
+mod cli;
+mod repo;
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    cli::Idiff::parse().dispatch();
+}
 
-    // Extract optional flags from arguments
-    let mut renderer_override: Option<String> = None;
-    let mut interactive = false;
-    // Sixel palette depth in bits (1..=8): palette size = 1 << depth.
-    // Default 8 → 256 colors; lower values shrink the payload and speed up
-    // encoding/flush at the cost of some color fidelity.
-    let mut sixel_depth: u32 = 8;
-    let mut filtered_args: Vec<&str> = Vec::new();
-    let mut i = 1; // skip argv[0]
-    while i < args.len() {
-        if args[i] == "-r" {
-            if i + 1 < args.len() {
-                renderer_override = Some(args[i + 1].clone());
-                i += 2;
-                continue;
-            } else {
-                eprintln!("Error: -r requires a value (kitty, iterm2, sixel, ansi)");
-                process::exit(1);
-            }
-        }
-        if args[i] == "-i" {
-            interactive = true;
-            i += 1;
-            continue;
-        }
-        // Accept `-d N` or `-d=N`.
-        if let Some(val) = args[i]
-            .strip_prefix("-d=")
-            .map(str::to_string)
-            .or_else(|| (args[i] == "-d" && i + 1 < args.len()).then(|| args[i + 1].clone()))
-        {
-            match val.parse::<u32>() {
-                Ok(d) if (1..=8).contains(&d) => sixel_depth = d,
-                _ => {
-                    eprintln!("Error: -d requires an integer in 1..=8");
-                    process::exit(1);
-                }
-            }
-            i += if args[i] == "-d" { 2 } else { 1 };
-            continue;
-        }
-        filtered_args.push(&args[i]);
-        i += 1;
-    }
-    let sixel_colors: usize = 1usize << sixel_depth;
-
-    // Resolve the two image paths. In priority order:
-    //   1. `git diff --ext-diff` / `git difftool` (via `diff.*.command`) pass
-    //      7 args: path old-file old-hex old-mode new-file new-hex new-mode
-    //   2. Two positional arguments: <image1> <image2>
-    //   3. No positional args + LOCAL/REMOTE env vars, which `git difftool`
-    //      exports when the tool is registered via `difftool.*.cmd`.
-    let (path1, path2): (String, String) = if filtered_args.len() == 7 {
-        (filtered_args[1].to_string(), filtered_args[4].to_string())
-    } else if filtered_args.len() == 2 {
-        (filtered_args[0].to_string(), filtered_args[1].to_string())
-    } else if filtered_args.is_empty()
-        && let (Ok(local), Ok(remote)) = (env::var("LOCAL"), env::var("REMOTE"))
-    {
-        (local, remote)
-    } else {
-        eprintln!("Usage: imgap [-r <renderer>] [-i] [-d <1..8>] <image1> <image2>");
-        eprintln!("Renderers: kitty, iterm2, sixel, ansi");
-        eprintln!("  -i  interactive TUI mode (swipe / onion-skin / 2-up)");
-        eprintln!("  -d  sixel palette depth in bits (1..8, default 8 → 256 colors)");
-        eprintln!("Also works as: git diff --ext-diff (via diff.*.command)");
-        eprintln!("               git difftool (auto-enables interactive mode)");
-        process::exit(1);
-    };
-
-    // Auto-enable interactive mode when invoked via `git difftool`.
-    // `git-difftool--helper` sets GIT_DIFFTOOL_TRUST_EXIT_CODE in the env of
-    // the external diff command; plain `git diff` does not set it.
-    if !interactive && env::var("GIT_DIFFTOOL_TRUST_EXIT_CODE").is_ok() {
-        interactive = true;
-    }
-
-    let protocol = detect_protocol(renderer_override.as_deref());
-
-    // For text mode each terminal cell is 1 char wide and 2 pixels tall (half-blocks),
-    // so compute dimensions differently than for graphics protocols. We determine
-    // this up front so SVG inputs can be rasterized directly at the output size.
-    let (term_px_w, term_px_h) = match protocol {
-        Protocol::Ansi => terminal_char_size(5),
-        _ => terminal_pixel_size(5),
-    };
-
-    let img1 = load_image(&path1, term_px_w, term_px_h).unwrap_or_else(|e| {
-        eprintln!("Failed to open '{}': {}", path1, e);
-        process::exit(1);
-    });
-    let img2 = load_image(&path2, term_px_w, term_px_h).unwrap_or_else(|e| {
-        eprintln!("Failed to open '{}': {}", path2, e);
-        process::exit(1);
-    });
-
-    let meta1 = read_meta(&path1, &img1);
-    let meta2 = read_meta(&path2, &img2);
-    let meta = format_meta_line(&meta1, &meta2);
-
-    if interactive {
-        run_interactive(&img1, &img2, &protocol, sixel_colors, &meta).unwrap_or_else(|e| {
-            eprintln!("Interactive mode failed: {}", e);
-            process::exit(1);
-        });
-        return;
-    }
-
-    let comparison = build_comparison(&img1, &img2, term_px_w, term_px_h);
-
-    let stdout = io::stdout().lock();
-    let mut w = BufWriter::new(stdout);
-    writeln!(w, "{}", meta)
-        .and_then(|_| match protocol {
-            Protocol::Kitty => write_kitty(&comparison, &mut w),
-            Protocol::Iterm2 => write_iterm2(&comparison, &mut w),
-            Protocol::Sixel => {
-                let palette = SixelPalette::from_image(&comparison, sixel_colors);
-                write_sixel(&comparison, &palette, &mut w)
-            }
-            Protocol::Ansi => write_text(&comparison, 0, &mut w),
-        })
-        .unwrap_or_else(|e| {
-            eprintln!("Failed to write image: {}", e);
-            process::exit(1);
-        });
+/// One reviewable file: two materialized sides plus a display label.
+pub(crate) struct Pair {
+    pub(crate) label: String,
+    pub(crate) status: Option<repo::Status>,
+    pub(crate) before: Option<PathBuf>,
+    pub(crate) after: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -271,6 +156,7 @@ fn draw_status_bar(
     rows: u16,
     slider: f32,
     mode: CompareMode,
+    multi: bool,
 ) -> io::Result<()> {
     let slider_row = rows.saturating_sub(2).max(1);
     let help_row = rows.saturating_sub(1).max(1);
@@ -298,10 +184,16 @@ fn draw_status_bar(
 
     // Help line
     write!(w, "\x1b[{};1H\x1b[2K", help_row + 1)?;
+    let files = if multi {
+        "   [ ] file   f tv pick   "
+    } else {
+        ""
+    };
     write!(
         w,
-        "mode: \x1b[1m{}\x1b[0m    \x1b[2m←/→ slider   m mode   q quit\x1b[0m",
-        mode.label()
+        "mode: \x1b[1m{}\x1b[0m    \x1b[2m←/→ slider   m mode   s side{}  q quit\x1b[0m",
+        mode.label(),
+        files
     )?;
     Ok(())
 }
@@ -326,8 +218,6 @@ struct InteractiveCache {
     sixel_palette: Option<SixelPalette>,
 }
 
-/// Reserve 1 top row for the metadata line.
-const INTERACTIVE_TOP_ROWS: u16 = 1;
 /// Reserve 3 bottom rows for spacer + slider + help.
 const INTERACTIVE_BOTTOM_ROWS: u16 = 3;
 /// Conservative Sixel raster cap. Matches xterm's default `maxGraphicSize`,
@@ -341,16 +231,17 @@ fn compute_interactive_cache(
     img2: &DynamicImage,
     protocol: &Protocol,
     sixel_colors: usize,
+    top_rows: u16,
 ) -> InteractiveCache {
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
     let usable_rows = rows
-        .saturating_sub(INTERACTIVE_TOP_ROWS + INTERACTIVE_BOTTOM_ROWS)
+        .saturating_sub(top_rows + INTERACTIVE_BOTTOM_ROWS)
         .max(1);
 
     let (term_px_w, term_px_h, cell_h, cell_w) = match protocol {
         Protocol::Ansi => (cols as u32, usable_rows as u32 * 2, 2u32, 1u32),
         _ => {
-            let (fw, fh) = query_pixel_size_csi().unwrap_or((cols as u32 * 8, rows as u32 * 16));
+            let (fw, fh) = query_pixel_size().unwrap_or((cols as u32 * 8, rows as u32 * 16));
             let cell_h = (fh / rows.max(1) as u32).max(1);
             let cell_w = (fw / cols.max(1) as u32).max(1);
             let usable_px_h = usable_rows as u32 * cell_h;
@@ -412,28 +303,57 @@ fn image_cell_cols(img_w: u32, protocol: &Protocol, cell_w: u32) -> u32 {
     }
 }
 
-#[derive(Default)]
-struct FrameStats {
-    frames: u32,
-    clear: std::time::Duration,
-    compose: std::time::Duration,
-    render: std::time::Duration,
-    status: std::time::Duration,
-    flush: std::time::Duration,
-    total: std::time::Duration,
-    last: Option<FrameSample>,
+/// Solid white canvas used for the missing side of an added/deleted image.
+fn placeholder_canvas(w: u32, h: u32) -> RgbaImage {
+    RgbaImage::from_pixel(w.max(1), h.max(1), Rgba([255, 255, 255, 255]))
 }
 
-#[derive(Clone, Copy)]
-struct FrameSample {
-    clear: std::time::Duration,
-    compose: std::time::Duration,
-    render: std::time::Duration,
-    status: std::time::Duration,
-    flush: std::time::Duration,
-    total: std::time::Duration,
-    img_w: u32,
-    img_h: u32,
+/// Plain list of changed files for orientation and direct jumps. A screen
+/// clear does not remove kitty placements, so delete them explicitly.
+fn render_file_list(
+    session: &Session,
+    sel: usize,
+    protocol: &Protocol,
+    w: &mut impl Write,
+) -> io::Result<()> {
+    let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
+    w.write_all(b"\x1b[2J\x1b[H")?;
+    if matches!(protocol, Protocol::Kitty) {
+        w.write_all(&kitty_clear_placements())?;
+    }
+    writeln!(
+        w,
+        "\x1b[1midiff\x1b[0m  {}/{}  \x1b[2mEnter open · Esc close\x1b[0m",
+        sel + 1,
+        session.pairs.len()
+    )?;
+    let list_rows = (rows as usize).saturating_sub(2).max(1);
+    let visible = list_rows.min(session.pairs.len());
+    let offset = sel
+        .saturating_sub(visible.saturating_sub(1))
+        .min(session.pairs.len().saturating_sub(visible));
+    for (row, i) in (offset..offset + visible).enumerate() {
+        let pair = &session.pairs[i];
+        let marker = if i == sel { "❯" } else { " " };
+        let mut line = format!("{marker} {}", pair.label);
+        if let Some(s) = pair.status {
+            line.push_str(&format!("  {}", s.label()));
+        }
+        let line: String = line.chars().take(cols as usize).collect();
+        write!(w, "\x1b[{};1H\x1b[2K", row + 2)?;
+        if i == sel {
+            write!(w, "\x1b[7m{line}\x1b[0m")?;
+        } else {
+            write!(w, "{line}")?;
+        }
+    }
+    w.flush()
+}
+
+fn draw_header(w: &mut impl Write, cols: u16, text: &str) -> io::Result<()> {
+    write!(w, "\x1b[1;1H\x1b[2K")?;
+    let line: String = text.chars().take(cols as usize).collect();
+    write!(w, "{line}")
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -446,19 +366,18 @@ fn render_interactive_frame(
     protocol: &Protocol,
     sixel_colors: usize,
     meta: &str,
+    header: Option<&str>,
+    top_rows: u16,
     full_redraw: bool,
     w: &mut impl Write,
-    stats: &mut FrameStats,
 ) -> io::Result<()> {
-    use std::time::Instant;
-    let t_total = Instant::now();
-
     if cached.is_none() {
         *cached = Some(compute_interactive_cache(
             img1,
             img2,
             protocol,
             sixel_colors,
+            top_rows,
         ));
     }
     let c = cached.as_ref().unwrap();
@@ -468,7 +387,6 @@ fn render_interactive_frame(
     // encode. Once the buffer is ready, we clear and blit in one shot.
     let mut frame: Vec<u8> = Vec::with_capacity(64 * 1024);
 
-    let t = Instant::now();
     let composed = match mode {
         CompareMode::TwoUp => compose_two_up(&c.scaled_a, &c.scaled_b, c.term_px_w, c.term_px_h),
         CompareMode::Swipe => compose_swipe(&c.scaled_a, &c.scaled_b, slider),
@@ -477,17 +395,15 @@ fn render_interactive_frame(
         CompareMode::Left => c.scaled_a.clone(),
         CompareMode::Right => c.scaled_b.clone(),
     };
-    let dt_compose = t.elapsed();
 
     // Center the image within the usable rows region (vertical) and full width.
     let img_rows = image_cell_rows(composed.height(), protocol, c.cell_h);
     let top_pad = (c.usable_rows as u32).saturating_sub(img_rows) / 2;
     let img_cols = image_cell_cols(composed.width(), protocol, c.cell_w);
     let left_pad = (c.cols as u32).saturating_sub(img_cols) / 2;
-    let img_top_row = top_pad + 1 + INTERACTIVE_TOP_ROWS as u32;
+    let img_top_row = top_pad + 1 + top_rows as u32;
     write!(frame, "\x1b[{};{}H", img_top_row, left_pad + 1)?;
 
-    let t = Instant::now();
     match protocol {
         Protocol::Kitty => write_kitty(&composed, &mut frame)?,
         Protocol::Iterm2 => write_iterm2(&composed, &mut frame)?,
@@ -498,73 +414,186 @@ fn render_interactive_frame(
         }
         Protocol::Ansi => write_text(&composed, left_pad, &mut frame)?,
     }
-    let dt_render = t.elapsed();
 
-    let t = Instant::now();
-    draw_meta_line(&mut frame, c.cols, meta)?;
-    draw_status_bar(&mut frame, c.cols, c.rows, slider, mode)?;
-    let dt_status = t.elapsed();
+    if let Some(header) = header {
+        draw_header(&mut frame, c.cols, header)?;
+    }
+    draw_meta_line(&mut frame, c.cols, top_rows, meta)?;
+    draw_status_bar(&mut frame, c.cols, c.rows, slider, mode, header.is_some())?;
 
     // Clear the screen (or skip it for in-place updates) and emit the
     // pre-rendered frame in a single flush. For Sixel/ANSI we can overwrite
     // the previous image exactly as long as the layout is unchanged — no
     // resize, no mode switch — which avoids the flicker of a full clear.
-    let t = Instant::now();
     let skip_clear = !full_redraw && matches!(protocol, Protocol::Sixel | Protocol::Ansi);
     if !skip_clear {
         w.write_all(b"\x1b[2J\x1b[H")?;
         // Kitty: also delete any prior image placements.
         if matches!(protocol, Protocol::Kitty) {
-            w.write_all(b"\x1b_Ga=d;\x1b\\")?;
+            w.write_all(&kitty_clear_placements())?;
         }
     }
-    let dt_clear = t.elapsed();
 
-    let t = Instant::now();
     w.write_all(&frame)?;
-    w.flush()?;
-    let dt_flush = t.elapsed();
+    w.flush()
+}
 
-    let dt_total = t_total.elapsed();
-    stats.frames += 1;
-    stats.clear += dt_clear;
-    stats.compose += dt_compose;
-    stats.render += dt_render;
-    stats.status += dt_status;
-    stats.flush += dt_flush;
-    stats.total += dt_total;
-    stats.last = Some(FrameSample {
-        clear: dt_clear,
-        compose: dt_compose,
-        render: dt_render,
-        status: dt_status,
-        flush: dt_flush,
-        total: dt_total,
-        img_w: composed.width(),
-        img_h: composed.height(),
-    });
-    Ok(())
+/// Loaded state for the pair currently on screen.
+struct Session<'a> {
+    pairs: &'a [Pair],
+    idx: usize,
+    loaded: Option<usize>,
+    img1: DynamicImage,
+    img2: DynamicImage,
+    meta: String,
+}
+
+impl Session<'_> {
+    /// Load both sides of pair `idx`, substituting a white placeholder for a
+    /// missing (added/deleted) or unreadable side. The placeholder inherits
+    /// the other side's dimensions so the diff canvas stays meaningful.
+    fn load(&mut self, idx: usize, load_px: (u32, u32)) -> Result<(), String> {
+        let pair = &self.pairs[idx];
+        let load = |p: &PathBuf| load_image(&p.to_string_lossy(), load_px.0, load_px.1);
+        let after = match &pair.after {
+            Some(p) => {
+                Some(load(p).map_err(|e| format!("Failed to open '{}': {}", p.display(), e))?)
+            }
+            None => None,
+        };
+        let before = match &pair.before {
+            Some(p) => {
+                Some(load(p).map_err(|e| format!("Failed to open '{}': {}", p.display(), e))?)
+            }
+            None => None,
+        };
+
+        let (img1, meta1) = match before {
+            Some(img) => {
+                let p = pair.before.as_ref().unwrap().to_string_lossy().to_string();
+                let m = read_meta(&p, &img);
+                (img, m)
+            }
+            None => {
+                let (w, h) = after
+                    .as_ref()
+                    .map(|i| (i.width(), i.height()))
+                    .unwrap_or((1, 1));
+                (
+                    placeholder_canvas(w, h).into(),
+                    ImageMeta {
+                        format: "-",
+                        width: w,
+                        height: h,
+                        size: 0,
+                    },
+                )
+            }
+        };
+        let (img2, meta2) = match after {
+            Some(img) => {
+                let p = pair.after.as_ref().unwrap().to_string_lossy().to_string();
+                let m = read_meta(&p, &img);
+                (img, m)
+            }
+            None => {
+                let (w, h) = (img1.width(), img1.height());
+                (
+                    placeholder_canvas(w, h).into(),
+                    ImageMeta {
+                        format: "-",
+                        width: w,
+                        height: h,
+                        size: 0,
+                    },
+                )
+            }
+        };
+
+        self.meta = format_meta_line(&meta1, &meta2);
+        self.img1 = img1;
+        self.img2 = img2;
+        self.loaded = Some(idx);
+        Ok(())
+    }
+
+    fn header_text(&self) -> String {
+        let pair = &self.pairs[self.idx];
+        let pos = if self.pairs.len() > 1 {
+            format!("{}/{}  ", self.idx + 1, self.pairs.len())
+        } else {
+            String::new()
+        };
+        let status = pair
+            .status
+            .map(|s| format!("  {}", s.label()))
+            .unwrap_or_default();
+        format!("{}{}{}", pos, pair.label, status)
+    }
+
+    /// Added files have no meaningful baseline and deleted files no
+    /// successor, so they open as a single image with mode cycling locked.
+    fn forced_mode(&self) -> Option<CompareMode> {
+        match self.pairs[self.idx].status {
+            Some(repo::Status::Added) => Some(CompareMode::Right),
+            Some(repo::Status::Deleted) => Some(CompareMode::Left),
+            _ => None,
+        }
+    }
+}
+
+/// Interactive review of the changed-image set. `[` / `]` step between
+/// pairs when more than one changed; `f` opens the file list overlay.
+pub(crate) fn run_review(
+    pairs: &[Pair],
+    start: usize,
+    renderer: Option<&str>,
+    depth: u32,
+) -> Result<(), String> {
+    let sixel_colors = 1usize << depth;
+    let protocol = detect_protocol(renderer);
+    let multi = pairs.len() > 1;
+    let top_rows: u16 = if multi { 2 } else { 1 };
+    let reserve_rows = top_rows + INTERACTIVE_BOTTOM_ROWS;
+    // For text mode each terminal cell is 1 char wide and 2 pixels tall
+    // (half-blocks); SVG inputs are rasterized at the output size up front.
+    let load_px = match protocol {
+        Protocol::Ansi => terminal_char_size(reserve_rows),
+        _ => terminal_pixel_size(reserve_rows),
+    };
+
+    let mut session = Session {
+        pairs,
+        idx: start,
+        loaded: None,
+        img1: placeholder_canvas(1, 1).into(),
+        img2: placeholder_canvas(1, 1).into(),
+        meta: String::new(),
+    };
+
+    run_interactive(&mut session, &protocol, sixel_colors, top_rows, load_px)
 }
 
 fn run_interactive(
-    img1: &DynamicImage,
-    img2: &DynamicImage,
+    session: &mut Session,
     protocol: &Protocol,
     sixel_colors: usize,
-    meta: &str,
-) -> io::Result<()> {
+    top_rows: u16,
+    load_px: (u32, u32),
+) -> Result<(), String> {
     use crossterm::event::{self, Event, KeyCode, KeyModifiers};
     use std::time::Duration;
 
+    let multi = session.pairs.len() > 1;
     let stdout = io::stdout();
     // Larger-than-default buffer so sixel/kitty frames go out in fewer
     // write() syscalls instead of many 8 KiB chunks.
     let mut out = BufWriter::with_capacity(128 * 1024, stdout.lock());
 
-    crossterm::terminal::enable_raw_mode()?;
+    crossterm::terminal::enable_raw_mode().map_err(|e| e.to_string())?;
     // Alt screen + hide cursor.
-    write!(out, "\x1b[?1049h\x1b[?25l")?;
-    out.flush()?;
+    write!(out, "\x1b[?1049h\x1b[?25l").map_err(|e| e.to_string())?;
+    out.flush().map_err(|e| e.to_string())?;
 
     let mut mode = CompareMode::Swipe;
     // The last non-single comparison mode, so `m` can return to it
@@ -576,42 +605,106 @@ fn run_interactive(
     // next frame forces a full clear.
     let mut last_rendered_mode: Option<CompareMode> = None;
     let mut dirty = true;
-    let mut stats = FrameStats::default();
-    let profile = env::var("IMGAP_PROFILE").is_ok();
+    // In-TUI file list overlay: a plain browsable list, no query state.
+    let mut picker_open = false;
+    let mut picker_sel: usize = 0;
+    let mut picker_dirty = true;
 
     let step = 0.02_f32;
 
     let mut quit = false;
-    let result: io::Result<()> = (|| {
+    let result: Result<(), String> = (|| {
         while !quit {
-            if dirty {
+            if session.loaded != Some(session.idx) {
+                match session.load(session.idx, load_px) {
+                    Ok(()) => {
+                        cached = None;
+                        last_rendered_mode = None;
+                        dirty = true;
+                    }
+                    Err(e) => {
+                        if session.loaded.is_none() {
+                            return Err(e);
+                        }
+                        // Stay on the current pair; surface the error in the
+                        // meta line on the next redraw.
+                        session.meta = e;
+                        session.idx = session.loaded.unwrap_or(session.idx);
+                        cached = None;
+                        last_rendered_mode = None;
+                        dirty = true;
+                    }
+                }
+            }
+            if session.loaded == Some(session.idx)
+                && let Some(forced) = session.forced_mode()
+                && mode != forced
+            {
+                mode = forced;
+                last_rendered_mode = None;
+            }
+            let modes_locked = session.forced_mode().is_some();
+
+            if picker_open {
+                if picker_dirty {
+                    render_file_list(session, picker_sel, protocol, &mut out)
+                        .map_err(|e| e.to_string())?;
+                    picker_dirty = false;
+                }
+            } else if dirty {
                 let full_redraw = cached.is_none() || last_rendered_mode != Some(mode);
+                let header = multi.then(|| session.header_text());
                 render_interactive_frame(
-                    img1,
-                    img2,
+                    &session.img1,
+                    &session.img2,
                     &mut cached,
                     mode,
                     slider,
                     protocol,
                     sixel_colors,
-                    meta,
+                    &session.meta,
+                    header.as_deref(),
+                    top_rows,
                     full_redraw,
                     &mut out,
-                    &mut stats,
-                )?;
+                )
+                .map_err(|e| e.to_string())?;
                 last_rendered_mode = Some(mode);
                 dirty = false;
             }
 
             // Block for the next event…
-            if !event::poll(Duration::from_millis(250))? {
+            if !event::poll(Duration::from_millis(250)).map_err(|e| e.to_string())? {
                 continue;
             }
 
             // …then drain any other events already queued (e.g. key-repeat
             // from holding ←/→) so we coalesce them into a single render.
             loop {
-                match event::read()? {
+                match event::read().map_err(|e| e.to_string())? {
+                    Event::Key(k) if picker_open => match k.code {
+                        KeyCode::Esc
+                        | KeyCode::Char('f')
+                        | KeyCode::Char('F')
+                        | KeyCode::Char('q') => {
+                            picker_open = false;
+                            dirty = true;
+                        }
+                        KeyCode::Enter => {
+                            picker_open = false;
+                            session.idx = picker_sel;
+                            dirty = true;
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            picker_sel = picker_sel.saturating_sub(1);
+                            picker_dirty = true;
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            picker_sel = (picker_sel + 1).min(session.pairs.len() - 1);
+                            picker_dirty = true;
+                        }
+                        _ => {}
+                    },
                     Event::Key(k) => match k.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
                             quit = true;
@@ -621,7 +714,12 @@ fn run_interactive(
                             quit = true;
                             break;
                         }
-                        KeyCode::Char('m') | KeyCode::Char('M') => {
+                        KeyCode::Char('f') | KeyCode::Char('F') if multi => {
+                            picker_open = true;
+                            picker_sel = session.idx;
+                            picker_dirty = true;
+                        }
+                        KeyCode::Char('m') | KeyCode::Char('M') if !modes_locked => {
                             mode = if mode.is_single() {
                                 last_compare_mode
                             } else {
@@ -631,7 +729,7 @@ fn run_interactive(
                             };
                             dirty = true;
                         }
-                        KeyCode::Char('s') | KeyCode::Char('S') => {
+                        KeyCode::Char('s') | KeyCode::Char('S') if !modes_locked => {
                             mode = match mode {
                                 CompareMode::Left => CompareMode::Right,
                                 CompareMode::Right => CompareMode::Left,
@@ -641,6 +739,12 @@ fn run_interactive(
                                 }
                             };
                             dirty = true;
+                        }
+                        KeyCode::Char('[') if multi => {
+                            session.idx = session.idx.saturating_sub(1);
+                        }
+                        KeyCode::Char(']') if multi => {
+                            session.idx = (session.idx + 1).min(session.pairs.len() - 1);
                         }
                         KeyCode::Left => {
                             let s = if k.modifiers.contains(KeyModifiers::SHIFT) {
@@ -678,7 +782,7 @@ fn run_interactive(
                     _ => {}
                 }
                 // Stop draining as soon as the queue is empty.
-                if !event::poll(Duration::from_millis(0))? {
+                if !event::poll(Duration::from_millis(0)).map_err(|e| e.to_string())? {
                     break;
                 }
             }
@@ -686,44 +790,19 @@ fn run_interactive(
         Ok(())
     })();
 
-    // Restore terminal state.
+    // Restore terminal state. Kitty images live in the client's framebuffer
+    // across alt-screen switches; delete the placements while the alt screen
+    // still owns them.
+    if matches!(protocol, Protocol::Kitty) {
+        let _ = out.write_all(&kitty_clear_placements());
+        let _ = out.flush();
+    }
     let _ = write!(out, "\x1b[?25h\x1b[?1049l");
     let _ = out.flush();
     let _ = crossterm::terminal::disable_raw_mode();
 
-    if profile && stats.frames > 0 {
-        let n = stats.frames;
-        let avg = |d: std::time::Duration| d / n;
-        eprintln!(
-            "imgap profile: {} frames, protocol={}",
-            n,
-            match protocol {
-                Protocol::Kitty => "kitty",
-                Protocol::Iterm2 => "iterm2",
-                Protocol::Sixel => "sixel",
-                Protocol::Ansi => "ansi",
-            }
-        );
-        if let Some(s) = stats.last {
-            eprintln!(
-                "  last frame: {}x{}  total={:?}  clear={:?}  compose={:?}  render={:?}  status={:?}  flush={:?}",
-                s.img_w, s.img_h, s.total, s.clear, s.compose, s.render, s.status, s.flush
-            );
-        }
-        eprintln!(
-            "  avg/frame:  total={:?}  clear={:?}  compose={:?}  render={:?}  status={:?}  flush={:?}",
-            avg(stats.total),
-            avg(stats.clear),
-            avg(stats.compose),
-            avg(stats.render),
-            avg(stats.status),
-            avg(stats.flush),
-        );
-    }
-
     result
 }
-
 /// Query terminal size and return available pixel dimensions (width, height),
 /// reserving `reserve_rows` text rows at the bottom.
 fn terminal_pixel_size(reserve_rows: u16) -> (u32, u32) {
@@ -732,8 +811,10 @@ fn terminal_pixel_size(reserve_rows: u16) -> (u32, u32) {
     let rows = (rows as u32).max(1);
     let usable_rows = rows.saturating_sub(reserve_rows as u32);
 
-    // Try CSI 14t query for actual pixel dimensions
-    if let Some((qw, qh)) = query_pixel_size_csi() {
+    // Try CSI 14t query for actual pixel dimensions. Inside tmux, CSI 14t
+    // is answered by tmux itself, not the client, so ask tmux for the
+    // attached client's pixel size instead.
+    if let Some((qw, qh)) = query_pixel_size() {
         let cell_h = qh / rows.max(1);
         let reserved_px = reserve_rows as u32 * cell_h;
         return (qw, qh.saturating_sub(reserved_px).max(1));
@@ -741,6 +822,38 @@ fn terminal_pixel_size(reserve_rows: u16) -> (u32, u32) {
 
     // Last resort: assume 8x16 cells
     (cols * 8, usable_rows * 16)
+}
+
+/// Client pixel size, preferring tmux's own knowledge over a CSI 14t query.
+fn query_pixel_size() -> Option<(u32, u32)> {
+    if env::var("TMUX").is_ok()
+        && let Some(px) = tmux_client_pixel_size()
+    {
+        return Some(px);
+    }
+    query_pixel_size_csi()
+}
+
+fn tmux_client_pixel_size() -> Option<(u32, u32)> {
+    let output = Command::new("tmux")
+        .args([
+            "display-message",
+            "-p",
+            "#{client_pixel_width} #{client_pixel_height}",
+        ])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let s = String::from_utf8_lossy(&output.stdout);
+    let mut parts = s.split_whitespace();
+    let w: u32 = parts.next()?.parse().ok()?;
+    let h: u32 = parts.next()?.parse().ok()?;
+    if w == 0 || h == 0 {
+        return None;
+    }
+    Some((w, h))
 }
 
 /// Open a direct read+write handle to the controlling terminal,
@@ -861,79 +974,6 @@ fn query_sixel_support() -> bool {
     resp[start..end].split(';').any(|p| p.trim() == "4")
 }
 
-/// Scale a DynamicImage to fit within max_w x max_h, preserving aspect ratio.
-fn scale_dynamic(img: &DynamicImage, max_w: u32, max_h: u32) -> DynamicImage {
-    let (w, h) = (img.width(), img.height());
-    if w <= max_w && h <= max_h {
-        return img.clone();
-    }
-    let scale = (max_w as f64 / w as f64).min(max_h as f64 / h as f64);
-    let new_w = ((w as f64 * scale) as u32).max(1);
-    let new_h = ((h as f64 * scale) as u32).max(1);
-    img.resize_exact(new_w, new_h, image::imageops::FilterType::Triangle)
-}
-
-fn build_comparison(
-    img1: &DynamicImage,
-    img2: &DynamicImage,
-    term_w: u32,
-    term_h: u32,
-) -> RgbaImage {
-    let sep = 4u32;
-
-    // Layout: top 1/3 for before|after, bottom 2/3 for diff
-    let top_h = (term_h.saturating_sub(sep)) / 3;
-    let diff_h = term_h.saturating_sub(top_h).saturating_sub(sep);
-
-    // Scale inputs for the top row (each gets half the width, 1/3 the height)
-    let thumb_max_w = term_w.saturating_sub(sep) / 2;
-    let thumb1 = scale_dynamic(img1, thumb_max_w, top_h);
-    let thumb2 = scale_dynamic(img2, thumb_max_w, top_h);
-    let tw1 = thumb1.width();
-    let th1 = thumb1.height();
-    let th2 = thumb2.height();
-    let top_row_h = th1.max(th2);
-
-    // Build diff heatmap at full resolution, then scale to fit bottom section
-    let diff_img = build_diff_heatmap(img1, img2);
-    let diff_scaled = scale_rgba(&diff_img, term_w, diff_h);
-    let dw = diff_scaled.width();
-    let dh = diff_scaled.height();
-
-    // Canvas sized to actual content
-    let top_row_w = tw1 + sep + thumb2.width();
-    let canvas_w = top_row_w.max(dw);
-    let canvas_h = top_row_h + sep + dh;
-
-    let mut canvas = RgbaImage::new(canvas_w, canvas_h);
-
-    // Draw separators
-    let gray = Rgba([128, 128, 128, 255]);
-    for y in 0..top_row_h {
-        for x in tw1..(tw1 + sep) {
-            canvas.put_pixel(x, y, gray);
-        }
-    }
-    for x in 0..canvas_w {
-        for y in top_row_h..(top_row_h + sep) {
-            canvas.put_pixel(x, y, gray);
-        }
-    }
-
-    // Blit thumbnails
-    let rgba1 = thumb1.to_rgba8();
-    let rgba2 = thumb2.to_rgba8();
-    image::imageops::overlay(&mut canvas, &rgba1, 0, 0);
-    image::imageops::overlay(&mut canvas, &rgba2, (tw1 + sep) as i64, 0);
-
-    // Blit diff centered
-    let diff_x_off = ((canvas_w.saturating_sub(dw)) / 2) as i64;
-    let diff_y_off = (top_row_h + sep) as i64;
-    image::imageops::overlay(&mut canvas, &diff_scaled, diff_x_off, diff_y_off);
-
-    canvas
-}
-
 /// Build a diff heatmap at the native resolution of the two images.
 fn build_diff_heatmap(img1: &DynamicImage, img2: &DynamicImage) -> RgbaImage {
     let w1 = img1.width();
@@ -1021,7 +1061,7 @@ fn parse_renderer(name: &str) -> Option<Protocol> {
 }
 
 fn detect_protocol(renderer_override: Option<&str>) -> Protocol {
-    // -r flag takes highest priority
+    // --renderer flag takes highest priority
     if let Some(name) = renderer_override {
         if let Some(p) = parse_renderer(name) {
             return p;
@@ -1033,29 +1073,31 @@ fn detect_protocol(renderer_override: Option<&str>) -> Protocol {
         process::exit(1);
     }
 
-    // Then environment variable
-    if let Ok(val) = env::var("IMGAP_RENDERER")
-        && let Some(p) = parse_renderer(&val)
-    {
-        return p;
+    // IDIFF_RENDERER supersedes the upstream IMGAP_RENDERER spelling.
+    for var in ["IDIFF_RENDERER", "IMGAP_RENDERER"] {
+        if let Ok(val) = env::var(var)
+            && let Some(p) = parse_renderer(&val)
+        {
+            return p;
+        }
     }
 
     let in_tmux = env::var("TMUX").is_ok();
 
-    // Inside tmux, Kitty and iTerm2 protocols are not forwarded.
-    // Only Sixel (tmux >= 3.4) and ANSI work.
+    // Outside tmux, environment names identify the real terminal directly.
     if !in_tmux {
         if let Ok(tp) = env::var("TERM_PROGRAM") {
-            if tp.to_lowercase().contains("kitty") {
+            let tp = tp.to_lowercase();
+            if tp.contains("kitty") || tp == "ghostty" {
                 return Protocol::Kitty;
             }
-            if tp == "iTerm.app" || tp == "WezTerm" {
+            if tp == "iterm.app" || tp == "wezterm" {
                 return Protocol::Iterm2;
             }
         }
 
         if let Ok(term) = env::var("TERM")
-            && term.contains("kitty")
+            && (term.contains("kitty") || term.contains("ghostty"))
         {
             return Protocol::Kitty;
         }
@@ -1078,6 +1120,20 @@ fn detect_protocol(renderer_override: Option<&str>) -> Protocol {
         }
     }
 
+    // Inside tmux the pane runs under TERM=tmux-256color and hides the real
+    // terminal. tmux's terminal emulation has no kitty graphics parser — raw
+    // APC from the app never reaches the client — so capability detection
+    // must go through tmux's own view of the attached client, and rendering
+    // wraps every sequence in DCS passthrough (see write_kitty). tmux 3.7
+    // refines client_termtype from device-attribute responses, e.g.
+    // "ghostty 1.3.1".
+    if in_tmux {
+        let termtype = tmux_client_termtype().unwrap_or_default().to_lowercase();
+        if termtype.contains("ghostty") || termtype.contains("kitty") {
+            return Protocol::Kitty;
+        }
+    }
+
     // Probe for Sixel support via DA1 (Device Attributes) query.
     // This works both inside and outside tmux — tmux >= 3.4 will
     // report Sixel capability if its own support is enabled.
@@ -1086,6 +1142,22 @@ fn detect_protocol(renderer_override: Option<&str>) -> Protocol {
     }
 
     Protocol::Ansi
+}
+
+/// Ask tmux what terminal is attached to the pane's client. Returns None
+/// outside tmux or when tmux cannot answer.
+fn tmux_client_termtype() -> Option<String> {
+    if env::var("TMUX").is_err() {
+        return None;
+    }
+    let output = Command::new("tmux")
+        .args(["display-message", "-p", "#{client_termtype}"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
 /// Read an image from disk. With the `svg` feature, paths ending in `.svg`
@@ -1178,8 +1250,8 @@ fn pair<T: PartialEq>(a: T, b: T, fmt: impl Fn(T) -> String) -> String {
     }
 }
 
-fn draw_meta_line(w: &mut impl Write, cols: u16, meta: &str) -> io::Result<()> {
-    write!(w, "\x1b[1;1H\x1b[2K")?;
+fn draw_meta_line(w: &mut impl Write, cols: u16, row: u16, meta: &str) -> io::Result<()> {
+    write!(w, "\x1b[{row};1H\x1b[2K")?;
     let width = meta.chars().count();
     let pad = (cols as usize).saturating_sub(width) / 2;
     if pad > 0 {
@@ -1219,16 +1291,45 @@ fn write_kitty(img: &RgbaImage, w: &mut impl Write) -> io::Result<()> {
         .map(|c| std::str::from_utf8(c).unwrap())
         .collect();
 
+    // q=1 silences per-command acknowledgements; unsolicited responses would
+    // otherwise land in the TUI's key stream.
+    let mut stream: Vec<u8> = Vec::with_capacity(b64.len() + 64);
     for (i, chunk) in chunks.iter().enumerate() {
         let more = if i + 1 < chunks.len() { 1 } else { 0 };
         if i == 0 {
-            write!(w, "\x1b_Gf=100,a=T,m={};{}\x1b\\", more, chunk)?;
+            write!(stream, "\x1b_Gf=100,a=T,q=1,m={};{}\x1b\\", more, chunk)?;
         } else {
-            write!(w, "\x1b_Gm={};{}\x1b\\", more, chunk)?;
+            write!(stream, "\x1b_Gm={};{}\x1b\\", more, chunk)?;
         }
+    }
+
+    if env::var("TMUX").is_ok() {
+        // tmux consumes APC graphics it cannot parse; DCS passthrough is the
+        // only delivery path. ESC bytes inside the payload must be doubled.
+        let mut wrapped = Vec::with_capacity(stream.len() + 16);
+        wrapped.extend_from_slice(b"\x1bPtmux;");
+        for &b in &stream {
+            wrapped.push(b);
+            if b == 0x1b {
+                wrapped.push(0x1b);
+            }
+        }
+        wrapped.extend_from_slice(b"\x1b\\");
+        w.write_all(&wrapped)?;
+    } else {
+        w.write_all(&stream)?;
     }
     writeln!(w)?;
     w.flush()
+}
+
+/// Delete all kitty image placements, respecting the tmux passthrough rule.
+fn kitty_clear_placements() -> Vec<u8> {
+    if env::var("TMUX").is_ok() {
+        b"\x1bPtmux;\x1b\x1b_Ga=d;\x1b\x1b\\\x1b\\".to_vec()
+    } else {
+        b"\x1b_Ga=d;\x1b\\".to_vec()
+    }
 }
 
 fn write_iterm2(img: &RgbaImage, w: &mut impl Write) -> io::Result<()> {
@@ -1252,7 +1353,7 @@ fn write_sixel(img: &RgbaImage, palette: &SixelPalette, w: &mut impl Write) -> i
     let raw = img.as_raw();
     let n_pixels = (width * height) as usize;
     let mut indexed = vec![0u8; n_pixels];
-    for (dst, chunk) in indexed.iter_mut().zip(raw.chunks_exact(4)) {
+    for (dst, chunk) in indexed.iter_mut().zip(raw.as_chunks::<4>().0) {
         *dst = palette.index(chunk[0], chunk[1], chunk[2]);
     }
 
@@ -1290,9 +1391,9 @@ fn write_sixel(img: &RgbaImage, palette: &SixelPalette, w: &mut impl Write) -> i
         for &c in &used_list {
             used[c as usize] = false;
             // Zero only this color's row buffer; avoids touching all palette_len * width bytes.
-            for v in &mut row_bufs[c as usize] {
-                *v = 0;
-            }
+            // Zero only this color's row buffer; avoids touching all
+            // palette_len * width bytes every band.
+            row_bufs[c as usize].fill(0);
         }
         used_list.clear();
 
@@ -1479,10 +1580,6 @@ impl SixelPalette {
         }
 
         Self { colors, lut }
-    }
-
-    fn from_image(img: &RgbaImage, max_colors: usize) -> Self {
-        Self::from_samples(sample_pixels(&[img], 20_000), max_colors)
     }
 
     fn from_images(imgs: &[&RgbaImage], max_colors: usize) -> Self {

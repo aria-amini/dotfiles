@@ -1,0 +1,30 @@
+[tools]
+rust = "latest"
+
+[tasks.check]
+description = "Run all checks"
+depends = [":fmt", ":lint", ":test"]
+
+[tasks.fmt]
+description = "Check Rust formatting"
+sources = ["src/**/*.rs"]
+run = "cargo fmt --check"
+
+[tasks.lint]
+description = "Run clippy"
+sources = ["src/**/*.rs", "Cargo.toml"]
+run = "cargo clippy -- -D warnings"
+
+[tasks.test]
+description = "Run tests"
+sources = ["src/**/*.rs", "Cargo.toml"]
+run = "cargo test"
+
+[tasks.install]
+description = "Build the release binary and symlink it into ~/.local/bin"
+sources = ["src/**/*.rs", "Cargo.toml", "Cargo.lock"]
+run = '''
+cargo build --release
+mkdir -p "$HOME/.local/bin"
+ln -sf "$MISE_PROJECT_ROOT/target/release/idiff" "$HOME/.local/bin/idiff"
+'''
