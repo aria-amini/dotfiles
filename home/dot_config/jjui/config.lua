@@ -203,15 +203,38 @@ function setup(config)
 			return
 		end
 
+		local commit_id, commit_err =
+			jj("--color", "never", "log", "-r", change_id, "-T", "commit_id")
+		if not commit_id then
+			flash({
+				text = "revision lookup failed: " .. tostring(commit_err),
+				error = true,
+			})
+			return
+		end
+		commit_id = commit_id:gsub("%s+$", "")
+		local repo_root = current_workspace_root()
+		if not repo_root then
+			flash({ text = "workspace root lookup failed", error = true })
+			return
+		end
+
 		local result_path = os.tmpname()
+		local receipt_path = os.tmpname()
 		exec_shell(
 			string.format(
-				"WT_RESULT_FILE=%q command wt switch --create %q -r %q",
-				result_path,
+				"workmux add %q --name %q --base %q --headless --json > %q && root=$(jq -er '.worktree_path' %q) && jj -R %q git worktree adopt %q && printf '%%s' \"$root\" > %q",
 				name,
-				change_id
+				name,
+				commit_id,
+				receipt_path,
+				receipt_path,
+				repo_root,
+				name,
+				result_path
 			)
 		)
+		os.remove(receipt_path)
 
 		local result = io.open(result_path, "r")
 		if not result then
@@ -221,6 +244,7 @@ function setup(config)
 		result:close()
 		os.remove(result_path)
 		if root == "" then
+			flash({ text = "workmux workspace creation failed", error = true })
 			return
 		end
 
@@ -312,12 +336,15 @@ function setup(config)
 
 		local ok, run_err
 		if target.stale then
-			-- The directory is gone, so wt remove has nothing to remove;
+			-- The directory is gone, so Workmux has nothing to remove;
 			-- only jj still tracks the workspace.
 			ok, run_err = jj("workspace", "forget", target.name)
 		else
 			ok, run_err =
-				jj("util", "exec", "--", "wt", "remove", "-y", target.root)
+				jj("util", "exec", "--", "workmux", "remove", "-f", target.name)
+			if not run_err then
+				ok, run_err = jj("workspace", "forget", target.name)
+			end
 		end
 		if run_err then
 			flash({
