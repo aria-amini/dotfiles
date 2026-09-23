@@ -30,49 +30,25 @@ stale = ["log", "-r", "heads(all() & mutable() & ~main::)"]
 [git]
 auto-register-worktrees = true
 
-# Shared by `jj log` and jjui (jjui shells out to `jj log`).
 [template-aliases]
 'format_short_commit_header(commit)' = '''
 separate(" ",
   format_short_change_id_with_change_offset(commit),
   commit.bookmarks(),
   commit.tags(),
-  format_deduped_working_copies(commit),
+  commit.working_copies()
+    .filter(|workspace|
+      commit.bookmarks().filter(|b| b.name() == workspace.name()).len() == 0
+    )
+    .map(|workspace|
+      if(workspace.target().current_working_copy(),
+        label("workspace current", workspace.name() ++ "@"),
+        label("workspace other", workspace.name() ++ "@")
+      )
+    ).join(" "),
   format_commit_labels(commit),
   if(config("ui.show-cryptographic-signatures").as_boolean(),
     format_short_cryptographic_signature(commit.signature())
   ),
 )
 '''
-# Hide `foo@` when bookmark `foo` is already shown on the same commit.
-'format_deduped_working_copies(commit)' = '''
-commit.working_copies()
-  .filter(|workspace|
-    commit.bookmarks().filter(|b| b.name() == workspace.name()).len() == 0
-  )
-  .map(|workspace|
-    if(workspace.target().current_working_copy(),
-      label("workspace current", workspace.name() ++ "@"),
-      label("workspace other", workspace.name() ++ "@")
-    )
-  ).join(" ")
-'''
-
-[colors]
-bookmark = { fg = "bright yellow", bold = true }
-bookmarks = { fg = "bright yellow", bold = true }
-local_bookmarks = { fg = "bright yellow", bold = true }
-remote_bookmarks = { fg = "bright yellow", bold = true }
-# Labels on the working-copy line are wrapped in "working_copy" and only
-# match the full combined key, so they need explicit variants.
-"working_copy bookmark" = { fg = "bright yellow", bold = true }
-"working_copy bookmarks" = { fg = "bright yellow", bold = true }
-"working_copy local_bookmarks" = { fg = "bright yellow", bold = true }
-"working_copy remote_bookmarks" = { fg = "bright yellow", bold = true }
-commit_id = "bright black"
-"description placeholder" = { fg = "bright black", italic = true }
-"empty description placeholder" = { fg = "bright black", italic = true }
-"working_copy description placeholder" = { fg = "bright black", italic = true }
-"working_copy empty description placeholder" = { fg = "bright black", italic = true }
-"workspace current" = { fg = "bright green", bold = true }
-"workspace other" = { fg = "cyan" }
