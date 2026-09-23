@@ -11,3 +11,7 @@ case ":$PATH:" in
   *":$PNPM_HOME/bin:"*) ;;
   *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
+
+# SSOT for this VM's tailnet address; dev servers bind it so host-side
+# devices can reach them. Projects fall back to `tailscale ip -4`.
+export TAILSCALE_IP="100.103.205.111"
