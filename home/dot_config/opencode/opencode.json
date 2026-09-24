@@ -3,11 +3,6 @@
 	"instructions": [
 		"~/AGENTS.md"
 	],
-	"agent": {
-		"explore": {
-			"model": "openai/gpt-5.6-luna"
-		}
-	},
 	"permission": {
 		"*": "allow",
 		"bash": {
@@ -22,8 +17,19 @@
 	},
 	"lsp": {
 		"typescript": {
-			"command": ["tsgo", "--lsp", "--stdio"],
-			"extensions": [".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"]
+			"command": [
+				"tsgo",
+				"--lsp",
+				"--stdio"
+			],
+			"extensions": [
+				".ts",
+				".tsx",
+				".js",
+				".jsx",
+				".mts",
+				".cts"
+			]
 		}
 	}
 }
