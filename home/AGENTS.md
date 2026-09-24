@@ -34,7 +34,8 @@ Manage home-directory dotfiles with Chezmoi. Edit their source files in
 
 - **DO NOT USE GIT**. Prefer the jujutsu (jj) version control system.
 - Run `jj stale` after `jj git fetch`. Abandon heads whose PRs squash-merged.
-- Give each work line one bookmarked head. Do not leave empty commits.
+- Create a bookmark when a work line is ready to push. Give each published work
+  line one bookmarked head. Do not leave empty commits.
 - Treat commits protected by the local jj `immutable_heads()` revset as shared
   history. Never rewrite, rebase, squash, abandon, or bypass that protection
   without the user's explicit permission for that exact operation. Do not add

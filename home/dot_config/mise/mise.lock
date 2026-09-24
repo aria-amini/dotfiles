@@ -5994,53 +5994,53 @@ url = "https://github.com/aria-amini/jj-ryu/releases/download/v0.2.3/ryu-win32-x
 url_api = "https://api.github.com/repos/aria-amini/jj-ryu/releases/assets/499865798"
 
 [[tools."github:aria-amini/workmux"]]
-version = "0.1.263-jj.3"
+version = "0.1.263-jj.4"
 backend = "github:aria-amini/workmux"
 
 [tools."github:aria-amini/workmux"."platforms.linux-arm64"]
-checksum = "sha256:e9d72e26c6796d3ab64b32cd5cdcb4e9624c44c42af1a0da25d9d900a2554287"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602151"
+checksum = "sha256:3eb5057870ef873589dcaa5ba5579fb132b74e5675ead90784cc93107f91f68d"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472481"
 
 [tools."github:aria-amini/workmux"."platforms.linux-arm64-musl"]
-checksum = "sha256:e9d72e26c6796d3ab64b32cd5cdcb4e9624c44c42af1a0da25d9d900a2554287"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602151"
+checksum = "sha256:3eb5057870ef873589dcaa5ba5579fb132b74e5675ead90784cc93107f91f68d"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472481"
 
 [tools."github:aria-amini/workmux"."platforms.linux-x64"]
-checksum = "sha256:4d02c9411a0a18b20a540365f0602757c2463ead1d7c9c45654790692db7b2ac"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602157"
+checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
 
 [tools."github:aria-amini/workmux"."platforms.linux-x64-baseline"]
-checksum = "sha256:4d02c9411a0a18b20a540365f0602757c2463ead1d7c9c45654790692db7b2ac"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602157"
+checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
 
 [tools."github:aria-amini/workmux"."platforms.linux-x64-musl"]
-checksum = "sha256:4d02c9411a0a18b20a540365f0602757c2463ead1d7c9c45654790692db7b2ac"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602157"
+checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
 
 [tools."github:aria-amini/workmux"."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:4d02c9411a0a18b20a540365f0602757c2463ead1d7c9c45654790692db7b2ac"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602157"
+checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
 
 [tools."github:aria-amini/workmux"."platforms.macos-arm64"]
-checksum = "sha256:ceeab4a28ab6ec18dac65464c9bd9c6f1dc8ab9f1fe20084f01c5c94cfc441fb"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602161"
+checksum = "sha256:08dccf33f573371fce4d5cd07780eff805ff66e6748599132ba4072c1a6edc64"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472477"
 
 [tools."github:aria-amini/workmux"."platforms.macos-x64"]
-checksum = "sha256:8eef3391d1674c9dc57fd440f4ac6d2214dfd039dfdadd435f746eb96b4aed7d"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602154"
+checksum = "sha256:6f98d9dd5475e8cfaefa919ff10a4c5024c759181784836d1b30ea7e4e0b6acd"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472485"
 
 [tools."github:aria-amini/workmux"."platforms.macos-x64-baseline"]
-checksum = "sha256:8eef3391d1674c9dc57fd440f4ac6d2214dfd039dfdadd435f746eb96b4aed7d"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.3/workmux-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/570602154"
+checksum = "sha256:6f98d9dd5475e8cfaefa919ff10a4c5024c759181784836d1b30ea7e4e0b6acd"
+url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472485"
 
 [[tools."github:danielgatis/imgcat"]]
 version = "1.0.23"
