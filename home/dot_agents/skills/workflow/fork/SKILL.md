@@ -1,7 +1,7 @@
 ---
 name: fork
-description: Guidelines for forking a github repo in order to extend custom
-functionality.
+description:
+  Guidelines for forking a github repo in order to extend custom functionality.
 ---
 
 # Fork workflow

@@ -1,5 +1,4 @@
 {
-	"$schema": "./node_modules/oxfmt/configuration_schema.json",
 	"singleQuote": true,
 	"semi": false,
 	"useTabs": true,
@@ -8,10 +7,8 @@
 	"experimentalSortPackageJson": false,
 	"proseWrap": "always",
 	"ignorePatterns": [
-		"**/.vercel",
 		"**/.output",
 		"pnpm-lock.yaml",
-		"routeTree.gen.ts",
-		"packages/infra/manifests/gitops/flux-system/gotk-components.yaml"
+		"routeTree.gen.ts"
 	]
 }
