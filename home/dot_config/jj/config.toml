@@ -16,11 +16,18 @@ email = "amini5454@gmail.com"
 max-new-file-size = "10MiB"
 auto-update-stale = false
 
+[revsets]
+log = 'builtin_log() | all_work()'
+
 [revset-aliases]
 # Everything reachable from another workspace's @ is off-limits to this one;
 # prevents parallel agents from rewriting each other's commits. Work in your
 # own workspace and rebase to sync.
 "immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ @)"
+
+# Every work line: bookmarked or attached to a workspace. Each line shows only
+# its commits since diverging from trunk, not trunk's own history.
+"all_work()" = "(bookmarks() | working_copies()) | (::(bookmarks() | working_copies()) ~ ::trunk())"
 
 # Heads that squash-merged PRs left behind.
 [aliases]
