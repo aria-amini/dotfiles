@@ -1,71 +1,50 @@
 #!/usr/bin/env bash
 
-action=${1:-}
+set -uo pipefail
 
-if [ "$action" = add-from-sesh ]; then
-	entry=${2:-}
-	[ -z "$entry" ] && exit 0
+fail() {
+	printf '%s\nPress any key to close.\n' "$1" >&2
+	read -r -n 1 -s || true
+	exit 1
+}
 
-	if [ -d "$entry" ]; then
-		repo=$entry
-	else
-		repo=$(sesh list --json | jq -r --arg name "$entry" '[.[] | select(.Name == $name) | .Path][0] // empty')
-	fi
-	if [ -z "$repo" ] || ! cd "$repo"; then
-		printf 'Cannot locate the sesh directory: %s\nPress any key to close.\n' "$entry" >&2
-		read -r -n 1 -s
-		exit 1
-	fi
-
-	choice=$(tv --source-command "printf 'add from main\\nadd from branch\\n'" --no-preview --no-remote) || exit 0
-	case "$choice" in
-	'add from main') action=add-from-main ;;
-	'add from branch') action=add-from-branch ;;
-	*) exit 0 ;;
-	esac
+if [ "${1:-}" != add-from-sesh ]; then
+	printf 'Usage: %s add-from-sesh <entry>\n' "$0" >&2
+	exit 2
 fi
 
-case "$action" in
-add-from-main)
-	printf 'New workspace name: '
-	read -r name
-	[ -z "$name" ] && exit 0
-	args=(add "$name" --base main)
-	;;
-add-from-branch)
-	if ! jj root >/dev/null 2>&1; then
-		printf 'Not a jj repository. Press any key to close.\n' >&2
-		read -r -n 1 -s
-		exit 1
-	fi
+entry=${2:-}
+[ -z "$entry" ] && exit 0
 
-	selection=$(tv --source-command "jj bookmark list -T 'name ++ \"\\n\"'" --no-preview --no-remote) || exit 0
-	[ -z "$selection" ] && exit 0
-	printf 'New workspace name (base: %s): ' "$selection"
-	read -r name
-	[ -z "$name" ] && exit 0
-	args=(add "$name" --base "$selection")
+repo=$(sesh list --json | jq -r --arg name "$entry" '[.[] | select(.Name == $name) | .Path][0] // empty') || fail 'Cannot list sesh directories.'
+if [ -z "$repo" ] && [ -d "$entry" ]; then
+	repo=$entry
+fi
+if [ -z "$repo" ] || ! cd -- "$repo"; then
+	fail "Cannot locate the sesh directory: $entry"
+fi
+jj root >/dev/null 2>&1 || fail 'Not a jj repository.'
+
+# Popup processes do not reliably inherit TMUX_PANE; capture the session at launch.
+parent_target=${SESH_PARENT_SESSION:-${TMUX_PANE:-}}
+[ -n "$parent_target" ] || fail 'Cannot identify the parent tmux session.'
+parent_session=$(tmux display-message -p -t "$parent_target" '#{session_name}') || fail 'Cannot locate the parent tmux session.'
+[ -n "$parent_session" ] || fail 'Cannot locate the parent tmux session.'
+
+choice=$(gum choose 'From main' 'From bookmark…') || exit 0
+case "$choice" in
+'From main') base=main ;;
+'From bookmark…')
+	bookmarks=$(jj bookmark list -T 'name ++ "\n"' | sort -u) || fail 'Cannot list jj bookmarks.'
+	[ -n "$bookmarks" ] || fail 'No jj bookmarks available.'
+	base=$(printf '%s\n' "$bookmarks" | gum filter --header 'Base bookmark') || exit 0
+	[ -n "$base" ] || exit 0
 	;;
-add-prompt)
-	printf 'Prompt: '
-	read -r prompt
-	[ -z "$prompt" ] && exit 0
-	args=(add -A -p "$prompt")
-	;;
-open | remove | close)
-	selection=$(workmux list | tail -n +2 | fzf)
-	[ -z "$selection" ] && exit 0
-	branch=$(awk '{print $1}' <<<"$selection")
-	args=("$action" "$branch")
-	;;
-*)
-	printf 'Usage: %s {add-from-main|add-from-branch|add-from-sesh|add-prompt|open|remove|close}\n' "$0" >&2
-	exit 2
-	;;
+*) exit 0 ;;
 esac
 
-workmux "${args[@]}" || {
-	echo
-	echo "workmux ${args[0]} failed. Press any key to close."
-	read -r -n 1 -s
-}
+name=$(gum input --header "New workspace (base: $base)" --placeholder 'Workspace name') || exit 0
+[[ "$name" =~ [^[:space:]] ]] || exit 0
+
+# The global mode is session; this action creates and focuses a window in the parent.
+workmux add --base "$base" --mode window --parent-session "$parent_session" -- "$name" || fail 'workmux add failed.'
