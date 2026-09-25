@@ -38,9 +38,6 @@ Manage home-directory dotfiles with Chezmoi. Edit their source files in
 ### Version Control
 
 - **DO NOT USE GIT**. Prefer the jujutsu (jj) version control system.
-- Run `jj stale` after `jj git fetch`. Abandon heads whose PRs squash-merged.
-- Create a bookmark when a work line is ready to push. Give each published work
-  line one bookmarked head. Do not leave empty commits.
 - Treat commits protected by the local jj `immutable_heads()` revset as shared
   history. Never rewrite, rebase, squash, abandon, or bypass that protection
   without the user's explicit permission for that exact operation. Do not add
@@ -51,7 +48,7 @@ Manage home-directory dotfiles with Chezmoi. Edit their source files in
   divergent and discard reviewable history. Prefer a new descendant commit and a
   forward bookmark move when that preserves the intended stack.
 
-### Style
+### Coding Style
 
 - When making technical decisions, do not give much weight to development cost.
   Instead, prefer quality, simplicity, robustness, scalability, and long-term
