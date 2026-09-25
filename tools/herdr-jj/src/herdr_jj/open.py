@@ -2,8 +2,8 @@
 
 Invoked by herdr-jj with the workspace path. If a herdr workspace labeled with
 the jj workspace name already exists it is focused; otherwise it is created
-with a vertical split: the left pane runs opencode and the right pane runs
-the project's start hooks.
+with a vertical split: the left pane runs opencode and the right pane keeps
+its plain interactive shell for servers and ad-hoc commands.
 """
 
 import argparse
@@ -18,17 +18,6 @@ from .lib.herdr import (
     focus_workspace,
     herdr,
     workspace_label,
-)
-
-# herdr closes a pane the moment its shell exits, so the setup shell never
-# exits: the closing echo states the outcome and the pane stays usable. A
-# pre-start failure skips the post hooks, matching CLI create semantics.
-SETUP_COMMAND = (
-    "wt hook pre-start; pre=$?; start=0; switch=0; "
-    "if [ $pre -eq 0 ]; then wt hook post-start; start=$?; "
-    "wt hook post-switch; switch=$?; fi; "
-    "if [ $pre -eq 0 ] && [ $start -eq 0 ] && [ $switch -eq 0 ]; then echo 'wt hooks ok'; "
-    "else echo 'wt hooks failed (pre-start='$pre' post-start='$start' post-switch='$switch')'; fi"
 )
 
 
@@ -50,12 +39,9 @@ def open_workspace(
         return 0
 
     left = created["root_pane"]["pane_id"]
-    right = herdr("pane", "split", left, "--direction", "right", "--no-focus")["pane"][
-        "pane_id"
-    ]
+    herdr("pane", "split", left, "--direction", "right", "--no-focus")
 
     herdr("pane", "run", left, "opencode")
-    herdr("pane", "run", right, SETUP_COMMAND)
     _arm(workspace_id, path, workspaces)
     focus_workspace(workspace_id)
     return 0

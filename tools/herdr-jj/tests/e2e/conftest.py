@@ -32,6 +32,38 @@ if line:
     print(line)
 """
 
+# jw's real path template is <repo>.<name> siblings; mirror that so e2e
+# exercises the jw call path without a live jj-waltz install.
+FAKE_JW = """\
+import os, shutil, subprocess, sys
+
+args = sys.argv[1:]
+cmd = args[0] if args else ""
+name = args[1] if len(args) > 1 else ""
+cwd = os.getcwd()
+root = cwd + "." + name
+
+
+def jj(*a):
+    subprocess.run(["jj", *a], check=True, capture_output=True)
+
+
+if cmd == "add":
+    jj("workspace", "add", root, "--name", name)
+elif cmd == "remove":
+    out = subprocess.run(
+        ["jj", "workspace", "list", "-T", 'self.name() ++ "\\\\t" ++ self.root()'],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    root = next(
+        line.split("\\t")[1]
+        for line in out.splitlines()
+        if line.split("\\t")[0] == name
+    )
+    jj("workspace", "forget", name)
+    shutil.rmtree(root, ignore_errors=True)
+"""
+
 
 def _write_exe(path: Path, content: str) -> None:
     path.write_text(content)
@@ -44,6 +76,7 @@ def fake_bins(tmp_path):
     bin_dir.mkdir()
     _write_exe(bin_dir / "herdr", f"#!{sys.executable}\n{FAKE_HERDR}")
     _write_exe(bin_dir / "fzf", f"#!{sys.executable}\n{FAKE_FZF}")
+    _write_exe(bin_dir / "jw", f"#!{sys.executable}\n{FAKE_JW}")
     _write_exe(
         bin_dir / "herdr-jj",
         f'#!/bin/sh\nexec {sys.executable} -m herdr_jj.main "$@"\n',
@@ -81,7 +114,6 @@ def plugin_env(tmp_path, fake_bins):
                 "HERDR_FAKE_SCENARIO": str(tmp_path / "scenario.json"),
                 "HERDR_PLUGIN_STATE_DIR": str(tmp_path / "state"),
                 "HERDR_SOCKET_PATH": str(tmp_path / "herdr.sock"),
-                "JJ_WORKSPACE_ROOT": str(tmp_path / "workspaces"),
                 "XDG_CONFIG_HOME": str(tmp_path / "xdg"),
             }
         )

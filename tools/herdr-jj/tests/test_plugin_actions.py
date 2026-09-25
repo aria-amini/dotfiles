@@ -1,7 +1,6 @@
 import json
 
 from herdr_jj import actions as actions_module
-from herdr_jj import state
 from herdr_jj.lib.jj import JjError
 
 
@@ -47,5 +46,28 @@ class TestPick:
                 "aamini.jj",
                 "--entrypoint",
                 "picker",
+            )
+        ]
+
+
+class TestMenu:
+    def test_opens_menu_pane_outside_jj_repo(self, monkeypatch, tmp_path):
+        # menu must not require a jj repo: it picks the project first.
+        def fail(c):
+            raise JjError("jj root failed (1): not a repo")
+
+        monkeypatch.setattr(actions_module, "primary_root", fail)
+        rc, _env, calls = run_action(monkeypatch, tmp_path, actions_module.menu)
+
+        assert rc == 0
+        assert calls["herdr"] == [
+            (
+                "plugin",
+                "pane",
+                "open",
+                "--plugin",
+                "aamini.jj",
+                "--entrypoint",
+                "menu",
             )
         ]

@@ -9,6 +9,10 @@ class JjError(RuntimeError):
     pass
 
 
+class JwError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class Workspace:
     name: str
@@ -24,6 +28,29 @@ def jj(*args: str, cwd: Path | None = None) -> str:
             f"jj {' '.join(args)} failed ({result.returncode}): {result.stderr.strip()}"
         )
     return result.stdout
+
+
+def jw(*args: str, cwd: Path | None = None) -> str:
+    result = subprocess.run(
+        ["jw", *args], cwd=cwd, text=True, capture_output=True, check=False
+    )
+    if result.returncode:
+        raise JwError(
+            f"jw {' '.join(args)} failed ({result.returncode}): {result.stderr.strip()}"
+        )
+    return result.stdout
+
+
+def jw_add(name: str, cwd: Path, at: str | None = "@") -> None:
+    """Create a jw-managed workspace; jw owns paths, links, and bookmarks."""
+    args = ["add", name]
+    if at is not None:
+        args.extend(["--at", at])
+    jw(*args, cwd=cwd)
+
+
+def jw_remove(name: str, cwd: Path) -> None:
+    jw("remove", name, "--delete-bookmark", cwd=cwd)
 
 
 def repo_root(cwd: Path) -> Path:
@@ -44,19 +71,7 @@ def primary_root(cwd: Path) -> Path:
     return store.parent.parent
 
 
-def add_workspace(
-    dest: Path, name: str, cwd: Path, revision: str | None = None
-) -> None:
-    # No --colocate here: the active jj fork rejects the flag, and
-    # lifecycle._ensure_git_worktree registers the worktree afterwards.
-    args = ["workspace", "add", str(dest), "--name", name]
-    if revision is not None:
-        args.extend(["--revision", revision])
-    jj(*args, cwd=cwd)
-    _absolutize_repo_pointer(dest)
-
-
-def _absolutize_repo_pointer(workspace_root: Path) -> None:
+def absolutize_repo_pointer(workspace_root: Path) -> None:
     """Rewrite a relative `.jj/repo` pointer as an absolute path.
 
     Recent jj versions write a relative path in the pointer file; tools that

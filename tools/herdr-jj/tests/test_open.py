@@ -21,10 +21,8 @@ class LabelTests(unittest.TestCase):
 
 
 class SetupCommandTests(unittest.TestCase):
-    def test_setup_shell_never_exits(self):
-        self.assertNotIn("exit 0", open_module.SETUP_COMMAND)
-        self.assertIn("wt hooks ok", open_module.SETUP_COMMAND)
-        self.assertIn("wt hooks failed", open_module.SETUP_COMMAND)
+    def test_right_pane_gets_no_hook_command(self):
+        self.assertFalse(hasattr(open_module, "SETUP_COMMAND"))
 
 
 class FindWorkspaceTests(unittest.TestCase):
@@ -281,13 +279,12 @@ class OpenWorkspaceTests(unittest.TestCase):
                 ),
                 ("pane", "split", "p1", "--direction", "right", "--no-focus"),
                 ("pane", "run", "p1", "opencode"),
-                ("pane", "run", "p2", open_module.SETUP_COMMAND),
                 ("workspace", "focus", "w9"),
             ],
         )
         arm.assert_called_once_with("w9", path, {"w9"})
 
-    def test_runs_setup_hooks_alongside_agent(self):
+    def test_runs_no_hooks_alongside_agent(self):
         calls = []
 
         def fake_herdr(*args):
@@ -312,18 +309,7 @@ class OpenWorkspaceTests(unittest.TestCase):
             self.assertEqual(open_module.open_workspace(path), 0)
 
         run_calls = [call for call in calls if call[:2] == ("pane", "run")]
-        self.assertEqual(
-            run_calls,
-            [
-                ("pane", "run", "p1", "opencode"),
-                (
-                    "pane",
-                    "run",
-                    "p2",
-                    open_module.SETUP_COMMAND,
-                ),
-            ],
-        )
+        self.assertEqual(run_calls, [("pane", "run", "p1", "opencode")])
 
     def test_opens_via_worktree_open_when_project_path_given(self):
         calls = []

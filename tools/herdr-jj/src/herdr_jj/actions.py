@@ -6,9 +6,9 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
+from . import state
 from .lib.herdr import herdr
 from .lib.jj import JjError, primary_root
-from . import state
 from .reporter import ensure
 from .state import resolve_context
 
@@ -33,7 +33,29 @@ def pick(env: Mapping[str, str] | None = None) -> int:
     return _open_pane("picker", env)
 
 
+def menu(env: Mapping[str, str] | None = None) -> int:
+    # The menu works outside jj repos by design (it picks the project first),
+    # so it skips the in-repo guard _open_pane applies.
+    env = os.environ if env is None else env
+    cwd = Path(resolve_context(env)["cwd"])
+    state.write_context(env, {"cwd": str(cwd)})
+    herdr(
+        "plugin",
+        "pane",
+        "open",
+        "--plugin",
+        PLUGIN_ID,
+        "--entrypoint",
+        "menu",
+    )
+    ensure(env)
+    return 0
+
+
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     subparsers.add_parser("pick", help="open the workspace picker popup").set_defaults(
         run=lambda args: pick()
     )
+    subparsers.add_parser(
+        "menu", help="open the workspace dashboard popup"
+    ).set_defaults(run=lambda args: menu())

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,9 +20,15 @@ class Workspace(TypedDict):
     worktree: NotRequired[dict]
 
 
+def herdr_bin() -> str:
+    # The injected binary belongs to the running server; a PATH lookup can
+    # resolve a stale client that speaks an older socket protocol.
+    return os.environ.get("HERDR_BIN_PATH") or "herdr"
+
+
 def herdr(*args: str) -> dict:
     result = subprocess.run(
-        ["herdr", *args], text=True, capture_output=True, check=False
+        [herdr_bin(), *args], text=True, capture_output=True, check=False
     )
     if result.returncode:
         raise HerdrError(

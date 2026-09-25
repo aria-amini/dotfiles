@@ -55,7 +55,7 @@ class TestCreateFlow:
         result = run_plugin(env, "wizard", stdin="feat\n")
 
         assert result.returncode == 0, result.stderr
-        dest = tmp_path / "workspaces" / "repo" / "feat"
+        dest = tmp_path / "repo.feat"
         assert dest.is_dir()
         assert "feat" in jj(jj_repo, "workspace", "list")
 

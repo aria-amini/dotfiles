@@ -1,4 +1,4 @@
-"""Popup wizard: name a new jj workspace, create it, open it in herdr.
+"""Popup wizard: name a new jw workspace, create it, open it in herdr.
 
 Creation never runs start hooks in the popup: the herdr workspace opens
 and focuses immediately, and the hooks run in its left pane instead, so a
@@ -12,8 +12,14 @@ import sys
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
-from .lib.jj import JjError, Workspace, add_workspace, primary_root
-from . import state
+from .lib.jj import (
+    JjError,
+    Workspace,
+    absolutize_repo_pointer,
+    jw_add,
+    primary_root,
+    workspace,
+)
 from .open import open_workspace
 from .reporter import ensure
 from .state import resolve_context
@@ -25,13 +31,6 @@ class CreateError(RuntimeError):
     pass
 
 
-def workspace_root(env: Mapping[str, str]) -> Path:
-    override = env.get("JJ_WORKSPACE_ROOT")
-    if override:
-        return Path(override).expanduser()
-    return Path.home() / ".herdr" / "workspaces"
-
-
 def create_workspace(name: str, cwd: Path, env: Mapping[str, str]) -> Workspace:
     if not _WORKSPACE_NAME.fullmatch(name) or any(
         part in (".", "..") for part in name.split("/")
@@ -40,12 +39,9 @@ def create_workspace(name: str, cwd: Path, env: Mapping[str, str]) -> Workspace:
             "workspace name must contain only letters, digits, '.', '_', '-', and "
             "safe '/' separators"
         )
-    primary = primary_root(cwd)
-    root = workspace_root(env) / primary.name / name
-    if root.exists():
-        raise CreateError(f"destination {root} already exists")
-    root.parent.mkdir(parents=True, exist_ok=True)
-    add_workspace(root, name, cwd=cwd, revision="@")
+    jw_add(name, cwd, at="@")
+    root = workspace(cwd, name).root
+    absolutize_repo_pointer(root)
     return Workspace(name=name, root=root)
 
 

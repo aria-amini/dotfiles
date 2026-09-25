@@ -58,47 +58,64 @@ class TestPrimaryRoot:
             assert jj_module.primary_root(tmp_path) == primary
 
 
-class TestAddWorkspace:
-    def test_passes_dest_and_name(self):
-        with patch.object(jj_module, "jj", return_value="") as mock_jj:
-            jj_module.add_workspace(Path("/ws/feat"), "feat", cwd=Path("/repo"))
-        mock_jj.assert_called_once_with(
-            "workspace", "add", "/ws/feat", "--name", "feat", cwd=Path("/repo")
+class TestJwWrapper:
+    def test_jw_returns_stdout(self):
+        with patch.object(subprocess, "run", return_value=completed("ok\n")) as run:
+            assert jj_module.jw("add", "feat") == "ok\n"
+        assert run.call_args.args[0] == ["jw", "add", "feat"]
+
+    def test_jw_raises_on_nonzero_exit(self):
+        with (
+            patch.object(subprocess, "run", return_value=completed("", 1)),
+            pytest.raises(jj_module.JwError),
+        ):
+            jj_module.jw("add", "feat")
+
+
+class TestJwAdd:
+    def test_defaults_to_at_working_copy(self):
+        with patch.object(jj_module, "jw", return_value="") as mock_jw:
+            jj_module.jw_add("feat", cwd=Path("/repo"))
+        mock_jw.assert_called_once_with("add", "feat", "--at", "@", cwd=Path("/repo"))
+
+    def test_at_override(self):
+        with patch.object(jj_module, "jw", return_value="") as mock_jw:
+            jj_module.jw_add("feat", cwd=Path("/repo"), at="trunk()")
+        mock_jw.assert_called_once_with(
+            "add", "feat", "--at", "trunk()", cwd=Path("/repo")
         )
 
-    def test_passes_revision(self):
-        with patch.object(jj_module, "jj", return_value="") as mock_jj:
-            jj_module.add_workspace(
-                Path("/ws/feat"), "feat", cwd=Path("/repo"), revision="trunk()"
-            )
-        mock_jj.assert_called_once_with(
-            "workspace",
-            "add",
-            "/ws/feat",
-            "--name",
-            "feat",
-            "--revision",
-            "trunk()",
-            cwd=Path("/repo"),
+    def test_at_none_omits_flag(self):
+        with patch.object(jj_module, "jw", return_value="") as mock_jw:
+            jj_module.jw_add("feat", cwd=Path("/repo"), at=None)
+        mock_jw.assert_called_once_with("add", "feat", cwd=Path("/repo"))
+
+
+class TestJwRemove:
+    def test_deletes_bookmark_without_prompting(self):
+        with patch.object(jj_module, "jw", return_value="") as mock_jw:
+            jj_module.jw_remove("feat", cwd=Path("/repo"))
+        mock_jw.assert_called_once_with(
+            "remove", "feat", "--delete-bookmark", cwd=Path("/repo")
         )
 
-    def test_rewrites_relative_repo_pointer_as_absolute(self, tmp_path):
+
+class TestAbsolutizeRepoPointer:
+    def test_rewrites_relative_pointer_as_absolute(self, tmp_path):
         primary = tmp_path / "repo"
         (primary / ".jj" / "repo").mkdir(parents=True)
         dest = tmp_path / "ws" / "feat"
         (dest / ".jj").mkdir(parents=True)
         (dest / ".jj" / "repo").write_text("../../../repo/.jj/repo")
-        with patch.object(jj_module, "jj", return_value=""):
-            jj_module.add_workspace(dest, "feat", cwd=primary)
+        jj_module.absolutize_repo_pointer(dest)
         assert (dest / ".jj" / "repo").read_text() == str(primary / ".jj" / "repo")
 
-    def test_leaves_absolute_repo_pointer_alone(self, tmp_path):
+    def test_leaves_absolute_pointer_alone(self, tmp_path):
         dest = tmp_path / "ws" / "feat"
         (dest / ".jj").mkdir(parents=True)
         absolute = str(tmp_path / "repo" / ".jj" / "repo")
         (dest / ".jj" / "repo").write_text(absolute)
-        with patch.object(jj_module, "jj", return_value=""):
-            jj_module.add_workspace(dest, "feat", cwd=tmp_path)
+        jj_module.absolutize_repo_pointer(dest)
         assert (dest / ".jj" / "repo").read_text() == absolute
 
 

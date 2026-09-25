@@ -19,9 +19,9 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import state
 from .lib.herdr import HerdrError, herdr
 from .lib.jj import JjError, status_token
-from . import state
 
 Spawner = Callable[[list[str], Path], int]
 Clock = Callable[[], float]
@@ -168,9 +168,23 @@ def publish(herdr_fn: Callable[..., dict], reports: list[Report]) -> None:
 class SocketEvents:
     """Newline-delimited JSON events from the herdr server socket."""
 
+    SUBSCRIPTIONS = ("workspace.focused", "workspace.created", "workspace.closed")
+
     def __init__(self, path: str):
         self._sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._sock.connect(path)
+        # The server drops silent connections; subscribe explicitly and the
+        # first line read will be the acknowledgment.
+        request = json.dumps(
+            {
+                "id": "herdr-jj-reporter",
+                "method": "events.subscribe",
+                "params": {
+                    "subscriptions": [{"type": name} for name in self.SUBSCRIPTIONS]
+                },
+            }
+        )
+        self._sock.sendall(request.encode() + b"\n")
         self._sock.setblocking(False)
         self._buffer = b""
 

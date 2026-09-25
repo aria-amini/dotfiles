@@ -1,8 +1,8 @@
 id = "aamini.jj"
 name = "jj workspaces"
-version = "0.2.0"
+version = "0.6.2"
 min_herdr_version = "0.8.2"
-description = "Jujutsu workspace support: create, remove, pick, agent spawn, sidebar status."
+description = "jw-backed jj workspaces: create, remove, pick, sidebar status."
 platforms = ["linux", "macos"]
 
 [[actions]]
@@ -17,23 +17,31 @@ title = "Switch jj workspace"
 contexts = ["workspace", "global"]
 command = ["./bin/herdr-jj", "pick"]
 
+[[actions]]
+id = "menu"
+title = "Workspace dashboard"
+contexts = ["workspace", "global"]
+command = ["./bin/herdr-jj", "menu"]
+
 [[panes]]
 id = "picker"
 title = "jj workspaces"
 placement = "popup"
 command = ["./bin/herdr-jj", "picker"]
 
-[[events]]
-on = "worktree.created"
-command = ["./bin/herdr-jj", "adopt"]
-
-[[events]]
-on = "worktree.removed"
-command = ["./bin/herdr-jj", "adopt-forget"]
+[[panes]]
+id = "menu"
+title = "jj workspaces"
+placement = "popup"
+command = ["./bin/herdr-jj", "dashboard"]
 
 [[events]]
 on = "workspace.created"
 command = ["./bin/herdr-jj", "reporter", "ensure"]
+
+[[events]]
+on = "workspace.created"
+command = ["./bin/herdr-jj", "nest"]
 
 [[events]]
 on = "workspace.closed"

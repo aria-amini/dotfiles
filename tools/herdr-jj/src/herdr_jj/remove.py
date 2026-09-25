@@ -7,14 +7,16 @@ import sys
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
+from .close import close_workspace
 from .lib.jj import (
     JjError,
+    JwError,
     current_workspace,
     forget_workspace,
+    jw_remove,
     primary_root,
     repo_root,
 )
-from .close import close_workspace
 
 
 class RemoveError(RuntimeError):
@@ -52,11 +54,15 @@ def remove_workspace(
             return 1
 
     try:
+        jw_remove(target.name, cwd=primary)
+    except JwError as error:
+        # jw only removes workspaces it manages; raw-jj workspaces predate it.
+        print(
+            f"herdr-jj remove: jw skipped ({error}); forgetting directly",
+            file=sys.stderr,
+        )
         forget_workspace(target.name, cwd=primary)
-    except JjError as error:
-        print(f"herdr-jj remove: {error}", file=sys.stderr)
-        return 1
-    shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(root, ignore_errors=True)
     return close_workspace(target.name, root, primary)
 
 

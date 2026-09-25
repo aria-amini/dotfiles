@@ -4,7 +4,13 @@ import argparse
 import os
 import sys
 
-from . import actions, adopt, close, open, picker, remove, reporter, wizard
+from . import actions, close, nest, open, picker, remove, reporter, wizard
+
+
+def run_dashboard(args: argparse.Namespace) -> int:
+    from .dashboard import run
+
+    return run(args)
 
 
 def main() -> int:
@@ -13,11 +19,17 @@ def main() -> int:
     open.add_parser(subparsers)
     close.add_parser(subparsers)
     actions.add_parser(subparsers)
-    adopt.add_parser(subparsers)
     wizard.add_parser(subparsers)
     remove.add_parser(subparsers)
     picker.add_parser(subparsers)
     reporter.add_parser(subparsers)
+    nest.add_parser(subparsers)
+    dashboard = subparsers.add_parser(
+        "dashboard", help="cross-repository workspace dashboard"
+    )
+    dashboard.add_argument("--json", action="store_true")
+
+    dashboard.set_defaults(run=run_dashboard)
     args = parser.parse_args()
     rc = args.run(args)
     # Popup terminals close the moment the command exits; hold failed ones

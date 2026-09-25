@@ -68,17 +68,36 @@ onboarding = false
 # detach = "prefix+q"
 # reload_config = "prefix+shift+r"
 # open_notification_target = "prefix+o"
-# workspace_picker = "prefix+w"
+workspace_picker = "prefix+w"
 # goto = "prefix+g"
 # new_workspace = "prefix+shift+n"
 # new_worktree = "prefix+shift+g"
+new_worktree = ""
 # open_worktree = ""    # optional, unset by default
 # remove_worktree = ""  # optional, unset by default; opens confirmation
 # rename_workspace = "prefix+shift+w"
 # close_workspace = "prefix+shift+d"
 
-# Create worktrees with herdr's built-in new_worktree (prefix+shift+g);
-# the aamini.jj plugin adopts them as jj workspaces automatically.
+# Create jj workspaces with jj-waltz (prefix+shift+g); the bundled jw binary
+# owns workspace paths, links, bookmarks, and remove safety.
+
+[[keys.command]]
+key = "prefix+shift+g"
+type = "plugin_action"
+command = "ezracerpac.jj-waltz.new"
+description = "jj-waltz: new workspace"
+
+[[keys.command]]
+key = "prefix+u"
+type = "plugin_action"
+command = "aamini.jj.menu"
+description = "jj workspace dashboard"
+
+[[keys.command]]
+key = "prefix+shift+w"
+type = "plugin_action"
+command = "aamini.jj.menu"
+description = "jj workspace dashboard"
 
 [[keys.command]]
 key = "prefix+a"

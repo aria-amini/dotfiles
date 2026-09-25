@@ -5,9 +5,9 @@ import os
 import pytest
 
 from herdr_jj import reporter as reporter_module
-from herdr_jj.state import state_dir
 from herdr_jj.lib.herdr import HerdrError
 from herdr_jj.lib.jj import JjError
+from herdr_jj.state import state_dir
 
 
 @pytest.fixture

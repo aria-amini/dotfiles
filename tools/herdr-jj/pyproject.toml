@@ -1,9 +1,11 @@
 [project]
 name = "herdr-jj"
-version = "0.2.0"
-description = "herdr integration for jj workspaces: open/close, picker, wizard, plugin commands"
+version = "0.6.2"
+description = "herdr integration for jw-managed jj workspaces: open/close, picker, wizard, plugin commands"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "textual>=1,<9",
+]
 
 [project.scripts]
 herdr-jj = "herdr_jj.main:main"
