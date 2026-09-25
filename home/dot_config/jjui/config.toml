@@ -2,7 +2,7 @@
 "selected" = { bg = "#313244" }
 
 [revisions]
-revset = ""
+revset = "::(bookmarks() | working_copies())"
 
 [preview]
 position = "bottom"
