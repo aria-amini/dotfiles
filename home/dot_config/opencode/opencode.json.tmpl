@@ -1,0 +1,48 @@
+{{- $cheapModel := "zai-coding-plan/glm-5.3" -}}
+{{- $flashModel := "zai-coding-plan/glm-5.3-flash" -}}
+{
+	"$schema": "https://opencode.ai/config.json",
+	"instructions": [
+		"~/AGENTS.md"
+	],
+	"agent": {
+		"explore": {
+			"model": "{{ $cheapModel }}"
+		},
+		"implementation": {
+			"description": "Implements code changes and features.",
+			"mode": "subagent",
+			"model": "{{ $flashModel }}",
+			"prompt": "You are an implementation agent. Write code that matches the surrounding style and conventions. Follow instructions exactly; do not expand scope. Verify changes with lint, typecheck, or tests when available."
+		}
+	},
+	"permission": {
+		"*": "allow",
+		"bash": {
+			"*": "allow"
+		}
+	},
+	"formatter": {
+		"prettier": {
+			"disabled": true
+		},
+		"oxfmt": {}
+	},
+	"lsp": {
+		"typescript": {
+			"command": [
+				"tsgo",
+				"--lsp",
+				"--stdio"
+			],
+			"extensions": [
+				".ts",
+				".tsx",
+				".js",
+				".jsx",
+				".mts",
+				".cts"
+			]
+		}
+	}
+}
