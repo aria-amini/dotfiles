@@ -161,7 +161,6 @@ elif [ -t 0 ]; then
 else
   gum style --foreground 214 "  authentication deferred: run gh auth login --web"
 fi
-mise --quiet trust -y "$HOME/dotfiles/mise.toml"
 
 # Developer Tools
 section "Developer Tools"
