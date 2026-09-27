@@ -1,4 +1,7 @@
 Include ~/.ssh/devboxes.d/*.conf
+# Forward the real terminal identity so remote apps like herdr can pick the
+# right notification escape; servers opt in with AcceptEnv TERM_PROGRAM.
+SendEnv TERM_PROGRAM
 {{ if eq .chezmoi.os "darwin" -}}
 Include ~/.lima/*/ssh.config
 

@@ -40,6 +40,40 @@ if ! cmp -s "$temp_dir/wslconfig" "$windows_home/.wslconfig"; then
   install -m 644 "$temp_dir/wslconfig" "$windows_home/.wslconfig"
 fi
 
+ssh_dir="$windows_home/.ssh"
+ssh_config="$ssh_dir/config"
+marker_start='# aamini-dotfiles:start'
+marker_end='# aamini-dotfiles:end'
+managed="$marker_start
+SendEnv TERM_PROGRAM"
+# SetEnv as a config keyword needs OpenSSH 8.7+; older ssh aborts on it.
+win_ssh='/mnt/c/Windows/System32/OpenSSH/ssh.exe'
+if [[ -f "$win_ssh" ]]; then
+  ssh_version=$("$win_ssh" -V 2>&1 | sed -n 's/.*OpenSSH_for_Windows_\([0-9.]*\).*/\1/p')
+  if [[ -n "$ssh_version" ]] && awk -v v="$ssh_version" 'BEGIN{split(v,a,"."); exit !(a[1]>8 || (a[1]==8 && a[2]>=7))}'; then
+    managed+=$'\nSetEnv TERM_PROGRAM=WezTerm'
+  fi
+fi
+managed+=$'\n'"$marker_end"
+
+current=""
+[[ ! -f "$ssh_config" ]] || current=$(tr -d '\r' < "$ssh_config" | awk -v s="$marker_start" -v e="$marker_end" '
+  index($0, s) == 1 { skip = 1; next }
+  index($0, e) == 1 { skip = 0; next }
+  !skip')
+if [[ -z "$current" ]]; then
+  desired="$managed"
+else
+  desired="$current
+$managed"
+fi
+if ! cmp -s <(printf '%s\n' "$desired") "$ssh_config" 2>/dev/null; then
+  mkdir -p "$ssh_dir"
+  [[ ! -f "$ssh_config" ]] || cp -a "$ssh_config" "$ssh_config.bak"
+  printf '%s\n' "$desired" > "$temp_dir/win-ssh-config"
+  install -m 600 "$temp_dir/win-ssh-config" "$ssh_config"
+fi
+
 service_changed=false
 cmp -s "$temp_dir/wsl-loopback-routes" /usr/local/sbin/wsl-loopback-routes || service_changed=true
 cmp -s "$temp_dir/wsl-loopback-routes.service" /etc/systemd/system/wsl-loopback-routes.service || service_changed=true
