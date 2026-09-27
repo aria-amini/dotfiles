@@ -1,48 +1,4 @@
 .env*.local
-/.config/
-/.gitconfig
-/.local/
-
-home/dot_config/gh
-
-.pi
 
 .impeccable
 
-home/dot_config/herdr/*
-!home/dot_config/herdr/config.toml
-
-__pycache__
-node_modules/
-
-.venv
-.ruff_cache
-
-home/dot_config/jj/repos
-
-# Work
-home/dot_config/pulse/cookie
-home/dot_config/microsoft-edge
-home/dot_config/enchant
-home/dot_config/evolution
-home/dot_config/gnome-initial-setup-done
-home/dot_config/gtk-3.0
-home/dot_config/ibus
-home/dot_config/microsoft-edge-dev
-home/dot_config/mimeapps.list
-home/dot_config/tiling-assistant
-home/dot_config/xfce4
-home/dot_config/ubuntu-xdg-terminals.list
-home/dot_config/user-dirs.dirs
-home/dot_config/user-dirs.locale
-home/dot_config/.gsd-keyboard.settings-ported
-home/dot_config/GNOME-xdg-terminals.list
-home/dot_config/Thunar/uca.xml
-home/dot_config/dconf/user
-home/dot_config/microsoft-azurevpnclient
-home/dot_config/xdg-terminals.list
-.zcompdump*
-
-# Hermes
-home/dot_config/systemd/user/hermes-gateway.service
-home/dot_config/systemd/user/default.target.wants/hermes-gateway.service

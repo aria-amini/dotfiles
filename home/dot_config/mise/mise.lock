@@ -5132,9 +5132,6 @@ checksum = "sha256:5a0b55df66ff07b4342e04967cef69f8bf348f6a0fb1cc1eca741c7b015df
 url = "https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.7-h534d264_7.conda"
 checksum = "sha256:ca7daae4f218a11fab82cc2857f0ea518ec3f46acec60490485347a4c22c6b3e"
 
-[tools]
-"github:worktrunk" = []
-
 [[tools."aqua:joshmedeski/sesh"]]
 version = "2.26.2"
 backend = "aqua:joshmedeski/sesh"
@@ -5166,6 +5163,10 @@ url = "https://github.com/joshmedeski/sesh/releases/download/v2.26.2/sesh_Darwin
 [tools."aqua:joshmedeski/sesh"."platforms.windows-x64"]
 checksum = "sha256:6e602704ef30340aa86bd80436a6767aa2ae4a5cc9fadf3540c26777f9cb9349"
 url = "https://github.com/joshmedeski/sesh/releases/download/v2.26.2/sesh_Windows_x86_64.zip"
+
+[[tools."aqua:max-sixty/worktrunk"]]
+version = "0.79.0"
+backend = "aqua:max-sixty/worktrunk"
 
 [[tools.bat]]
 version = "0.26.1"
@@ -5686,6 +5687,10 @@ url = "https://github.com/cli/cli/releases/download/v2.101.0/gh_2.101.0_windows_
 url_api = "https://api.github.com/repos/cli/cli/releases/assets/565857681"
 provenance = "github-attestations"
 
+[[tools."github:EzraCerpac/jj-waltz"]]
+version = "0.7.0"
+backend = "github:EzraCerpac/jj-waltz"
+
 [[tools."github:JohnnyMorganz/StyLua"]]
 version = "2.5.2"
 backend = "github:JohnnyMorganz/StyLua"
@@ -5992,55 +5997,6 @@ url_api = "https://api.github.com/repos/aria-amini/jj-ryu/releases/assets/499865
 checksum = "sha256:6d254f6ab1ec3179a3e50b3fe790f35bfb15c164a4e1da4031eabddb85f8a704"
 url = "https://github.com/aria-amini/jj-ryu/releases/download/v0.2.3/ryu-win32-x64.zip"
 url_api = "https://api.github.com/repos/aria-amini/jj-ryu/releases/assets/499865798"
-
-[[tools."github:aria-amini/workmux"]]
-version = "0.1.263-jj.4"
-backend = "github:aria-amini/workmux"
-
-[tools."github:aria-amini/workmux"."platforms.linux-arm64"]
-checksum = "sha256:3eb5057870ef873589dcaa5ba5579fb132b74e5675ead90784cc93107f91f68d"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472481"
-
-[tools."github:aria-amini/workmux"."platforms.linux-arm64-musl"]
-checksum = "sha256:3eb5057870ef873589dcaa5ba5579fb132b74e5675ead90784cc93107f91f68d"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472481"
-
-[tools."github:aria-amini/workmux"."platforms.linux-x64"]
-checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
-
-[tools."github:aria-amini/workmux"."platforms.linux-x64-baseline"]
-checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
-
-[tools."github:aria-amini/workmux"."platforms.linux-x64-musl"]
-checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
-
-[tools."github:aria-amini/workmux"."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:905d4e179b5e0ef549d7f6460aff8123e7f1b1152ab8da0d3de7f4f10511b368"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472480"
-
-[tools."github:aria-amini/workmux"."platforms.macos-arm64"]
-checksum = "sha256:08dccf33f573371fce4d5cd07780eff805ff66e6748599132ba4072c1a6edc64"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472477"
-
-[tools."github:aria-amini/workmux"."platforms.macos-x64"]
-checksum = "sha256:6f98d9dd5475e8cfaefa919ff10a4c5024c759181784836d1b30ea7e4e0b6acd"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472485"
-
-[tools."github:aria-amini/workmux"."platforms.macos-x64-baseline"]
-checksum = "sha256:6f98d9dd5475e8cfaefa919ff10a4c5024c759181784836d1b30ea7e4e0b6acd"
-url = "https://github.com/aria-amini/workmux/releases/download/v0.1.263-jj.4/workmux-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/aria-amini/workmux/releases/assets/586472485"
 
 [[tools."github:danielgatis/imgcat"]]
 version = "1.0.23"
@@ -6402,45 +6358,6 @@ checksum = "sha256:2134f1bb629bf273e5ba9de6e44953923ab14831756c350ce75535a986ec1
 url = "https://github.com/joshmedeski/sesh/releases/download/v2.30.1/sesh_Windows_x86_64.zip"
 url_api = "https://api.github.com/repos/joshmedeski/sesh/releases/assets/555698477"
 
-[[tools."github:max-sixty/worktrunk"]]
-version = "0.67.0"
-backend = "github:max-sixty/worktrunk"
-
-[tools."github:max-sixty/worktrunk"."platforms.linux-arm64"]
-checksum = "sha256:5bf0590928a3db4751d1508007ba9f164cd49e75930565f5868136e351368adc"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-aarch64-unknown-linux-musl.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508352"
-
-[tools."github:max-sixty/worktrunk"."platforms.linux-arm64-musl"]
-checksum = "sha256:5bf0590928a3db4751d1508007ba9f164cd49e75930565f5868136e351368adc"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-aarch64-unknown-linux-musl.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508352"
-
-[tools."github:max-sixty/worktrunk"."platforms.linux-x64"]
-checksum = "sha256:f580b7d12ca9bd750c17e5af05f509f9dfa3523661b982572684c6f541cf661f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-unknown-linux-musl.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508364"
-
-[tools."github:max-sixty/worktrunk"."platforms.linux-x64-musl"]
-checksum = "sha256:f580b7d12ca9bd750c17e5af05f509f9dfa3523661b982572684c6f541cf661f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-unknown-linux-musl.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508364"
-
-[tools."github:max-sixty/worktrunk"."platforms.macos-arm64"]
-checksum = "sha256:f94431e961c77d988a07e740f80e1b34e4cd8b70853af13fe30562b68bc5f97f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-aarch64-apple-darwin.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508345"
-
-[tools."github:max-sixty/worktrunk"."platforms.macos-x64"]
-checksum = "sha256:f1400f14169052a87c622c1258ee00b8085279c88cba0f6f5bfa895fb71d3662"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-apple-darwin.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508358"
-
-[tools."github:max-sixty/worktrunk"."platforms.windows-x64"]
-checksum = "sha256:4a3af596f0c2c6c7e3142efd979ed7921441f163ae17c2f8f41e0d96051652f4"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508360"
-
 [[tools."github:owenthereal/upterm"]]
 version = "0.24.0"
 backend = "github:owenthereal/upterm"
@@ -6479,55 +6396,6 @@ url_api = "https://api.github.com/repos/owenthereal/upterm/releases/assets/41320
 checksum = "sha256:589167d66b4321b118f413a3451d4442039a9eb364567c5497a95532b1260952"
 url = "https://github.com/owenthereal/upterm/releases/download/v0.24.0/upterm_windows_amd64.tar.gz"
 url_api = "https://api.github.com/repos/owenthereal/upterm/releases/assets/413207435"
-
-[[tools."github:raine/workmux"]]
-version = "0.1.262"
-backend = "github:raine/workmux"
-
-[tools."github:raine/workmux"."platforms.linux-arm64"]
-checksum = "sha256:5e2927771aa6c76cd5f4ee7b8f6405ec0cd46d76d1f259e9878ceb24e8ecbc4b"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960326"
-
-[tools."github:raine/workmux"."platforms.linux-arm64-musl"]
-checksum = "sha256:5e2927771aa6c76cd5f4ee7b8f6405ec0cd46d76d1f259e9878ceb24e8ecbc4b"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960326"
-
-[tools."github:raine/workmux"."platforms.linux-x64"]
-checksum = "sha256:cc4bb06d010ba040d9137b3cc8a054f7461476c946c3e2b9cec416e222a392d3"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960329"
-
-[tools."github:raine/workmux"."platforms.linux-x64-baseline"]
-checksum = "sha256:cc4bb06d010ba040d9137b3cc8a054f7461476c946c3e2b9cec416e222a392d3"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960329"
-
-[tools."github:raine/workmux"."platforms.linux-x64-musl"]
-checksum = "sha256:cc4bb06d010ba040d9137b3cc8a054f7461476c946c3e2b9cec416e222a392d3"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960329"
-
-[tools."github:raine/workmux"."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:cc4bb06d010ba040d9137b3cc8a054f7461476c946c3e2b9cec416e222a392d3"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960329"
-
-[tools."github:raine/workmux"."platforms.macos-arm64"]
-checksum = "sha256:270f43bed607a69473af92c9f7b7f8b856cb9cc7fed4e8311ac0a05a136b1e34"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960328"
-
-[tools."github:raine/workmux"."platforms.macos-x64"]
-checksum = "sha256:afa2bef412475bfdb90bb9b95c3f50981d6b4de387cd145963cfbe74ed727ebf"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960331"
-
-[tools."github:raine/workmux"."platforms.macos-x64-baseline"]
-checksum = "sha256:afa2bef412475bfdb90bb9b95c3f50981d6b4de387cd145963cfbe74ed727ebf"
-url = "https://github.com/raine/workmux/releases/download/v0.1.262/workmux-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/raine/workmux/releases/assets/559960331"
 
 [[tools."github:roblillack/imgap"]]
 version = "0.4.0"
@@ -6676,6 +6544,10 @@ url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323062"
 [tools."github:tamasfe/taplo"."platforms.windows-x64-baseline"]
 url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-windows-x86_64.zip"
 url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323062"
+
+[[tools.gum]]
+version = "2.0.2"
+backend = "aqua:charmbracelet/gum"
 
 [[tools.hadolint]]
 version = "2.14.0"

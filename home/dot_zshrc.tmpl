@@ -36,7 +36,6 @@ alias k='kubectl'
 alias tree='erd'
 alias pr="gh-dash"
 alias gd='hunk diff --watch'
-alias wt='workmux'
 
 gr() {
   local root
@@ -119,8 +118,8 @@ source ~/.config/fzf/fzf-tab/fzf-tab.plugin.zsh
 # ── Zoxide ────────────────────────────────────────────────────
 eval "$(zoxide init zsh)"
 
-# ── Workmux ───────────────────────────────────────────────────
-eval "$(workmux completions zsh)"
+# ── Worktrunk ─────────────────────────────────────────────────
+eval "$(wt config shell init zsh)"
 
 # ── Theme ─────────────────────────────────────────────────────
 eval "$(oh-my-posh init zsh --config ~/.config/oh-my-posh/themes/theme.toml)"
