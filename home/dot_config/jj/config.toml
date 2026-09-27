@@ -20,24 +20,15 @@ auto-update-stale = false
 log = 'builtin_log() | all_work()'
 
 [revset-aliases]
-# Everything reachable from another workspace's @ is off-limits to this one;
-# prevents parallel agents from rewriting each other's commits. Work in your
-# own workspace and rebase to sync.
 "immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ @)"
-
-# Every work line: bookmarked or attached to a workspace. Each line shows only
-# its commits since diverging from trunk, not trunk's own history.
 "all_work()" = "(bookmarks() | working_copies()) | (::(bookmarks() | working_copies()) ~ ::trunk())"
 
-# Heads that squash-merged PRs left behind.
 [aliases]
 stale = ["log", "-r", "heads(all() & mutable() & ~main::)"]
 
-# Merged upstream in jj 0.46: `jj workspace add` registers a git worktree.
 [git]
 auto-register-worktrees = true
 
-# Shared by `jj log` and jjui (jjui shells out to `jj log`).
 [template-aliases]
 'format_short_commit_header(commit)' = '''
 separate(" ",
