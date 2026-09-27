@@ -33,6 +33,44 @@ Manage home-directory dotfiles with Chezmoi. Edit their source files in
 - For T3 Code dev servers, use `vp run dev --share`; do not configure Tailscale
   Serve by hand.
 
+## Herdr jj workspaces
+
+### Setup
+
+Herdr panes run non-login shells on Linux. Keep `shell_mode = "login"` in
+`~/.config/herdr/config.toml`, so `.zprofile` PATH setup runs.
+
+### Spin up a workspace
+
+Create a jj-backed herdr workspace `<name>` for `<repo>`. Run all steps
+headlessly through the herdr socket CLI.
+
+1. From the repo root, run
+   `jj workspace add ~/.herdr/workspaces/<repo>/<name> --colocate -m "<name>"`.
+2. In the new worktree, run `jj bookmark create <name>`.
+3. Copy a seeded `.env.local` from the repo root when one exists. It prevents a
+   varlock secret prompt in headless panes.
+4. Run
+   `herdr worktree open --cwd <repo-root> --path <worktree> --label <name> --no-focus`.
+5. Split the root pane right. Run
+   `herdr pane run <right-pane> "mise run bootstrap"`.
+6. Run `herdr agent start <name> --kind opencode --pane <root-pane>`.
+7. Poll `herdr pane read <right-pane> --source recent` for "Bootstrap complete".
+   Do not block on long `wait-output` calls.
+
+Create the jj workspace first. herdr's `worktree create` makes git-only
+checkouts that jj cannot adopt.
+
+herdr 0.9.1 names: `pane wait-output` (not `wait output`), `agent start
+--kind`, `worktree open --cwd --path`.
+
+### Remove a workspace
+
+1. Close the herdr workspace.
+2. Run `jj workspace forget <name>` from the repo root.
+3. Delete the leftover worktree directory.
+4. Run `jj bookmark delete <name>`.
+
 ## Rules
 
 ### Version Control

@@ -5164,10 +5164,6 @@ url = "https://github.com/joshmedeski/sesh/releases/download/v2.26.2/sesh_Darwin
 checksum = "sha256:6e602704ef30340aa86bd80436a6767aa2ae4a5cc9fadf3540c26777f9cb9349"
 url = "https://github.com/joshmedeski/sesh/releases/download/v2.26.2/sesh_Windows_x86_64.zip"
 
-[[tools."aqua:max-sixty/worktrunk"]]
-version = "0.79.0"
-backend = "aqua:max-sixty/worktrunk"
-
 [[tools.bat]]
 version = "0.26.1"
 backend = "aqua:sharkdp/bat"
@@ -9657,58 +9653,6 @@ url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-win32-x64-msvc/-/v
 
 [tools.vite-plus."platforms.windows-x64-baseline"]
 url = "https://registry.npmjs.org/@voidzero-dev/vite-plus-cli-win32-x64-msvc/-/vite-plus-cli-win32-x64-msvc-0.2.6.tgz"
-
-[[tools.worktrunk]]
-version = "0.67.0"
-backend = "aqua:max-sixty/worktrunk"
-
-[tools.worktrunk."platforms.linux-arm64"]
-checksum = "sha256:5bf0590928a3db4751d1508007ba9f164cd49e75930565f5868136e351368adc"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-aarch64-unknown-linux-musl.tar.xz"
-
-[tools.worktrunk."platforms.linux-arm64-musl"]
-checksum = "sha256:5bf0590928a3db4751d1508007ba9f164cd49e75930565f5868136e351368adc"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-aarch64-unknown-linux-musl.tar.xz"
-
-[tools.worktrunk."platforms.linux-x64"]
-checksum = "sha256:f580b7d12ca9bd750c17e5af05f509f9dfa3523661b982572684c6f541cf661f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-unknown-linux-musl.tar.xz"
-
-[tools.worktrunk."platforms.linux-x64-baseline"]
-checksum = "sha256:f580b7d12ca9bd750c17e5af05f509f9dfa3523661b982572684c6f541cf661f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-unknown-linux-musl.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508364"
-
-[tools.worktrunk."platforms.linux-x64-musl"]
-checksum = "sha256:f580b7d12ca9bd750c17e5af05f509f9dfa3523661b982572684c6f541cf661f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-unknown-linux-musl.tar.xz"
-
-[tools.worktrunk."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:f580b7d12ca9bd750c17e5af05f509f9dfa3523661b982572684c6f541cf661f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-unknown-linux-musl.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508364"
-
-[tools.worktrunk."platforms.macos-arm64"]
-checksum = "sha256:f94431e961c77d988a07e740f80e1b34e4cd8b70853af13fe30562b68bc5f97f"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-aarch64-apple-darwin.tar.xz"
-
-[tools.worktrunk."platforms.macos-x64"]
-checksum = "sha256:f1400f14169052a87c622c1258ee00b8085279c88cba0f6f5bfa895fb71d3662"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-apple-darwin.tar.xz"
-
-[tools.worktrunk."platforms.macos-x64-baseline"]
-checksum = "sha256:f1400f14169052a87c622c1258ee00b8085279c88cba0f6f5bfa895fb71d3662"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-apple-darwin.tar.xz"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508358"
-
-[tools.worktrunk."platforms.windows-x64"]
-checksum = "sha256:4a3af596f0c2c6c7e3142efd979ed7921441f163ae17c2f8f41e0d96051652f4"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-pc-windows-msvc.zip"
-
-[tools.worktrunk."platforms.windows-x64-baseline"]
-checksum = "sha256:4a3af596f0c2c6c7e3142efd979ed7921441f163ae17c2f8f41e0d96051652f4"
-url = "https://github.com/max-sixty/worktrunk/releases/download/v0.67.0/worktrunk-x86_64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/max-sixty/worktrunk/releases/assets/472508360"
 
 [[tools.yazi]]
 version = "26.9.1"

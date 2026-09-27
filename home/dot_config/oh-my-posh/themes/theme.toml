@@ -4,16 +4,9 @@ version = 2
 final_space = true
 console_title_template = '{{ .Shell }} in {{ .Folder }}'
 
-[options]
-fetch_status = true
-ignore_working_copy = false
-fetch_ahead_counter = true
-ahead_icon = "⇡"
-
 [[blocks]]
 type = 'prompt'
 alignment = 'left'
-newline = true
 
 [[blocks.segments]]
 type = 'os'
@@ -60,6 +53,7 @@ change_id_min_len = 8
 fetch_status = true
 ignore_working_copy = false
 fetch_ahead_counter = true
+ahead_icon = "⇡"
 
 [[blocks]]
 type = 'rprompt'

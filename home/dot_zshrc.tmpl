@@ -3,7 +3,6 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export EDITOR='nvim'
 export VISUAL='nvim'
-export POSH_VI_MODE=viins
 if (( ! $+commands[infocmp] )) || [[ -z "$TERM" ]] || ! infocmp "$TERM" >/dev/null 2>&1; then
   if (( $+commands[infocmp] )) && infocmp xterm-256color >/dev/null 2>&1; then
     export TERM=xterm-256color
@@ -11,23 +10,53 @@ if (( ! $+commands[infocmp] )) || [[ -z "$TERM" ]] || ! infocmp "$TERM" >/dev/nu
     export TERM=dumb
   fi
 fi
-export OPENCODE_EXPERIMENTAL_OXFMT=1
-export OLLAMA_HOST="http://127.0.0.1:11434"
 # Global-only mise setting (kept out of .config/mise/config.toml so jj
 # workspace copies of that file loaded as project configs don't warn).
 export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspaces/:$HOME/.t3/worktrees/:$HOME/.t3/workspaces/"
 
 # ── Path ──────────────────────────────────────────────────────
 export PATH="$PATH:/usr/sbin:/sbin"
-export PATH="$PATH:$HOME/.local/bin"
-export PATH="$PATH:$HOME/.nix-profile/bin"
 {{ if eq .chezmoi.os "linux" -}}
 export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 {{ end -}}
 
-# ── Initialization ────────────────────────────────────────────
+{{ if eq .chezmoi.os "darwin" -}}
+# ── Platform: macOS ────────────────────────────────────────────
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
+
+lima() {
+  local instance="${LIMA_INSTANCE:-default}"
+  ssh -F "$HOME/.lima/$instance/ssh.config" "lima-$instance" "$@"
+}
+{{ end }}
+
+# ── Init ──────────────────────────────────────────────────────
 eval "$(mise activate zsh)"
-if [ -e $HOME/.nix-profile/etc/profile.d/nix.sh ]; then . $HOME/.nix-profile/etc/profile.d/nix.sh; fi
+
+# ── Completion ────────────────────────────────────────────────
+autoload -Uz compinit
+compinit
+
+# ── FZF ───────────────────────────────────────────────────────
+source <(fzf --zsh)
+export FZF_DEFAULT_COMMAND='fd --hidden'
+export FZF_COMPLETION_OPTS="--preview '~/.config/fzf/fzf-preview.sh {}' --border --info=inline"
+
+_fzf_compgen_path() {
+  fd --hidden --follow --color=never . "$1"
+}
+
+_fzf_compgen_dir() {
+  fd --hidden --follow --type directory --color=never . "$1"
+}
+
+source ~/.config/fzf/fzf-tab/fzf-tab.plugin.zsh
+
+# ── Zoxide ────────────────────────────────────────────────────
+eval "$(zoxide init zsh)"
+
+# ── jj-waltz ──────────────────────────────────────────────────
+eval "$(jw shell init zsh)"
 
 # ── Aliases ───────────────────────────────────────────────────
 alias lg='jjui'
@@ -61,10 +90,7 @@ nvim()
     fi
 }
 
-vim()
-{
-    nvim "$@"
-}
+alias vim='nvim'
 
 ta() {
   if [[ -n "${TMUX:-}" ]]; then
@@ -82,47 +108,21 @@ function y() {
 	rm -f -- "$tmp"
 }
 
-{{ if eq .chezmoi.os "darwin" -}}
-# ── Platform: macOS ────────────────────────────────────────────
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
-
-lima() {
-  local instance="${LIMA_INSTANCE:-default}"
-  ssh -F "$HOME/.lima/$instance/ssh.config" "lima-$instance" "$@"
-}
-{{ end }}
-{{ if .isLima -}}
-# ── Platform: Lima Guest ───────────────────────────────────────
-export OLLAMA_HOST="http://host.lima.internal:11434"
-{{ end }}
-
-# ── Completion ────────────────────────────────────────────────
-autoload -Uz compinit
-compinit
-
-# ── FZF ───────────────────────────────────────────────────────
-source <(fzf --zsh)
-export FZF_DEFAULT_COMMAND='fd --hidden'
-export FZF_COMPLETION_OPTS="--preview '~/.config/fzf/fzf-preview.sh {}' --border --info=inline"
-
-_fzf_compgen_path() {
-  fd --hidden --follow --color=never . "$1"
-}
-
-_fzf_compgen_dir() {
-  fd --hidden --follow --type directory --color=never . "$1"
-}
-
-source ~/.config/fzf/fzf-tab/fzf-tab.plugin.zsh
-
-# ── Zoxide ────────────────────────────────────────────────────
-eval "$(zoxide init zsh)"
-
-# ── Worktrunk ─────────────────────────────────────────────────
-eval "$(wt config shell init zsh)"
-
 # ── Theme ─────────────────────────────────────────────────────
 eval "$(oh-my-posh init zsh --config ~/.config/oh-my-posh/themes/theme.toml)"
+
+# ── Prompt spacing ────────────────────────────────────────────
+# Blank line between prompts. Sits here, not in the theme's first block,
+# so a Ctrl+L redraw (which skips precmd) hugs the top of the screen.
+typeset -g _prompt_shown=''
+_prompt_gap() {
+  if [[ -n "$_prompt_shown" ]]; then
+    print ''
+  fi
+  _prompt_shown=1
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _prompt_gap
 
 # ── Vim mode ──────────────────────────────────────────────────
 bindkey -v
@@ -139,33 +139,13 @@ _set_cursor_shape() {
   printf '%s' "$1"
 }
 
+# Theme renders no vi-mode segment, so omp's zle-keymap-select hook is
+# dormant; re-add its chaining if the theme gains one.
 zle-keymap-select() {
-  (( $+widgets[_dotfiles_zle_keymap_select] )) &&
-    zle _dotfiles_zle_keymap_select
-  export POSH_VI_MODE=${KEYMAP:-main}
   case "$KEYMAP" in
     vicmd) _set_cursor_shape "$_cursor_block" ;;
     viins|main) _set_cursor_shape "$_cursor_beam" ;;
   esac
-  (( $+functions[omp_repaint_prompt] )) && omp_repaint_prompt
 }
-if (( $+widgets[zle-keymap-select] )); then
-  zle -A zle-keymap-select _dotfiles_zle_keymap_select
-fi
 zle -N zle-keymap-select
 _set_cursor_shape "$_cursor_beam"
-
-{{ if .isLima -}}
-# Lima BEGIN
-# Make sure iptables and mount.fuse3 are available
-PATH="$PATH:/usr/sbin:/sbin"
-export PATH
-# Lima END
-{{ end -}}
-
-# ── pnpm ──────────────────────────────────────────────────────
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME/bin:"*) ;;
-  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
-esac
