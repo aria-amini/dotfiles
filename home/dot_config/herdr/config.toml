@@ -26,6 +26,8 @@ onboarding = false
 # red = "#ff6188"
 # green = "#a6e3a1"
 
+name = "vesper"
+auto_switch = false
 [terminal]
 # Executable used for new interactive panes.
 # Empty means $SHELL, then /bin/sh.
@@ -221,11 +223,12 @@ directory = "~/.herdr/workspaces"
 # Accepts: hex (#89b4fa), named colors (cyan, blue, magenta), or rgb(r,g,b)
 # accent = "cyan"
 
+status_indicators = "symbols"
 [ui.sidebar.spaces]
 rows = [["state_icon", "workspace"], ["branch", "git_status", "$jj_status"]]
 
 [ui.toast]
-delivery = "terminal"
+delivery = "system"
 # off = disable pop-up notifications
 # herdr = show in-app toasts
 # terminal = ask the outer terminal to show a desktop notification
@@ -253,6 +256,7 @@ delivery = "terminal"
 # [ui.sound.agents]
 # droid = "off"
 
+enabled = true
 [session]
 # Resume supported AI-agent panes into their native conversation sessions after
 # a Herdr server restart. Requires official integrations that report session refs.
