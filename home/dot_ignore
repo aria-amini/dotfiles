@@ -21,6 +21,4 @@ node_modules
 .nix-defexpr
 .nix-profile
 
-# Allow .worktrees to be searchable
-!.worktrees
 !.env*.local

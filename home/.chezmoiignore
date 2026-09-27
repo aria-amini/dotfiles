@@ -4,11 +4,3 @@
 {{ if .isWSL }}
 .ssh/devboxes.d/wsl.conf
 {{ end }}
-.config/mise/mise.lock
-.config/herdr/.plugins.lock
-.config/herdr/herdr-client.log
-.config/herdr/herdr-client.sock
-.config/herdr/herdr-server.log
-.config/herdr/herdr.sock
-.config/herdr/release-notes.json
-.config/herdr/session.json
