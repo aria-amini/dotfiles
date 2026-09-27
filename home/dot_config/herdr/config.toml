@@ -112,6 +112,22 @@ key = "prefix+d"
 type = "plugin_action"
 command = "aamini.jj.remove"
 description = "JJ workspace: remove"
+
+[[keys.command]]
+key = "prefix+alt+d"
+type = "popup"
+command = "hunk diff"
+description = "hunk: working copy diff"
+width = "90%"
+height = "90%"
+
+[[keys.command]]
+key = "prefix+alt+j"
+type = "popup"
+command = "jjui"
+description = "jjui"
+width = "90%"
+height = "90%"
 # previous_workspace = "" # optional, unset by default
 # next_workspace = ""     # optional, unset by default
 # previous_agent = ""     # optional, unset by default
