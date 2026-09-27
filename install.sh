@@ -162,19 +162,21 @@ else
   gum style --foreground 214 "  authentication deferred: run gh auth login --web"
 fi
 mise --quiet trust -y "$HOME/dotfiles/mise.toml"
-run_task "Linking Vite+ plugin" mise plugin link --force vite-plus "$HOME/dotfiles/tools/mise-vite-plus"
 
 # Developer Tools
 section "Developer Tools"
 run_task "Installing managed tools" mise install --quiet
-run_task "Installing repository tools" mise -C "$HOME/dotfiles" install --quiet --monorepo
-run_task "Configuring repository tools" mise -C "$HOME/dotfiles" --quiet //:install
-run_task "Installing herdr jj integration" uv tool install \
-  --python 3.14 \
-  --editable \
-  --reinstall \
-  "$HOME/dotfiles/tools/herdr-jj"
-run_task "Linking herdr jj plugin" herdr plugin link "$HOME/dotfiles/tools/herdr-jj/herdr-plugin"
+if [ -d "$HOME/tools/herdr-jj-workspaces" ]; then
+  run_task "Installing herdr jj integration" uv tool install \
+    --python 3.14 \
+    --editable \
+    --reinstall \
+    "$HOME/tools/herdr-jj-workspaces"
+  run_task "Linking herdr jj plugin" herdr plugin link "$HOME/tools/herdr-jj-workspaces/herdr-plugin"
+else
+  gum style --foreground 214 \
+    "  herdr-jj-workspaces not found: clone it to ~/tools and re-run this step"
+fi
 if [ -f "$HOME/ms-scripts/packages/ms-scripts/pyproject.toml" ]; then
   run_task "Installing Microsoft scripts" uv tool install \
     --python 3.14 \

@@ -1,11 +1,6 @@
-monorepo_root = true
-
 [tools]
 "aqua:tailscale/tailscale" = "latest"
 node = "24"
-
-[monorepo]
-config_roots = ["tools/*"]
 
 [shell_alias]
 dots = "cd {{config_root}}"
@@ -22,14 +17,6 @@ exec tailscaled --tun=userspace-networking \
 [tasks.ts]
 description = "tailscale CLI against the userspace daemon"
 run = 'tailscale --socket="$HOME/.local/share/tailscale/tailscaled.sock" "$@"'
-
-[tasks.install]
-description = "Install all dotfiles tools"
-depends = ["//tools/...:install"]
-
-[tasks.check]
-description = "Run all checks"
-depends = ["//tools/...:check"]
 
 [tasks.apply]
 description = "Apply dotfiles with chezmoi"

@@ -8,7 +8,7 @@ idiomatic_version_file_enable_tools = ["node"]
 
 [plugins]
 nix = "https://github.com/jbadeau/mise-nix.git"
-vite-plus = "{{ env.HOME }}/dotfiles/tools/mise-vite-plus"
+vite-plus = "https://github.com/markmals/mise-vite-plus"
 
 [tools]
 python = "3.14"
