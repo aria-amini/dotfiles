@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import ClassVar
@@ -35,6 +36,7 @@ from .dashboard_data import (
     single,
     trunk_bookmark,
 )
+from .finish import DiffFile, DiffStat
 from .state import resolve_context
 
 
@@ -145,6 +147,116 @@ class DiffViewer(ModalScreen[None]):
         self.dismiss(None)
 
 
+def _scaled_bar(bar: str, width: int) -> tuple[str, str]:
+    plus, minus = bar.count("+"), bar.count("-")
+    total = plus + minus
+    if total == 0 or total <= width:
+        return "+" * plus, "-" * minus
+    if not minus:
+        return "+" * width, ""
+    if not plus:
+        return "", "-" * width
+    minus_w = min(width - 1, max(1, round(minus * width / total)))
+    return "+" * (width - minus_w), "-" * minus_w
+
+
+def _stat_row(file: DiffFile, path_w: int, bar_w: int) -> Text:
+    shown = file.path if len(file.path) <= path_w else "…" + file.path[-(path_w - 1) :]
+    line = Text()
+    line.append(shown.ljust(path_w))
+    line.append(" │ ", style="dim")
+    if file.bar.startswith("Bin"):
+        line.append(file.bar, style="dim")
+        return line
+    line.append(f"{file.lines:>4} ", style="cyan")
+    plus, minus = _scaled_bar(file.bar, bar_w)
+    line.append(plus, style="green")
+    line.append(minus, style="red")
+    return line
+
+
+class Prompt(ModalScreen[str | None]):
+    BAR_WIDTH: ClassVar = 14
+    AUTO_FOCUS = "#value"
+
+    BINDINGS: ClassVar = [
+        ("escape", "cancel", "Cancel"),
+        Binding("ctrl+g", "generate", "Generate"),
+    ]
+    DEFAULT_CSS = """
+    Prompt { align: center middle; background: $background 70%; }
+    Prompt > Vertical { width: 80%; height: auto; max-height: 80%; border: round $accent; padding: 1 2; background: $surface; }
+    Prompt #summary { color: $text-muted; margin-bottom: 1; }
+    Prompt #stat { height: auto; max-height: 12; overflow-y: auto; margin-bottom: 1; }
+    Prompt #stat-total { text-style: bold; margin-bottom: 1; }
+    Prompt #status { display: none; margin-bottom: 1; }
+    Prompt Input { margin: 1 0; }
+    Prompt #hint { color: $text-disabled; }
+    """
+
+    def __init__(
+        self, title: str, body: str | DiffStat = "", value: str = "", generate=None
+    ):
+        super().__init__()
+        self.heading = title
+        self.body, self.initial = body, value
+        self.on_generate = generate
+
+    def _path_width(self, stat: DiffStat) -> int:
+        usable = max(48, int(self.app.console.width * 0.8) - 8)
+        longest = max((len(f.path) for f in stat.files), default=0)
+        return max(12, min(longest, usable - 24))
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static(Text(self.heading, style="bold cyan"))
+            if isinstance(self.body, DiffStat) and self.body.files:
+                path_w = self._path_width(self.body)
+                with VerticalScroll(id="stat"):
+                    for file in self.body.files:
+                        yield Static(_stat_row(file, path_w, self.BAR_WIDTH))
+                total = (
+                    f"{len(self.body.files)} files changed, "
+                    f"{self.body.total_adds} insertions(+), "
+                    f"{self.body.total_dels} deletions(-)"
+                )
+                yield Static(Text(total, style="bold"), id="stat-total")
+            elif isinstance(self.body, DiffStat):
+                yield Static(
+                    Text("No changes in the working copy", style="dim"),
+                    id="stat-total",
+                )
+            else:
+                yield Static(Text(self.body), id="summary")
+            yield Static("", id="status")
+            yield Input(value=self.initial, placeholder="Message", id="value")
+            yield Static("enter commit · ctrl-g generate · esc cancel", id="hint")
+
+    @on(Input.Submitted)
+    def submit(self, event: Input.Submitted) -> None:
+        self.dismiss(event.value.strip() or None)
+
+    @work(group="prompt")
+    async def action_generate(self) -> None:
+        if self.on_generate is None:
+            return
+        status = self.query_one("#status", Static)
+        status.display = True
+        status.update(Text("Generating message…", style="cyan"))
+        try:
+            message = await asyncio.to_thread(self.on_generate)
+        except (DashboardError, OSError) as error:
+            status.update(Text(f"Generation failed: {error}", style="bold red"))
+            return
+        status.display = False
+        box = self.query_one("#value", Input)
+        box.value = message
+        box.focus()
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class NewWorkspace(ModalScreen[tuple[str, str] | None]):
     BINDINGS: ClassVar = [("escape", "cancel", "Cancel")]
     DEFAULT_CSS = """
@@ -191,9 +303,11 @@ class Dashboard(App):
         height: 1fr; margin: 0 1;
         background: transparent;
     }
-    #workspaces > .datatable--header {
-        color: $text-muted; text-style: bold; background: transparent;
-        border-bottom: solid $panel;
+    # Header is rendered inline by DataTable (no child widget), so this is a
+    # component-class style: no borders. A distinct band plus underline
+    # separates it from the first row.
+    #workspaces .datatable--header {
+        color: $text-muted; text-style: bold underline; background: $foreground 12%;
     }
     #workspaces > .datatable--cursor { background: $boost; }
     #workspaces > .datatable--hover { background: transparent; }
@@ -215,6 +329,9 @@ class Dashboard(App):
     BINDINGS: ClassVar = [
         Binding("enter", "focus_row", "Open"),
         Binding("d", "diff", "Diff"),
+        Binding("c", "commit", "Commit"),
+        Binding("p", "push", "Push"),
+        Binding("P", "pull_request", "PR"),
         Binding("e", "agents", "Agents"),
         Binding("question_mark", "help", "Actions"),
         Binding("n", "new", "New"),
@@ -255,15 +372,21 @@ class Dashboard(App):
         table.focus()
         self._load_view_preference()
         self.action_refresh()
-        self.set_interval(5, self.action_refresh)
+        # The recurring refresh worker races test workers' completion waits.
+        if "pytest" not in sys.modules:
+            self.set_interval(5, self.action_refresh)
         self.render_chrome()
 
     def render_chrome(self) -> None:
         keys = [
             ("enter", "open"),
             ("d", "diff"),
+            ("c", "commit"),
+            ("p", "push"),
+            ("P", "pr"),
+            ("M", "merge"),
             ("/", "filter"),
-            ("?", "actions"),
+            ("?", "all"),
         ]
         spans = []
         for index, (key, label) in enumerate(keys):
@@ -441,7 +564,7 @@ class Dashboard(App):
         if flags.plain.strip():
             name_text.append("  ")
             name_text.append_text(flags)
-        bookmark = Text("no bookmark", style="dim")
+        bookmark = Text("—", style="dim")
         if row.bookmark:
             bookmark = Text(row.bookmark, style="dim")
             if row.bookmark_state not in ("at tip",):
@@ -486,6 +609,9 @@ class Dashboard(App):
         if action in {
             "focus_row",
             "diff",
+            "commit",
+            "push",
+            "pull_request",
             "agents",
             "help",
             "merge",
@@ -683,12 +809,91 @@ class Dashboard(App):
             Dialog(
                 "Workspace actions",
                 "Enter  Open workspace\nj/k or arrows  Select workspace\n"
+                "Esc  Clear filter or close dialog\n"
                 "/  Filter all workspaces\nd  Open stack diff\n"
-                "e  Select agent\nn  New workspace\n"
-                "a  Include parked workspaces\ng  Toggle activity order\n"
-                "M  Merge plan\nR  Cleanup\nr  Refresh\nq  Close",
+                "c  Commit the working copy\np  Push the bookmark\n"
+                "P  Create a pull request\ne  Select agent\n"
+                "n  New workspace\na  Include parked workspaces\n"
+                "g  Toggle activity order\nM  Merge (squash or rebase)\n"
+                "R  Cleanup\nr  Refresh\nq  Close",
             )
         )
+
+    @work(group="action")
+    async def action_commit(self) -> None:
+        row = self.selected
+        if not row or row.root is None or self.busy:
+            return
+        root = row.root
+        try:
+            summary, description = await self.perform(finish.working_copy_summary, root)
+            message = await self.push_screen_wait(
+                Prompt(
+                    f"Commit · {row.display}",
+                    body=summary,
+                    value=description,
+                    generate=lambda: finish.generate_message(root),
+                )
+            )
+            if not message:
+                return
+            self.status(await self.perform(finish.commit, root, message))
+            self.action_refresh()
+        except (DashboardError, OSError) as error:
+            self.report_error(error)
+
+    def _task_bookmark(self, row: Row) -> str:
+        if not row.bookmark:
+            raise DashboardError("This workspace has no bookmark to publish")
+        if row.is_primary:
+            raise DashboardError("Create a task workspace to publish its own bookmark")
+        return row.bookmark
+
+    @work(group="action")
+    async def action_push(self) -> None:
+        row = self.selected
+        if not row or row.root is None or self.busy:
+            return
+        try:
+            bookmark = self._task_bookmark(row)
+            answer = await self.push_screen_wait(
+                Dialog(
+                    "Push workspace",
+                    f"Push {bookmark} ({row.bookmark_state}) to the remote?\n\n"
+                    "Remote bookmarks move to the bookmark, not the workspace tip.",
+                    (("push", "Push"),),
+                )
+            )
+            if answer != "push":
+                return
+            self.status(await self.perform(finish.push_bookmark, row.root, bookmark))
+            self.action_refresh()
+        except (DashboardError, OSError) as error:
+            self.report_error(error)
+
+    @work(group="action")
+    async def action_pull_request(self) -> None:
+        row = self.selected
+        if not row or row.root is None or row.repo is None or self.busy:
+            return
+        try:
+            bookmark = self._task_bookmark(row)
+            base = trunk_bookmark(row.repo)
+            answer = await self.push_screen_wait(
+                Dialog(
+                    "Create pull request",
+                    f"Push {bookmark} and open a PR against {base}?\n\n"
+                    "The title and body come from the first commit.",
+                    (("create", "Create"),),
+                )
+            )
+            if answer != "create":
+                return
+            url = await self.perform(finish.create_pr, row.root, bookmark, base)
+            self.push_screen(Dialog("Pull request", url))
+            self.action_refresh()
+        except (DashboardError, OSError) as error:
+            self.report_error(error)
 
     @work(group="action")
     async def action_merge(self) -> None:
@@ -697,25 +902,31 @@ class Dashboard(App):
             return
         try:
             plan = await self.perform(finish.plan_merge, row.root)
-            mode = (
-                "Rebase mutable stack, then advance" if plan.rebase else "Fast-forward"
-            )
             answer = await self.push_screen_wait(
                 Dialog(
                     "Merge workspace",
                     (
-                        f"{row.root}\n\n{mode} {plan.bookmark}.\n"
+                        f"{row.root}\n\n"
                         f"{len(plan.commits)} commits · {plan.trunk[:12]} → {plan.tip[:12]}\n\n"
-                        "Merge + cleanup also removes the checkout and closes its idle sessions.\n"
-                        "Bookmarks remain. A cleanup failure leaves the merge intact."
+                        "Squash folds the stack into one new commit on the target.\n"
+                        "Rebase keeps the commits and advances the target.\n"
+                        "A cleanup failure leaves the merge intact."
                     ),
-                    (("merge", "Merge only"), ("finish", "Merge + cleanup")),
+                    (
+                        ("squash", "Squash"),
+                        ("rebase", "Rebase"),
+                        ("squash-finish", "Squash + cleanup"),
+                        ("rebase-finish", "Rebase + cleanup"),
+                    ),
                 )
             )
             if answer == "cancel":
                 return
-            message = await self.perform(finish.merge, plan)
-            if answer == "finish":
+            if answer.startswith("squash"):
+                message = await self.perform(finish.squash_merge, plan)
+            else:
+                message = await self.perform(finish.merge, plan)
+            if answer.endswith("finish"):
                 try:
                     message += "\n" + await self.perform(finish.cleanup, row.root)
                 except (DashboardError, OSError) as error:

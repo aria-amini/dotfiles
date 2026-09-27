@@ -3,7 +3,8 @@ from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
 
-from textual.widgets import DataTable, Input
+from textual.containers import VerticalScroll
+from textual.widgets import DataTable, Input, Static
 
 from herdr_jj.dashboard import Dashboard, Dialog
 from herdr_jj.dashboard_data import AHEAD, PR_ICON, Agent, Row, Snapshot
@@ -100,7 +101,7 @@ def test_bookmark_cell_shows_relationship_inline():
             await pilot.pause()
             await app.workers.wait_for_complete()
             table = app.query_one(DataTable)
-            assert str(table.get_row_at(1)[3]) == "no bookmark"
+            assert str(table.get_row_at(1)[3]) == "—"
             assert str(table.get_row_at(1)[4]) == "—"
             await pilot.press("j")
             assert str(table.get_row_at(2)[3]) == f"wt · {AHEAD}2"
@@ -472,10 +473,318 @@ def test_merge_cancel_and_partial_cleanup_result(monkeypatch):
             assert not calls
             await pilot.press("M")
             await pilot.pause()
-            await pilot.click("#finish")
+            await pilot.click("#rebase-finish")
             await pilot.pause()
             assert calls == ["merge"]
             assert "Merged" in app.screen.body
             assert "Cleanup pending: jw refused" in app.screen.body
+
+    asyncio.run(exercise())
+
+
+def test_merge_squash_strategy(monkeypatch):
+    from herdr_jj import dashboard
+    from herdr_jj.finish import MergePlan
+
+    row = Row(Path("/repo/a"), Path("/repo"), "a", sessions=("w1",))
+    plan = MergePlan(
+        row.root,
+        row.repo,
+        "a",
+        "main",
+        "a" * 40,
+        "b" * 40,
+        "b" * 40,
+        ("b" * 40,),
+        False,
+    )
+    calls = []
+    monkeypatch.setattr(dashboard.finish, "plan_merge", lambda _: plan)
+    monkeypatch.setattr(
+        dashboard.finish, "squash_merge", lambda _: calls.append("squash") or "ok"
+    )
+    monkeypatch.setattr(
+        dashboard.finish, "merge", lambda _: calls.append("rebase") or "ok"
+    )
+
+    async def exercise():
+        app = Dashboard(loader=lambda _: Snapshot([row]))
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.press("M")
+            await pilot.pause()
+            await pilot.click("#squash")
+            await pilot.pause()
+            await pilot.press("escape")
+            await pilot.pause()
+            await pilot.press("M")
+            await pilot.pause()
+            await pilot.click("#rebase")
+            await pilot.pause()
+
+    asyncio.run(exercise())
+    assert calls == ["squash", "rebase"]
+
+
+def test_commit_keybind_prompts_and_runs(monkeypatch):
+    from herdr_jj import dashboard
+    from herdr_jj.finish import DiffFile, DiffStat
+
+    calls = []
+    monkeypatch.setattr(
+        dashboard.finish,
+        "working_copy_summary",
+        lambda root: (
+            DiffStat(
+                [
+                    DiffFile("src/app.py", 12, "+++++-------"),
+                    DiffFile("README.md", 2, "++"),
+                ],
+                13,
+                1,
+            ),
+            "old message",
+        ),
+    )
+    monkeypatch.setattr(
+        dashboard.finish,
+        "commit",
+        lambda root, message: calls.append((root, message)) or "Committed",
+    )
+    row = Row(Path("/repo/wt"), Path("/repo"), "wt", ahead=1)
+
+    async def exercise():
+        app = Dashboard(loader=lambda _: Snapshot([row]))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            await pilot.press("c")
+            await pilot.pause()
+            prompt = app.screen
+            assert "2 files changed" in str(
+                prompt.query_one("#stat-total", Static).render()
+            )
+            rows = prompt.query_one("#stat", VerticalScroll)
+            assert len(list(rows.children)) == 2
+            box = prompt.query_one("#value", Input)
+            assert box.value == "old message"
+            box.value = "fix bug"
+            await pilot.press("enter")
+            await app.workers.wait_for_complete()
+            await pilot.pause()
+
+    asyncio.run(exercise())
+    assert calls == [(Path("/repo/wt"), "fix bug")]
+
+
+def test_commit_generate_fills_message(monkeypatch):
+    from herdr_jj import dashboard
+
+    gen_calls = []
+    commit_calls = []
+    monkeypatch.setattr(
+        dashboard.finish,
+        "working_copy_summary",
+        lambda root: (
+            dashboard.finish.DiffStat(
+                [dashboard.finish.DiffFile("src/webhooks.py", 3, "++-")], 2, 1
+            ),
+            "",
+        ),
+    )
+    monkeypatch.setattr(
+        dashboard.finish,
+        "generate_message",
+        lambda root: gen_calls.append(root) or "fix: retry webhooks",
+    )
+    monkeypatch.setattr(
+        dashboard.finish,
+        "commit",
+        lambda root, message: commit_calls.append((root, message)) or "Committed",
+    )
+    row = Row(Path("/repo/wt"), Path("/repo"), "wt", ahead=1)
+
+    async def exercise():
+        app = Dashboard(loader=lambda _: Snapshot([row]))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            await pilot.press("c")
+            await pilot.pause()
+            await pilot.press("ctrl+g")
+            box = app.screen.query_one("#value", Input)
+            for _ in range(50):
+                if box.value == "fix: retry webhooks":
+                    break
+                await pilot.pause(0.1)
+            assert box.value == "fix: retry webhooks"
+            assert app.focused is box
+            await pilot.press("enter")
+            for _ in range(50):
+                if commit_calls:
+                    break
+                await pilot.pause(0.1)
+
+    asyncio.run(exercise())
+    assert gen_calls == [Path("/repo/wt")]
+    assert commit_calls == [(Path("/repo/wt"), "fix: retry webhooks")]
+
+
+def test_working_copy_summary_parses_stat(monkeypatch):
+    from herdr_jj import finish
+
+    sample = (
+        "  src/app.py          | 12 ++++++-------\n"
+        "my notes.txt          |  2 ++\n"
+        "README.md             |  5 +++--\n"
+        "assets/logo.png       | Bin 12 -> 340 bytes\n"
+        "4 files changed, 28 insertions(+), 16 deletions(-)\n"
+    )
+
+    def fake_read(root, *args):
+        return sample if args[0] == "diff" else ""
+
+    monkeypatch.setattr(finish, "read_jj", fake_read)
+    stat, description = finish.working_copy_summary(Path("/repo"))
+    assert [f.path for f in stat.files] == [
+        "src/app.py",
+        "README.md",
+        "my notes.txt",
+        "assets/logo.png",
+    ]
+    assert stat.files[0].lines == 12
+    assert stat.files[3].bar.startswith("Bin")
+    assert (stat.total_adds, stat.total_dels) == (28, 16)
+    assert description == ""
+
+
+def test_working_copy_summary_empty(monkeypatch):
+    from herdr_jj import finish
+
+    monkeypatch.setattr(finish, "read_jj", lambda root, *args: "")
+    stat, _ = finish.working_copy_summary(Path("/repo"))
+    assert stat.files == []
+    assert (stat.total_adds, stat.total_dels) == (0, 0)
+
+
+def test_stat_row_render():
+    from herdr_jj.dashboard import _scaled_bar, _stat_row
+    from herdr_jj.finish import DiffFile
+
+    plus, minus = _scaled_bar("+" * 3 + "-" * 9, 6)
+    assert len(plus) + len(minus) == 6
+    assert len(minus) > len(plus)
+    assert _scaled_bar("++++", 14) == ("++++", "")
+
+    row = _stat_row(DiffFile("a/" * 30 + "deep/file.py", 12, "+++++"), 20, 14)
+    assert str(row).startswith("…")
+    styles = {span.style for span in row.spans}
+    assert "green" in styles
+
+    binary = _stat_row(DiffFile("logo.png", 0, "Bin 12 -> 340 bytes"), 20, 14)
+    assert "Bin 12 -> 340 bytes" in str(binary)
+
+
+def test_prompt_no_changes_renders_total_only():
+    from herdr_jj import dashboard
+    from herdr_jj.finish import DiffStat
+
+    async def exercise():
+        app = Dashboard(loader=lambda _: Snapshot([]))
+        async with app.run_test():
+            prompt = dashboard.Prompt("Commit", body=DiffStat([], 0, 0))
+            await app.push_screen(prompt)
+            assert not prompt.query("#stat")
+            assert "No changes" in str(prompt.query_one("#stat-total", Static).render())
+
+    asyncio.run(exercise())
+
+
+def test_push_and_pr_guards(monkeypatch):
+    from herdr_jj import dashboard
+
+    calls = []
+    monkeypatch.setattr(
+        dashboard.finish,
+        "push_bookmark",
+        lambda root, bookmark: calls.append(("push", bookmark)) or "Pushed",
+    )
+    monkeypatch.setattr(dashboard, "trunk_bookmark", lambda _: "main")
+    monkeypatch.setattr(
+        dashboard.finish,
+        "create_pr",
+        lambda root, bookmark, base: calls.append(("pr", bookmark, base)) or "url",
+    )
+    no_bookmark = Row(Path("/repo/x"), Path("/repo"), "x", ahead=1)
+    primary = Row(
+        Path("/repo"),
+        Path("/repo"),
+        "default",
+        is_primary=True,
+        bookmark="main",
+        bookmark_state="at tip",
+        ahead=1,
+    )
+    task = Row(
+        Path("/repo/wt"),
+        Path("/repo"),
+        "wt",
+        bookmark="wt",
+        bookmark_state="at tip",
+        ahead=1,
+    )
+
+    async def exercise():
+        app = Dashboard(loader=lambda _: Snapshot([no_bookmark, primary, task]))
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            assert app.selected == primary
+            await pilot.press("j")
+            assert app.selected == task
+            await pilot.press("p")
+            await pilot.pause()
+            await pilot.click("#push")
+            await app.workers.wait_for_complete()
+            await pilot.pause()
+            await pilot.press("P")
+            await pilot.pause()
+            await pilot.click("#create")
+            await app.workers.wait_for_complete()
+            await pilot.pause()
+
+    asyncio.run(exercise())
+    assert calls == [("push", "wt"), ("pr", "wt", "main")]
+
+
+def test_footer_lists_core_actions():
+    async def exercise():
+        app = Dashboard(loader=lambda _: Snapshot())
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            footer = str(app.query_one("#footer", Static).render())
+            for hint in ("open", "diff", "commit", "push", "pr", "merge", "all"):
+                assert hint in footer
+            await pilot.press("question_mark")
+            await pilot.pause()
+            body = app.screen.body
+            for line in ("Commit", "Push", "pull request", "Merge (squash"):
+                assert line in body
+
+    asyncio.run(exercise())
+
+
+def test_header_renders_separator_border():
+    async def exercise():
+        rows = [Row(Path("/repo/a"), Path("/repo"), "a", ahead=1)]
+        app = Dashboard(loader=lambda _: Snapshot(rows))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            table = app.query_one(DataTable)
+            header = table.get_component_styles("datatable--header")
+            assert "underline" in str(header.text_style)
+            assert header.background != table.styles.background
 
     asyncio.run(exercise())

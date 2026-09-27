@@ -201,6 +201,101 @@ def test_repo_prs_cache_hits_and_failures(repo, monkeypatch, tmp_path):
     assert data.repo_prs(repo) == {}
 
 
+def test_squash_merge_collapses_stack(repo):
+    root = branch(repo)
+    data.command("jj", "new", cwd=root)
+    (root / "more").write_text("more\n")
+    data.command("jj", "describe", "-m", "more", cwd=root)
+    advance(repo)
+    plan = finish.plan_merge(root)
+    assert len(plan.commits) == 2
+    assert plan.rebase
+    result = finish.squash_merge(plan)
+    assert "Squashed 2 commits" in result
+    assert len(data.revisions(repo, "bookmarks(exact:main)")) == 1
+    # The primary checkout is stale after the rewrite; assert on the commit.
+    files = data.read_jj(repo, "file", "list", "-r", "bookmarks(exact:main)")
+    assert "feature" in files and "more" in files
+    assert not data.revisions(root, "main..@ & ~empty()")
+    with pytest.raises(data.DashboardError, match="No commits ahead"):
+        finish.plan_merge(root)
+
+
+def test_squash_merge_rejects_immutable_trunk(repo):
+    root = branch(repo)
+    data.command(
+        "jj",
+        "config",
+        "set",
+        "--repo",
+        'revset-aliases."immutable_heads()"',
+        "root() | main | (working_copies() ~ @)",
+        cwd=repo,
+    )
+    plan = finish.plan_merge(root)
+    with pytest.raises(data.DashboardError, match="immutable"):
+        finish.squash_merge(plan)
+
+
+def test_push_pr_and_commit_commands(repo, monkeypatch):
+    root = branch(repo)
+    data.command("jj", "bookmark", "create", "feature", "-r", "main", cwd=repo)
+    calls = []
+    real = finish.command
+
+    def execute(*args, **kwargs):
+        calls.append(args)
+        if args[:2] == ("gh", "pr"):
+            return "https://example.test/pr/17\n"
+        if args[:2] == ("jj", "git"):
+            return ""
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(finish, "command", execute)
+    monkeypatch.setattr(finish, "repo_prs", lambda repo, env=None, ttl=120: {})
+    assert "Pushed feature" in finish.push_bookmark(root, "feature")
+    assert finish.create_pr(root, "feature", "main") == "https://example.test/pr/17"
+    assert "new change" in finish.commit(root, "add work")
+    assert ("jj", "git", "push", "--bookmark", "feature") in calls
+    assert (
+        "gh",
+        "pr",
+        "create",
+        "--fill",
+        "--head",
+        "feature",
+        "--base",
+        "main",
+    ) in calls
+    assert ("jj", "commit", "-m", "add work") in calls
+
+
+def test_generate_message_uses_agent_cli(repo, monkeypatch):
+    (repo / "change").write_text("x\n")
+    data.command("jj", "status", cwd=repo)
+    calls = []
+
+    def execute(*args, **kwargs):
+        calls.append(args)
+        if args[0] == "opencode":
+            return "```suggested subject line```\n"
+        raise AssertionError(f"unexpected command {args}")
+
+    monkeypatch.setattr(finish, "command", execute)
+    monkeypatch.setattr(finish.shutil, "which", lambda name: f"/usr/bin/{name}")
+    message = finish.generate_message(repo)
+    assert message == "suggested subject line"
+    assert calls[0][0] == "opencode" and calls[0][2].startswith("Write one")
+
+
+def test_generate_message_without_cli_fails(repo, monkeypatch):
+    (repo / "change").write_text("x\n")
+    data.command("jj", "status", cwd=repo)
+    monkeypatch.setattr(finish.shutil, "which", lambda name: None)
+    with pytest.raises(data.DashboardError, match="No agent CLI"):
+        finish.generate_message(repo)
+
+
 def test_duplicate_herdr_workspaces_merge_per_checkout(repo, monkeypatch):
     root = branch(repo)
     sessions = [

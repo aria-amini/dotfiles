@@ -1,6 +1,8 @@
 """Merge and cleanup are separate stages; a cleanup failure never retries a merge."""
 
 import fcntl
+import re
+import shutil
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +15,7 @@ from .dashboard_data import (
     live_state,
     quote,
     read_jj,
+    repo_prs,
     repository,
     revisions,
     single,
@@ -170,6 +173,166 @@ def merge(plan: MergePlan) -> str:
         if single(plan.root, f"bookmarks(exact:{quote(plan.bookmark)})") != tip:
             raise DashboardError("Target changed concurrently; no cleanup occurred")
         return f"Merged {len(plan.commits)} commits into {plan.bookmark}. Workspace retained; R cleans it up."
+
+
+def squash_merge(plan: MergePlan) -> str:
+    with repo_lock(plan.repo):
+        if plan_merge(plan.root) != plan:
+            raise DashboardError("Workspace or target changed; review a new merge plan")
+        if revisions(plan.root, f"{plan.trunk} & immutable()"):
+            raise DashboardError(
+                "Squash rewrites the target commit and it is immutable; use the rebase strategy"
+            )
+        command(
+            "jj",
+            "--ignore-working-copy",
+            # -u keeps the trunk description; without it jj opens an editor.
+            "squash",
+            "--from",
+            f"{plan.trunk}..{plan.tip}",
+            "--into",
+            plan.bookmark,
+            "--use-destination-message",
+            cwd=plan.root,
+            timeout=120,
+        )
+        new_trunk = single(plan.root, f"bookmarks(exact:{quote(plan.bookmark)})")
+        if new_trunk == plan.trunk:
+            raise DashboardError("Squash did not change the target; nothing merged")
+        if revisions(plan.root, f"{new_trunk} & conflicts()"):
+            raise DashboardError(
+                "Squash produced conflicts on the target; recover with jj op undo"
+            )
+        command("jj", "workspace", "update-stale", cwd=plan.root)
+        return (
+            f"Squashed {len(plan.commits)} commits into one on {plan.bookmark}. "
+            "Workspace retained; R cleans it up."
+        )
+
+
+@dataclass(frozen=True)
+class DiffFile:
+    path: str
+    lines: int
+    bar: str
+
+
+@dataclass(frozen=True)
+class DiffStat:
+    files: list[DiffFile]
+    total_adds: int = 0
+    total_dels: int = 0
+
+
+def working_copy_summary(root: Path) -> tuple[DiffStat, str]:
+    """Files the commit would create, with per-file churn, plus its description."""
+    root = root.resolve()
+    stat = DiffStat([])
+    for line in read_jj(root, "diff", "--stat").rstrip().splitlines():
+        line = line.rstrip()
+        total = re.fullmatch(
+            r"(\d+) files? changed(?:, (\d+) insertions?\(\+\))?"
+            r"(?:, (\d+) deletions?\(-\))?",
+            line,
+        )
+        if total:
+            stat = DiffStat(
+                stat.files,
+                int(total.group(2) or 0),
+                int(total.group(3) or 0),
+            )
+            continue
+        path, sep, rest = line.rpartition(" | ")
+        if not sep:
+            continue
+        path = path.strip()
+        if rest.startswith("Bin"):
+            stat.files.append(DiffFile(path, 0, rest.strip()))
+            continue
+        count, _, bar = rest.strip().partition(" ")
+        if not count.isdigit():
+            continue
+        stat.files.append(DiffFile(path, int(count), bar.strip()))
+    stat.files.sort(key=lambda f: f.lines, reverse=True)
+    description = read_jj(
+        root, "log", "--no-graph", "-r", "@", "-T", "description"
+    ).strip()
+    return stat, description
+
+
+def generate_message(root: Path) -> str:
+    """One-line commit message from a local agent CLI; explicit and slow."""
+    root = root.resolve()
+    diff = read_jj(root, "diff", "--git")
+    if not diff.strip():
+        raise DashboardError("No changes in the working copy to describe")
+    prompt = (
+        "Write one conventional-commit style subject line for this diff. "
+        "Reply with the message only: no quotes, no body, no backticks.\n\n"
+        f"{diff[:12000]}"
+    )
+    for argv in (["opencode", "run"], ["claude", "-p"]):
+        if shutil.which(argv[0]):
+            output = command(*argv, prompt, cwd=root, timeout=180).strip()
+            message = next((line for line in output.splitlines() if line.strip()), "")
+            if message:
+                return message.strip("` ")[:120]
+            break
+    raise DashboardError("No agent CLI available (tried opencode and claude)")
+
+
+def commit(root: Path, message: str) -> str:
+    root = root.resolve()
+    with repo_lock(repository(root)):
+        command("jj", "status", cwd=root)
+        command("jj", "commit", "-m", message, cwd=root, timeout=120)
+    return "Committed the working copy; a new change started"
+
+
+def _push(root: Path, bookmark: str) -> None:
+    # New remote bookmarks are created by default in jj >= 0.23.
+    command(
+        "jj",
+        "git",
+        "push",
+        "--bookmark",
+        bookmark,
+        cwd=root,
+        timeout=120,
+    )
+
+
+def push_bookmark(root: Path, bookmark: str) -> str:
+    root = root.resolve()
+    with repo_lock(repository(root)):
+        command("jj", "status", cwd=root)
+        single(root, f"bookmarks(exact:{quote(bookmark)})")
+        _push(root, bookmark)
+    return f"Pushed {bookmark}"
+
+
+def create_pr(root: Path, bookmark: str, base: str) -> str:
+    root = root.resolve()
+    repo = repository(root)
+    with repo_lock(repo):
+        command("jj", "status", cwd=root)
+        single(root, f"bookmarks(exact:{quote(bookmark)})")
+        _push(root, bookmark)
+        url = command(
+            "gh",
+            "pr",
+            "create",
+            "--fill",
+            "--head",
+            bookmark,
+            "--base",
+            base,
+            cwd=root,
+            timeout=120,
+        ).strip()
+    # Refresh the PR column cache so the new PR appears on the next render.
+    repo_prs(repo, ttl=0)
+    return url
 
 
 def cleanup(root: Path) -> str:
