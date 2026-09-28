@@ -44,8 +44,12 @@ the dotfiles repo; the schema holds resolvers only.
 - Caddy terminates TLS on the Tailscale IP at port 443 and proxies to the
   Pitchfork proxy on loopback port 9443. Portless URLs are
   `https://<name>.dev.ariaamini.com` and `https://<name>.lvh.ariaamini.com`
-  (publicly trusted). Nested Pitchfork hostnames need the explicit port, for
-  example `https://web.fix-login.imdbgraph.lvh.ariaamini.com:9443`.
+  (publicly trusted; `.dev` aliases `.lvh`). Hostnames are single-level:
+  slugs flatten directory dots to hyphens (`app.worktree` serves as
+  `app-worktree`). Nested hostnames (`worktree.app.lvh…`) and direct `:9443`
+  access do not work: the wildcard certificate covers one level, and the
+  proxy binds loopback only. Register a worktree with
+  `pitchfork proxy add <slug> --daemon dev --dir <workspace-root>`.
 - Do not replace or reset mappings you did not start.
 - For T3 Code dev servers, use `vp run dev --share`; do not configure Tailscale
   Serve by hand.
