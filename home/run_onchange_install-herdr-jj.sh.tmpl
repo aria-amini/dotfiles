@@ -1,0 +1,16 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/bin/bash
+set -euo pipefail
+
+# herdr-jj pin: 0.8.1 — bump to re-run on machines
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:$PATH"
+
+repo="$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces"
+if [ ! -d "$repo" ]; then
+  mkdir -p "$(dirname "$repo")"
+  git clone https://github.com/aria-amini/tools "$(dirname "$repo")"
+fi
+
+uv tool install --python 3.14 --editable --reinstall "$repo"
+herdr plugin link "$repo/herdr-plugin"
+{{- end }}

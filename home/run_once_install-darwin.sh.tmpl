@@ -1,0 +1,15 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+set -euo pipefail
+
+export PATH="/opt/homebrew/bin:$PATH"
+
+brew install jj uv gh gum herdr
+
+if [ ! -d "$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces" ]; then
+  mkdir -p "$HOME/tools/herdr-jj-workspaces"
+  git clone https://github.com/aria-amini/tools "$HOME/tools/herdr-jj-workspaces"
+fi
+
+echo "run 'chezmoi apply' once more to register the herdr plugin"
+{{- end }}

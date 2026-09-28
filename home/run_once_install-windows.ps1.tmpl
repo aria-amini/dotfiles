@@ -1,0 +1,8 @@
+{{ if eq .chezmoi.os "windows" -}}
+# Thin native-Windows bootstrap: terminal and core CLI only.
+# Dev work runs in WSL; the Linux suite owns the WSL-side setup.
+
+winget install --id wez.wezterm -e
+winget install --id Git.Git -e
+# TODO: jj, uv, gh once this machine enters rotation; pick winget/scoop ids then
+{{- end }}

@@ -1,0 +1,152 @@
+{{- $manifest := joinPath .chezmoi.homeDir "tools/herdr-jj-workspaces/herdr-jj-workspaces/herdr-plugin/herdr-plugin.toml" -}}
+{{- if stat $manifest -}}
+[
+  {
+    "plugin_id": "aamini.jj",
+    "name": "jj workspaces",
+    "version": "0.8.1",
+    "min_herdr_version": "0.8.2",
+    "description": "jw-backed jj workspaces: create, remove, pick, sidebar status.",
+    "manifest_path": "{{ .chezmoi.homeDir }}/tools/herdr-jj-workspaces/herdr-jj-workspaces/herdr-plugin/herdr-plugin.toml",
+    "plugin_root": "{{ .chezmoi.homeDir }}/tools/herdr-jj-workspaces/herdr-jj-workspaces/herdr-plugin",
+    "enabled": true,
+    "platforms": [
+      "linux",
+      "macos"
+    ],
+    "actions": [
+      {
+        "id": "menu",
+        "title": "Workspace dashboard",
+        "contexts": [
+          "workspace",
+          "global"
+        ],
+        "command": [
+          "./bin/herdr-jj",
+          "menu"
+        ]
+      },
+      {
+        "id": "new",
+        "title": "New jj workspace",
+        "contexts": [
+          "workspace",
+          "global"
+        ],
+        "command": [
+          "./bin/herdr-jj",
+          "new-action"
+        ]
+      },
+      {
+        "id": "pick",
+        "title": "Switch jj workspace",
+        "contexts": [
+          "workspace",
+          "global"
+        ],
+        "command": [
+          "./bin/herdr-jj",
+          "pick"
+        ]
+      },
+      {
+        "id": "remove",
+        "title": "Remove jj workspace",
+        "contexts": [
+          "workspace"
+        ],
+        "command": [
+          "./bin/herdr-jj",
+          "remove",
+          "--current"
+        ]
+      }
+    ],
+    "events": [
+      {
+        "on": "workspace.closed",
+        "command": [
+          "./bin/herdr-jj",
+          "reporter",
+          "refresh-once"
+        ]
+      },
+      {
+        "on": "workspace.created",
+        "command": [
+          "./bin/herdr-jj",
+          "nest"
+        ]
+      },
+      {
+        "on": "workspace.created",
+        "command": [
+          "./bin/herdr-jj",
+          "reporter",
+          "ensure"
+        ]
+      },
+      {
+        "on": "worktree.created",
+        "command": [
+          "./bin/herdr-jj",
+          "adopt"
+        ]
+      },
+      {
+        "on": "worktree.removed",
+        "command": [
+          "./bin/herdr-jj",
+          "reap"
+        ]
+      }
+    ],
+    "panes": [
+      {
+        "id": "hunk",
+        "title": "hunk diff",
+        "placement": "popup",
+        "command": [
+          "./bin/herdr-jj",
+          "hunk-pane"
+        ]
+      },
+      {
+        "id": "menu",
+        "title": "jj workspaces",
+        "placement": "popup",
+        "width": "90%",
+        "height": "90%",
+        "command": [
+          "./bin/herdr-jj",
+          "dashboard"
+        ]
+      },
+      {
+        "id": "new",
+        "title": "jj workspaces",
+        "placement": "popup",
+        "command": [
+          "./bin/new"
+        ]
+      },
+      {
+        "id": "picker",
+        "title": "jj workspaces",
+        "placement": "popup",
+        "command": [
+          "./bin/herdr-jj",
+          "picker"
+        ]
+      }
+    ],
+    "source": {
+      "kind": "local"
+    }
+  }
+]
+{{- else }}
+[]
+{{- end }}
