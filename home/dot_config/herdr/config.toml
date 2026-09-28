@@ -233,23 +233,10 @@ directory = "~/.herdr/workspaces"
 # accent = "cyan"
 
 status_indicators = "symbols"
-sidebar_width = 36
-sidebar_min_width = 36
-sidebar_max_width = 36
 
 [ui.sidebar.spaces]
-row_gap = 0
-# Cards come from aamini.jj reporter tokens: jj_c1 top band, jj_c2 name,
-# jj_c3 bookmark+delta, jj_c4 sync+PR, jj_c5 bottom band, jj_c6 shadow.
-# Card width tracks ui.sidebar_width minus herdr chrome; see card_tokens.
-rows = [
-  [{ token = "$jj_c1", fg = "#89b4fa", rules = [{ equals = "", hide = true }] }],
-  [{ token = "$jj_c2", bold = true, rules = [{ equals = "", hide = true }] }],
-  [{ token = "$jj_c3", rules = [{ equals = "", hide = true }] }],
-  [{ token = "$jj_c4", rules = [{ equals = "", hide = true }] }],
-  [{ token = "$jj_c5", fg = "#89b4fa", rules = [{ equals = "", hide = true }] }],
-  [{ token = "$jj_c6", dim = true, rules = [{ equals = "", hide = true }] }],
-]
+rows = [["state_icon", "workspace"], ["branch", "$jj_status"]]
+
 
 [ui.toast]
 # Terminal delivery sends OSC notifications through SSH to the outer terminal.
