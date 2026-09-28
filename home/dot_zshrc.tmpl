@@ -72,6 +72,17 @@ gr() {
   cd "$root"
 }
 
+gw() {
+  local root
+  if [[ -z "${HERDR_WORKSPACE_ID:-}" ]]; then
+    print 'gw: not inside a herdr pane' >&2
+    return 1
+  fi
+  root=$(herdr workspace get "$HERDR_WORKSPACE_ID" |
+    jq -er '.result.workspace.worktree.checkout_path') || return 1
+  cd "$root"
+}
+
 nvim()
 {
     local nvim_new_dir_file="${XDG_CACHE_HOME:-$HOME/.cache}/nvim/newdir"
