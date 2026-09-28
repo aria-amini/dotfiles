@@ -28,11 +28,11 @@ Manage home-directory dotfiles with Chezmoi. Edit their source files in
   `tailscale serve --bg --set-path=/<unique-path> <port>`. Read the node DNS
   name with `tailscale status --json`, then hand over the full HTTPS URL.
   Inspect existing Serve mappings first.
-- The Pitchfork proxy owns loopback port 443 on this VM, so a local request to
-  the default Serve URL can hit the proxy instead of Serve. Pass an explicit
-  `--https=<free-port>` to `tailscale serve`. Curl the exact handover URL and
-  confirm HTTP 200 before handover; Serve may strip the `--set-path` prefix
-  before proxying, so the backend document root decides the final path.
+- Caddy terminates TLS on the Tailscale IP at port 443 and proxies to the
+  Pitchfork proxy on loopback port 9443. Portless URLs are
+  `https://<name>.dev.ariaamini.com` and `https://<name>.lvh.ariaamini.com`
+  (publicly trusted). Nested Pitchfork hostnames need the explicit port, for
+  example `https://web.fix-login.imdbgraph.lvh.ariaamini.com:9443`.
 - Do not replace or reset mappings you did not start.
 - For T3 Code dev servers, use `vp run dev --share`; do not configure Tailscale
   Serve by hand.

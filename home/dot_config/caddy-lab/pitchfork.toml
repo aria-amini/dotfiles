@@ -1,0 +1,4 @@
+[daemons.tls]
+run = 'set -a; . /home/aamini.guest/.config/caddy-lab/env; exec /home/aamini.guest/.local/bin/caddy-cf run --config /home/aamini.guest/.config/caddy-lab/Caddyfile'
+boot_start = true
+proxy = false

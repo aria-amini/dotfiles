@@ -1,0 +1,20 @@
+{
+	admin off
+	auto_https disable_redirects
+	skip_install_trust
+}
+
+https://*.caddy-lab.lvh.ariaamini.com:18443 {
+	bind 127.0.0.1
+	tls internal
+	encode zstd gzip
+	log
+	map {host} {pitchfork_host} {
+		~^([a-z0-9]+(?:-[a-z0-9]+)*)--([a-z0-9]+(?:-[a-z0-9]+)*)--([a-z0-9]+(?:-[a-z0-9]+)*)\.caddy-lab\.lvh\.ariaamini\.com$ ${1}.${2}.${3}.lab.test
+		~^([a-z0-9]+(?:-[a-z0-9]+)*)--([a-z0-9]+(?:-[a-z0-9]+)*)\.caddy-lab\.lvh\.ariaamini\.com$ ${1}.${2}.lab.test
+		default invalid.invalid
+	}
+	reverse_proxy 127.0.0.1:18088 {
+		header_up Host {pitchfork_host}
+	}
+}
