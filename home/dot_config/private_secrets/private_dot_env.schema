@@ -1,19 +1,18 @@
-# Personal secret vault — values resolve from Infisical Cloud at load time.
-# Only this schema is committed. `.env.local` beside it holds the machine
-# identity, device-encrypted by varlock; it is unmanaged by chezmoi.
-# Set values with: varlock load   (from this directory)
+# Personal secret vault — values resolve from self-hosted OpenBao
+# (https://vault.ariaamini.com) at load time. Auth is the CLI token file at
+# ~/.bao-token (created by `bao login`, or pasted manually); the token must
+# carry the personal-keys-reader policy. Only this schema is committed by
+# chezmoi; `.env.local` beside it stays unmanaged and normally empty.
 # This file uses @env-spec. See https://varlock.dev/env-spec
 # @defaultRequired=false @defaultSensitive=false
-# @plugin(@varlock/infisical-plugin)
-# @initInfisical(projectId=$INFISICAL_PROJECT_ID, environment=dev, clientId=$INFISICAL_CLIENT_ID, clientSecret=$INFISICAL_CLIENT_SECRET)
+# @plugin(@varlock/hashicorp-vault-plugin@2.0.0)
+# @initHcpVault(url="https://vault.ariaamini.com", pathPrefix="kv/personal-keyring")
 # ---
 
-# Project Settings > Project ID in Infisical Cloud.
-INFISICAL_PROJECT_ID=d519b4d1-4678-441a-aeb4-011610951382
-# Machine identity (Project Settings > Machine Identities, Universal Auth).
-INFISICAL_CLIENT_ID=
-# @sensitive
-INFISICAL_CLIENT_SECRET=
+# @required @sensitive
+Z_AI_API_TOKEN=vaultSecret("ai")
 
-# @sensitive @type=string(startsWith=sk-)
-OPENAI_API_KEY=infisical()
+# Stored in OpenBao as OPENAI_API_TOKEN; exported under the name the
+# ecosystem expects.
+# @required @sensitive
+OPENAI_API_KEY=vaultSecret("ai#OPENAI_API_TOKEN")

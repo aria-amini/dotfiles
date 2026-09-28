@@ -13,6 +13,19 @@ using the amphetamine app.
 Manage home-directory dotfiles with Chezmoi. Edit their source files in
 `~/dotfiles/home`, then apply only the changed targets with `chezmoi apply`.
 
+### Secret vault
+
+Self-hosted OpenBao at `https://vault.ariaamini.com`; personal secrets live
+under the `kv/personal-keyring/` KV v2 mount. Varlock resolves them at load:
+schema in `~/.config/secrets/.env.schema` (chezmoi-managed source
+`dot_config/private_secrets/private_dot_env.schema`), auth via the reader
+token in `~/.bao-token` (policy `personal-keys-reader`, 32-day TTL; reissue
+with `bao token create -policy=personal-keys-reader -ttl=8760h -orphan` when
+loads start failing). Login shells export keys through the varlock eval in
+`.zprofile`; `BAO_*` plumbing stays unexported. Validate with
+`varlock load --agent` from `~/.config/secrets`. Never place secret values in
+the dotfiles repo; the schema holds resolvers only.
+
 ### Notes
 
 - Browser automation prefers Chrome on the client over CDP. Detect the online

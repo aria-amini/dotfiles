@@ -4,5 +4,6 @@
   "theme": "dark",
   "packages": [
     "npm:pi-herdsman"
-  ]
+  ],
+  "lastChangelogVersion": "0.85.1"
 }

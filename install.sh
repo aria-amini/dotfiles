@@ -165,16 +165,16 @@ fi
 # Developer Tools
 section "Developer Tools"
 run_task "Installing managed tools" mise install --quiet
-if [ -d "$HOME/tools/herdr-jj-workspaces" ]; then
+if [ -d "$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces" ]; then
   run_task "Installing herdr jj integration" uv tool install \
     --python 3.14 \
     --editable \
     --reinstall \
-    "$HOME/tools/herdr-jj-workspaces"
-  run_task "Linking herdr jj plugin" herdr plugin link "$HOME/tools/herdr-jj-workspaces/herdr-plugin"
+    "$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces"
+  run_task "Linking herdr jj plugin" herdr plugin link "$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces/herdr-plugin"
 else
   gum style --foreground 214 \
-    "  herdr-jj-workspaces not found: clone it to ~/tools and re-run this step"
+    "  tools monorepo not found: clone it to ~/tools/herdr-jj-workspaces and re-run this step"
 fi
 if [ -f "$HOME/ms-scripts/packages/ms-scripts/pyproject.toml" ]; then
   run_task "Installing Microsoft scripts" uv tool install \
