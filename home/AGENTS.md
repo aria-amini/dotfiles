@@ -46,8 +46,11 @@ Herdr panes run non-login shells on Linux. Keep `shell_mode = "login"` in
 
 ### Spin up a workspace
 
-Create a jj-backed herdr workspace `<name>` for `<repo>`. Run all steps
-headlessly through the herdr socket CLI.
+When asked to "spin up a workspace" or to "implement X in a new workspace",
+follow this recipe. Derive `<name>` from X as short kebab-case,
+for example `auth-rework`. Pass X as the prompt in step 4. With no task, skip
+step 4. Create a jj-backed herdr workspace `<name>` for `<repo>`. Run all
+steps headlessly through the herdr socket CLI.
 
 1. From the repo root, run `jw add <name>`. jj-waltz creates the workspace at
    `<repo>.<name>`, creates the bookmark, and links required files such as
@@ -55,17 +58,26 @@ headlessly through the herdr socket CLI.
    in headless panes.
 2. Run
    `herdr worktree open --cwd <repo-root> --path <worktree> --label <name> --no-focus`.
-3. Split the root pane right. Run
-   `herdr pane run <right-pane> "mise run bootstrap"`.
-4. Run `herdr agent start <name> --kind opencode --pane <root-pane>`.
-5. Poll `herdr pane read <right-pane> --source recent` for "Bootstrap complete".
-   Do not block on long `wait-output` calls.
+3. Run `herdr agent start <name> --kind pi --pane <root-pane>`. Pi Herdsman
+   loads and marks the pane as a lead. Name the agent after the workspace.
+4. Give the lead the task with
+   `herdr agent prompt <name> "<task>" --wait --until working --timeout 10000`.
+   Delegate subtasks with `agent_delegate` in the lead chat. Children inherit
+   the workspace cwd, so each task runs in its own jj workspace.
 
 Create the jj workspace before opening it in herdr. herdr's `worktree create`
 makes git-only checkouts that jj cannot adopt.
 
 herdr 0.9.1 names: `pane wait-output` (not `wait output`), `agent start
 --kind`, `worktree open --cwd --path`.
+
+### Repo setup commands
+
+Check the repo AGENTS.md for a startup command. If the repo defines one, split
+the root pane right, run it in the right pane, and poll
+`herdr pane read <right-pane> --source recent` for its completion message. Do
+not assume `mise run bootstrap`; dotfiles does not use it. Do not block on long
+`wait-output` calls.
 
 ### Remove a workspace
 

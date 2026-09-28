@@ -1,4 +1,8 @@
 {
   "defaultProvider": "zai",
-  "defaultModel": "glm-5.3-flash"
+  "defaultModel": "glm-5.3",
+  "theme": "dark",
+  "packages": [
+    "npm:pi-herdsman"
+  ]
 }

@@ -45,7 +45,7 @@ hadolint = "2.14.0"
 shellcheck = "latest"
 
 # Shell
-"github:herdrdev/herdr" = "0.8.2"
+"github:herdrdev/herdr" = "0.9.1"
 "oh-my-posh" = "latest"
 
 # AI

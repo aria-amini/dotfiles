@@ -1,0 +1,19 @@
+# Personal secret vault — values resolve from Infisical Cloud at load time.
+# Only this schema is committed. `.env.local` beside it holds the machine
+# identity, device-encrypted by varlock; it is unmanaged by chezmoi.
+# Set values with: varlock load   (from this directory)
+# This file uses @env-spec. See https://varlock.dev/env-spec
+# @defaultRequired=false @defaultSensitive=false
+# @plugin(@varlock/infisical-plugin)
+# @initInfisical(projectId=$INFISICAL_PROJECT_ID, environment=dev, clientId=$INFISICAL_CLIENT_ID, clientSecret=$INFISICAL_CLIENT_SECRET)
+# ---
+
+# Project Settings > Project ID in Infisical Cloud.
+INFISICAL_PROJECT_ID=d519b4d1-4678-441a-aeb4-011610951382
+# Machine identity (Project Settings > Machine Identities, Universal Auth).
+INFISICAL_CLIENT_ID=
+# @sensitive
+INFISICAL_CLIENT_SECRET=
+
+# @sensitive @type=string(startsWith=sk-)
+OPENAI_API_KEY=infisical()
