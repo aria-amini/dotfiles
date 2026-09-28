@@ -15,8 +15,12 @@ Manage home-directory dotfiles with Chezmoi. Edit their source files in
 
 ### Notes
 
-- Browser automation connects from the server to a browser on a client over CDP,
-  or falls back to a headless browser on the server.
+- Browser automation prefers Chrome on the client over CDP. Detect the online
+  client with `tailscale status`. Ask the user to start Chrome with remote
+  debugging when no client browser runs. Use the server headless browser only
+  when no client is reachable. Use the full Playwright Chromium with
+  `--headless=new`; never use `chrome-headless-shell`. Set
+  `CHROME_DEVTOOLS_AXI_BROWSER_URL` on every axi call.
 - URLs that a client must load stay reachable from the client network (Tailscale
   or published DNS), never server-side localhost. No shared filesystem exists
   between server and clients. When the user must view a file, start a loopback
