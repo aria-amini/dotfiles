@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: shellcheck --severity=warning install.sh
+
+  chezmoi:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - name: Install chezmoi
+        run: curl -sfL https://get.chezmoi.io | sh -s -- -b "$HOME/.local/bin"
+      - name: Render check
+        env:
+          # .chezmoi.toml.tmpl prompts on init; CI supplies machine data directly.
+          CHEZMOI_CI_CONFIG: |
+            [data]
+            work = false
+            isWSL = false
+            isLima = false
+        run: |
+          printf '%s\n' "$CHEZMOI_CI_CONFIG" > "$RUNNER_TEMP/chezmoi-ci.toml"
+          mkdir -p "$RUNNER_TEMP/home"
+          "$HOME/.local/bin/chezmoi" apply --dry-run \
+            --config "$RUNNER_TEMP/chezmoi-ci.toml" \
+            --source . --destination "$RUNNER_TEMP/home"
