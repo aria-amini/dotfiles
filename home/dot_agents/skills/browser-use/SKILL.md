@@ -135,6 +135,36 @@ tries to launch its own Chrome and fails with `BRIDGE_NOT_READY`.
 export CHROME_DEVTOOLS_AXI_BROWSER_URL=http://127.0.0.1:9333
 ```
 
+## Playwright captures (server)
+
+Use the Playwright library for batch screenshots, not axi. Import engines from
+`@playwright/test`. pnpm strict layouts hide the `playwright` package.
+`NODE_PATH` does not work for ESM imports. Anchor a require at the project:
+
+```js
+import { createRequire } from 'module'
+const require = createRequire('/path/to/project/package.json')
+const { chromium, firefox } = require('@playwright/test')
+```
+
+Rules from live captures:
+
+- Pass `ignoreHTTPSErrors: true` on `newContext` for `*.lvh.ariaamini.com`.
+  Firefox keeps certificates in its own NSS store. Without the flag, it
+  renders the Pitchfork CA error page.
+- Validate captures with `md5sum`. Identical hashes across pages mean every
+  file shows the same error page, not the app.
+- Force a theme with `ctx.addCookies` before `goto`. Pass
+  `colorScheme: 'dark'` for `prefers-color-scheme` fallbacks.
+- Headless Chromium can crash ("page crashed") on heavy sites. First try
+  `args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox']`.
+  If the crash survives, use Playwright Firefox. Firefox captures sites
+  that crash Chromium.
+- Chromium `--screenshot` with `--virtual-time-budget` hangs on live dev
+  servers (websockets). Skip the CLI for app captures; use the library.
+- Chromium returns blank `fullPage` shots of very tall pages. Firefox
+  handles them.
+
 ## Endpoint and session pitfalls
 
 - The axi bridge fixes its connection mode at startup. Run
