@@ -234,41 +234,6 @@ directory = "~/.herdr/workspaces"
 
 status_indicators = "symbols"
 
-# Workmux-style sidebar cards: one card per entry, blank row between cards.
-# Card visuals (backgrounds, accent bars) are not expressible; this is the
-# closest content layout.
-[ui.sidebar.agents]
-row_gap = 1
-rows = [
-	[
-		"state_icon",
-		"agent",
-		"state_text",
-	],
-	[
-		"workspace",
-		"tab",
-	],
-	[
-		{ token = "terminal_title", dim = true },
-	],
-]
-
-[ui.sidebar.spaces]
-row_gap = 1
-rows = [
-	[
-		"state_icon",
-		{ token = "workspace", bold = true },
-	],
-	[
-		"branch",
-		"git_status",
-		"$jj_status",
-	],
-]
-
-
 [ui.toast]
 # Terminal delivery sends OSC notifications through SSH to the outer terminal.
 # System delivery targets this headless VM, where no notification daemon runs.
