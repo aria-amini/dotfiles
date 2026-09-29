@@ -1,0 +1,45 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+set -euo pipefail
+
+# Clones the tools repo once, installs herdr-jj editable, links the
+# plugin. After this converges, updates are `git -C ~/tools/herdr-jj-workspaces pull`.
+# Every step is state-checked and fail-soft: missing prerequisites or a
+# failed step retry on the next apply.
+if [[ ${DOTFILES_SKIP_TOOLS:-0} == 1 ]]; then
+  exit 0
+fi
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+
+repo="$HOME/tools/herdr-jj-workspaces"
+pkg="$repo/herdr-jj-workspaces"
+plugin="$repo/herdr-jj-workspaces/herdr-plugin"
+
+for dep in git uv herdr; do
+  if ! command -v "$dep" > /dev/null 2>&1; then
+    echo "herdr-jj-workspaces: $dep missing; skipping (run install.sh)" >&2
+    exit 0
+  fi
+done
+
+if [ ! -d "$repo/.git" ]; then
+  if ! git clone https://github.com/aria-amini/tools "$repo"; then
+    echo "herdr-jj-workspaces: clone failed; will retry on next apply" >&2
+    exit 0
+  fi
+fi
+
+if ! command -v herdr-jj > /dev/null 2>&1; then
+  if ! uv tool install --python 3.14 --editable "$pkg"; then
+    echo "herdr-jj-workspaces: uv install failed; will retry on next apply" >&2
+    exit 0
+  fi
+fi
+
+if ! herdr plugin list 2> /dev/null | grep -q aamini.jj; then
+  if ! herdr plugin link "$plugin"; then
+    echo "herdr-jj-workspaces: plugin link failed; will retry on next apply" >&2
+    exit 0
+  fi
+fi
+{{- end }}
