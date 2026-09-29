@@ -1,7 +1,23 @@
 local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
-config.color_scheme = {{ (index .themes .theme).ghostty | quote }}
+{{- with (index .themes .theme) }}
+{{- if hasKey . "palette" }}
+config.color_schemes = {
+  [{{ .ghostty | quote }}] = {
+    background = {{ .palette.background | quote }},
+    foreground = {{ .palette.foreground | quote }},
+    cursor_bg = {{ .palette.cursor | quote }},
+    cursor_fg = {{ .palette.cursor_text | quote }},
+    selection_bg = {{ .palette.selection_bg | quote }},
+    selection_fg = {{ .palette.selection_fg | quote }},
+    ansi = {{ .palette.ansi | toJson }},
+    brights = {{ .palette.brights | toJson }},
+  },
+}
+{{- end }}
+config.color_scheme = {{ .ghostty | quote }}
 config.font_size = 12
+{{- end }}
 
 return config

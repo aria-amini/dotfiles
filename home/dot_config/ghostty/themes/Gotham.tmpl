@@ -1,0 +1,13 @@
+{{- $gotham := index .themes "gotham" -}}
+background = {{ $gotham.palette.background | quote }}
+foreground = {{ $gotham.palette.foreground | quote }}
+selection-background = {{ $gotham.palette.selection_bg | quote }}
+selection-foreground = {{ $gotham.palette.selection_fg | quote }}
+cursor-color = {{ $gotham.palette.cursor | quote }}
+cursor-text = {{ $gotham.palette.cursor_text | quote }}
+{{- range $i, $c := $gotham.palette.ansi }}
+palette = {{ $i }}={{ $c }}
+{{- end }}
+{{- range $i, $c := $gotham.palette.brights }}
+palette = {{ add 8 $i }}={{ $c }}
+{{- end }}
