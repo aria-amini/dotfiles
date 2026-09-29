@@ -1,15 +1,10 @@
 # Personal secret vault — values resolve from self-hosted OpenBao
-# (https://vault.ariaamini.com).
 
 # This file uses @env-spec. See https://varlock.dev/env-spec
 #
-# @defaultRequired=false @defaultSensitive=false
 # @plugin(@varlock/hashicorp-vault-plugin@2.0.0)
 # @initHcpVault(url="https://vault.ariaamini.com", pathPrefix="kv/personal-keyring")
 # ---
 
-# @required @sensitive
 Z_AI_API_TOKEN=vaultSecret("ai")
-
-# @required @sensitive
 OPENAI_API_KEY=vaultSecret("ai#OPENAI_API_TOKEN")
