@@ -116,7 +116,7 @@ status_indicators = "symbols"
 rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 
 [ui.sidebar.agents]
-rows = [["state_icon", "terminal_title_stripped"], ["workspace", "tab"]]
+rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
 
 [ui.toast]
 delivery = "terminal"
