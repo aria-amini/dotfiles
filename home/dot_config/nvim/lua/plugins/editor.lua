@@ -525,7 +525,14 @@ return {
     'Shatur/neovim-ayu',
     priority = 1000,
     config = function()
-      vim.cmd.colorscheme 'ayu-dark'
+      require('ayu').setup {
+        terminal = true,
+        overrides = {
+          Normal = { bg = 'None' },
+          NormalFloat = { bg = 'None' },
+        },
+      }
+      vim.cmd.colorscheme('ayu-' .. require('theme').flavour)
     end,
   },
   {
