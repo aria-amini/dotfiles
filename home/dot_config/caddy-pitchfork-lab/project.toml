@@ -1,4 +1,0 @@
-[daemons.web]
-run = "node ../server.mjs"
-port = { expect = [18100], bump = 10 }
-ready_cmd = "curl -fsS http://127.0.0.1:$PORT/__lab"
