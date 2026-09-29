@@ -142,9 +142,5 @@
   "yazi.nvim": {
     "branch": "main",
     "commit": "bc79c6fd57367d7ac42f1aef34c958018892034c"
-  },
-  "colorscheme": {
-    "branch": "master",
-    "commit": "e5a9f0fa2918d6b5f57c21b3ac014314ee5e41c8"
   }
 }

@@ -525,7 +525,6 @@ return {
   },
   { -- Colorscheme family comes from theme.lua (see .chezmoidata/themes.toml)
     theme.plugin,
-    name = 'colorscheme',
     priority = 1000,
     init = function()
       vim.api.nvim_create_autocmd('ColorScheme', {
