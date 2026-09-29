@@ -1,3 +1,6 @@
+[ui.colors]
+":selected" = { bg = "#313244" }
+
 [revisions]
 revset = ""
 
