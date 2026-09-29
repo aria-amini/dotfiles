@@ -1,0 +1,11 @@
+[tasks.lint]
+description = "Static checks: bash -n, shellcheck, shfmt, template compile"
+run = "bash test/lint.sh"
+
+[tasks."e2e-quick"]
+description = "E2E install (fast) in a fresh ubuntu container"
+run = "docker run --rm --privileged -v $PWD:/src ubuntu:24.04 bash /src/test/e2e/inside.sh quick"
+
+[tasks."e2e-full"]
+description = "E2E install (full toolchain) in a fresh ubuntu container"
+run = "docker run --rm --privileged -v $PWD:/src ubuntu:24.04 bash /src/test/e2e/inside.sh full"
