@@ -1,0 +1,29 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/sh
+# Preserve external appends (vite-plus, etc.); add our blocks once.
+contents=$(cat)
+if [ -n "$contents" ]; then
+  printf '%s\n' "$contents"
+fi
+case "$contents" in
+  *'.local/share/mise/shims'*) ;;
+  *)
+    cat <<'EOF'
+# bash login shells (WSL default, servers). zsh uses .zprofile.
+if [ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+  . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+fi
+
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
+case ":$PATH:" in
+  *":$HOME/.local/share/mise/shims:"*) ;;
+  *) export PATH="$HOME/.local/share/mise/shims:$PATH" ;;
+esac
+EOF
+  ;;
+esac
+{{- end }}

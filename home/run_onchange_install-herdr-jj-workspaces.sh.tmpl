@@ -1,0 +1,29 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+set -euo pipefail
+
+# install.sh owns the real install; this re-runs the steps on chezmoi apply
+# when the toolchain and gh auth already exist.
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+
+repo="$HOME/tools/herdr-jj-workspaces"
+pkg="$repo/herdr-jj-workspaces"
+plugin="$repo/herdr-plugin"
+
+for dep in git uv herdr; do
+  if ! command -v "$dep" > /dev/null 2>&1; then
+    echo "herdr-jj-workspaces: $dep missing; skipping (run install.sh)" >&2
+    exit 0
+  fi
+done
+if ! gh auth status > /dev/null 2>&1; then
+  echo "herdr-jj-workspaces: gh not authenticated; skipping (run install.sh)" >&2
+  exit 0
+fi
+
+if [ ! -d "$repo/.git" ]; then
+  git clone https://github.com/aria-amini/tools "$repo"
+fi
+uv tool install --python 3.14 --editable --reinstall "$pkg"
+herdr plugin link "$plugin"
+{{- end }}

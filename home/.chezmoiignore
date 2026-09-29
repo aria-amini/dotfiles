@@ -3,7 +3,7 @@
 .config/caddy-lab
 .config/herdr
 .config/pi
-run_onchange_install-herdr-jj.sh
+run_onchange_install-herdr-jj-workspaces.sh
 {{ else }}
 /*
 !.ssh

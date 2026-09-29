@@ -19,16 +19,16 @@
 # ============================================
 
 [core]
-    pager = hunk pager
+    pager = sh -c 'command -v hunk >/dev/null 2>&1 && exec hunk pager || exec less'
 
 [interactive]
-    diffFilter = delta --color-only
+    diffFilter = sh -c 'command -v delta >/dev/null 2>&1 && exec delta --color-only || exec cat'
 
 [diff]
     tool = hunk
 
 [difftool "hunk"]
-    cmd = hunk-difftool "$LOCAL" "$REMOTE"
+    cmd = sh -c 'command -v hunk-difftool >/dev/null 2>&1 && exec hunk-difftool "$LOCAL" "$REMOTE" || exec diff -u "$LOCAL" "$REMOTE"'
 
 [difftool]
     prompt = false
