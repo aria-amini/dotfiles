@@ -8,7 +8,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 SYNC_DOTFILES=true
 LOG_FILE="${TMPDIR:-/tmp}/dotfiles-install-$(date +%Y%m%d-%H%M%S).log"
 
-PHASES=(gum apt git mise gh dotfiles nix mise_tools chezmoi docker tailscale pitchfork t3 shell)
+PHASES=(gum apt git mise gh dotfiles nix chezmoi mise_tools docker tailscale pitchfork t3 shell)
 MINIMAL_SKIPS=(docker tailscale pitchfork t3)
 
 VERBOSE=false
@@ -34,11 +34,11 @@ Options:
   --source DIR       use DIR as the dotfiles source without cloning or syncing
   -h, --help         show this help
 
-Phases: gum apt git mise gh dotfiles nix mise_tools chezmoi
+Phases: gum apt git mise gh dotfiles nix chezmoi mise_tools
         docker tailscale pitchfork t3 shell
 
-herdr-jj installs inside 'chezmoi apply' via a chezmoi script; set
-DOTFILES_SKIP_TOOLS=1 to skip.
+herdr-jj-workspaces installs inside 'chezmoi apply' via a chezmoi
+script; set DOTFILES_SKIP_TOOLS=1 to skip.
 EOF
 }
 
@@ -307,14 +307,16 @@ phase_mise() {
     run_task "Installing mise" bash -c 'curl -fsSL --retry 3 https://mise.run | sh'
   fi
   export PATH="$HOME/.local/share/mise/shims:$PATH"
+  # Bootstrap the tools the apply itself needs: gh (auth), uv and herdr
+  # (the herdr-jj-workspaces chezmoi script). The full toolset converges
+  # in the mise_tools phase after apply writes the mise config.
+  run_task "Installing bootstrap tools (gh, uv, herdr)" \
+    mise install --quiet github-cli uv "github:herdrdev/herdr@0.9.1"
   show_version "Mise" 0 mise --version
 }
 
 phase_gh() {
   phase_begin gh
-  if ! command -v gh > /dev/null 2>&1; then
-    run_task "Installing GitHub CLI" mise install --quiet github-cli
-  fi
   show_version "GitHub CLI" 2 gh --version
   if gh auth status > /dev/null 2>&1; then
     ok "GitHub authenticated" "$(gh api user --jq .login 2> /dev/null || true)"
