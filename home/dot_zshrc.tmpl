@@ -78,8 +78,15 @@ gw() {
     print 'gw: not inside a herdr pane' >&2
     return 1
   fi
-  root=$(herdr workspace get "$HERDR_WORKSPACE_ID" |
-    jq -er '.result.workspace.worktree.checkout_path') || return 1
+  root=$(herdr workspace list |
+    jq -er --arg id "$HERDR_WORKSPACE_ID" \
+      '.result.workspaces[] | select(.workspace_id == $id) | .worktree.checkout_path? // empty') ||
+    root=$(herdr pane list |
+      jq -er --arg id "$HERDR_WORKSPACE_ID" \
+        '[.result.panes[] | select(.workspace_id == $id)] |
+         sort_by(.pane_id | sub(".*:"; "") | ltrimstr("p") | tonumber) |
+         .[0].cwd // empty')
+  [[ -n "$root" ]] || { print 'gw: workspace checkout not found' >&2; return 1 }
   cd "$root"
 }
 
