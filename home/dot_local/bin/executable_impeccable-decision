@@ -1,36 +1,57 @@
 #!/bin/sh
-# impeccable-decision: publish an impeccable serve-question decision page on the tailnet.
+# impeccable-decision: publish an impeccable serve-question decision page on
+# the tailnet at the node's raw tailscale IP (plain HTTP; the tailnet encrypts
+# the wire).
 #
-# Serves the page through a Host-rewrite hop (the engine rejects proxied Host
-# headers) on a dedicated tailscale serve port (443 belongs to caddy-cf), with
-# an engine lifetime long enough for a human decision.
+# The engine binds loopback and rejects proxied Host headers, so a hop
+# rewrites Host and listens on 0.0.0.0. The engine daemon is started under
+# setsid so it leaves the caller's session; a harness that reaps its tool-call
+# process group cannot kill a live round. Every bind is verified before the
+# URL is printed, and a half-up round aborts loudly instead of serving 502s.
 #
 # Usage:
-#   impeccable-decision serve <payload.json> [https-port]   # default 8449
-#   impeccable-decision wait [key]                          # key defaults to last serve
+#   impeccable-decision serve <payload.json> [port]   # default 8450
+#   impeccable-decision wait [key]                    # key defaults to last serve
 #   impeccable-decision down
 set -eu
 
 ENGINE="${IMPECCABLE_ENGINE:-$HOME/.pi/agent/skills/impeccable/scripts/impeccable}"
 HOP="$HOME/.local/lib/impeccable-hop.js"
-HOP_PORT=45524
 STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/impeccable-decision"
 STATE="$STATE_DIR/state"
 
-hop_pids() { pgrep -f "^node $HOP" 2>/dev/null || true; }
-
-dns_name() {
-	tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))'
+port_pid() {
+	ss -tlnpH "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2
 }
 
-case "${1:-}" in
-serve)
-	payload=$2
-	https_port=${3:-8449}
+ts_ip() {
+	tailscale ip -4 2>/dev/null | head -1
+}
+
+free_port() {
+	port=$1
+	pid=$(port_pid "$port")
+	if [ -n "$pid" ]; then
+		kill "$pid" 2>/dev/null || true
+		sleep 0.5
+	fi
+	pid=$(port_pid "$port")
+	[ -z "$pid" ] || {
+		echo "port $port is still held by pid $pid; refusing to serve a broken round" >&2
+		exit 1
+	}
+}
+
+do_serve() {
+	payload=$1
+	port=${2:-8450}
 	[ -f "$payload" ] || { echo "payload not found: $payload" >&2; exit 1; }
 	mkdir -p "$STATE_DIR"
+	: >"$STATE_DIR/hop.log"
 
-	out=$(IMPECCABLE_QUESTION_FORCE=1 "$ENGINE" serve-question \
+	free_port "$port"
+
+	out=$(IMPECCABLE_QUESTION_FORCE=1 setsid "$ENGINE" serve-question \
 		--start --payload "$payload" --timeout 3600 --idle-grace 3600 2>&1)
 	key=$(printf '%s\n' "$out" | sed -n 's/^QUESTION KEY: //p')
 	engine_port=$(printf '%s\n' "$out" | grep -o '127\.0\.0\.1:[0-9]*' | head -1 | cut -d: -f2)
@@ -38,40 +59,78 @@ serve)
 		printf '%s\n' "$out" >&2
 		exit 1
 	fi
+	curl -fs -o /dev/null "http://127.0.0.1:$engine_port/" || {
+		echo "engine did not answer on port $engine_port" >&2
+		exit 1
+	}
 
-	hop_pids | xargs -r kill 2>/dev/null || true
-	sleep 0.3
-	nohup node "$HOP" "$engine_port" >>"$STATE_DIR/hop.log" 2>&1 &
-	sleep 0.5
+	setsid nohup node "$HOP" "$engine_port" "$port" >"$STATE_DIR/hop.log" 2>&1 &
+	i=0
+	while [ "$i" -lt 10 ]; do
+		curl -fs -o /dev/null "http://127.0.0.1:$port/" && break
+		i=$((i + 1))
+		sleep 0.5
+	done
+	[ "$i" -lt 10 ] || {
+		tail -3 "$STATE_DIR/hop.log" >&2
+		echo "hop failed to serve on port $port" >&2
+		exit 1
+	}
+	hop_pid=$(port_pid "$port")
 
-	tailscale serve --https="$https_port" off >/dev/null 2>&1 || true
-	tailscale serve --bg --https="$https_port" "$HOP_PORT" >/dev/null
-
-	name=$(dns_name)
-	url="https://$name:$https_port/"
-	printf 'url=%s\nkey=%s\nengine_port=%s\nhttps_port=%s\n' \
-		"$url" "$key" "$engine_port" "$https_port" >"$STATE"
+	ip=$(ts_ip)
+	[ -n "$ip" ] || { echo "no tailscale IPv4 address found" >&2; exit 1; }
+	url="http://$ip:$port/"
+	printf 'url=%s\nkey=%s\nengine_port=%s\nhop_pid=%s\nport=%s\n' \
+		"$url" "$key" "$engine_port" "$hop_pid" "$port" >"$STATE"
 	echo "DECISION URL: $url"
 	echo "DECISION KEY: $key"
-	;;
-wait)
-	key=${2:-$(sed -n 's/^key=//p' "$STATE" 2>/dev/null || true)}
+}
+
+do_wait() {
+	key=${1:-$(sed -n 's/^key=//p' "$STATE" 2>/dev/null || true)}
 	[ -n "$key" ] || { echo "no key given and no prior serve state" >&2; exit 1; }
 	while :; do
-		"$ENGINE" serve-question --wait --key "$key"
+		out=$("$ENGINE" serve-question --wait --key "$key" 2>&1)
 		rc=$?
-		[ "$rc" -ne 3 ] && exit "$rc"
+		case "$out" in
+		*"server is gone"*)
+			echo "engine died mid-round; re-serve the same payload and share the new URL" >&2
+			exit 1
+			;;
+		esac
+		if [ "$rc" -ne 3 ]; then
+			printf '%s\n' "$out"
+			exit "$rc"
+		fi
 	done
-	;;
-down)
-	https_port=$(sed -n 's/^https_port=//p' "$STATE" 2>/dev/null || true)
-	[ -n "$https_port" ] && tailscale serve --https="$https_port" off >/dev/null 2>&1 || true
-	hop_pids | xargs -r kill 2>/dev/null || true
+}
+
+do_down() {
+	hop_pid=$(sed -n 's/^hop_pid=//p' "$STATE" 2>/dev/null || true)
+	port=$(sed -n 's/^port=//p' "$STATE" 2>/dev/null || true)
+	[ -z "$hop_pid" ] || kill "$hop_pid" 2>/dev/null || true
+	if [ -n "$port" ]; then
+		pid=$(port_pid "$port")
+		[ -z "$pid" ] || kill "$pid" 2>/dev/null || true
+	fi
 	rm -f "$STATE"
 	echo "decision page down"
+}
+
+case "${1:-}" in
+serve)
+	[ $# -ge 2 ] || { echo "usage: $0 serve <payload.json> [port]" >&2; exit 1; }
+	do_serve "$2" "${3:-}"
+	;;
+wait)
+	do_wait "${2:-}"
+	;;
+down)
+	do_down
 	;;
 *)
-	echo "usage: $0 serve <payload.json> [https-port] | wait [key] | down" >&2
+	echo "usage: $0 serve <payload.json> [port] | wait [key] | down" >&2
 	exit 1
 	;;
 esac
