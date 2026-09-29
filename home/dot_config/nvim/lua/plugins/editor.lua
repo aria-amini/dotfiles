@@ -1,3 +1,5 @@
+local theme = require 'theme'
+
 return {
   { 'nvim-tree/nvim-web-devicons' },
   { 'nvim-mini/mini.icons', opts = {} },
@@ -521,18 +523,22 @@ return {
     dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.nvim' },
     opts = {},
   },
-  {
-    'Shatur/neovim-ayu',
+  { -- Colorscheme family comes from theme.lua (see .chezmoidata/themes.toml)
+    theme.plugin,
+    name = 'colorscheme',
     priority = 1000,
+    init = function()
+      vim.api.nvim_create_autocmd('ColorScheme', {
+        desc = 'Paint on the terminal background',
+        group = vim.api.nvim_create_augroup('theme-transparent', { clear = true }),
+        callback = function()
+          vim.api.nvim_set_hl(0, 'Normal', { bg = 'NONE' })
+          vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'NONE' })
+        end,
+      })
+    end,
     config = function()
-      require('ayu').setup {
-        terminal = true,
-        overrides = {
-          Normal = { bg = 'None' },
-          NormalFloat = { bg = 'None' },
-        },
-      }
-      vim.cmd.colorscheme('ayu-' .. require('theme').flavour)
+      vim.cmd.colorscheme(require('theme').colorscheme)
     end,
   },
   {

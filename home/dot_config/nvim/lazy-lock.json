@@ -55,10 +55,6 @@
     "branch": "main",
     "commit": "1ac15d047a4b265cc2389957bcc56ee561b29e02"
   },
-  "neovim-ayu": {
-    "branch": "master",
-    "commit": "e5a9f0fa2918d6b5f57c21b3ac014314ee5e41c8"
-  },
   "noice.nvim": {
     "branch": "main",
     "commit": "7bfd942445fb63089b59f97ca487d605e715f155"
@@ -146,5 +142,9 @@
   "yazi.nvim": {
     "branch": "main",
     "commit": "bc79c6fd57367d7ac42f1aef34c958018892034c"
+  },
+  "colorscheme": {
+    "branch": "master",
+    "commit": "e5a9f0fa2918d6b5f57c21b3ac014314ee5e41c8"
   }
 }

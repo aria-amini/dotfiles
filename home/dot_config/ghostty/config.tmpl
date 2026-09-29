@@ -1,4 +1,4 @@
-theme = {{ .theme.ghostty | quote }}
+theme = {{ (index .themes .theme).ghostty | quote }}
 font-size = 12
 mouse-hide-while-typing = true
 window-decoration = true

@@ -1,0 +1,34 @@
+# Single source of truth for the terminal theme stack.
+# Swap by editing 'theme' and running 'chezmoi apply'.
+# ghostty: exact built-in theme name (check with 'ghostty +list-themes').
+theme = "ayu-mirage"
+
+[themes.ayu-mirage]
+ghostty = "Ayu Mirage"
+nvim = "Shatur/neovim-ayu"
+colorscheme = "ayu-mirage"
+
+[themes.ayu-dark]
+ghostty = "Ayu Dark"
+nvim = "Shatur/neovim-ayu"
+colorscheme = "ayu-dark"
+
+[themes.ayu-light]
+ghostty = "Ayu Light"
+nvim = "Shatur/neovim-ayu"
+colorscheme = "ayu-light"
+
+[themes.catppuccin-mocha]
+ghostty = "Catppuccin Mocha"
+nvim = "catppuccin/nvim"
+colorscheme = "catppuccin-mocha"
+
+[themes.catppuccin-macchiato]
+ghostty = "Catppuccin Macchiato"
+nvim = "catppuccin/nvim"
+colorscheme = "catppuccin-macchiato"
+
+[themes.kanagawa]
+ghostty = "Kanagawa"
+nvim = "rebelot/kanagawa.nvim"
+colorscheme = "kanagawa"
