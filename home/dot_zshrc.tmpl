@@ -20,16 +20,6 @@ export PATH="$PATH:/usr/sbin:/sbin"
 export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 {{ end -}}
 
-{{ if eq .chezmoi.os "darwin" -}}
-# ── Platform: macOS ────────────────────────────────────────────
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
-
-lima() {
-  local instance="${LIMA_INSTANCE:-default}"
-  ssh -F "$HOME/.lima/$instance/ssh.config" "lima-$instance" "$@"
-}
-{{ end }}
-
 # ── Init ──────────────────────────────────────────────────────
 eval "$(mise activate zsh)"
 

@@ -1,69 +1,14 @@
 # Single source of truth for the terminal theme stack.
 # Swap by editing 'theme' and running 'chezmoi apply'.
 # ghostty: exact built-in theme name (check with 'ghostty +list-themes').
-theme = "srcery"
-
-[themes.ayu-mirage]
-ghostty = "Ayu Mirage"
-nvim = "Shatur/neovim-ayu"
-colorscheme = "ayu-mirage"
-
-[themes.ayu-dark]
-ghostty = "Ayu Dark"
-nvim = "Shatur/neovim-ayu"
-colorscheme = "ayu-dark"
-
-[themes.ayu-light]
-ghostty = "Ayu Light"
-nvim = "Shatur/neovim-ayu"
-colorscheme = "ayu-light"
-
-[themes.catppuccin-mocha]
-ghostty = "Catppuccin Mocha"
-nvim = "catppuccin/nvim"
-colorscheme = "catppuccin-mocha"
-
-[themes.catppuccin-macchiato]
-ghostty = "Catppuccin Macchiato"
-nvim = "catppuccin/nvim"
-colorscheme = "catppuccin-macchiato"
-
-[themes.kanagawa]
-ghostty = "Kanagawa"
-nvim = "rebelot/kanagawa.nvim"
-colorscheme = "kanagawa"
+theme = "jellybeans"
 
 [themes.jellybeans]
 ghostty = "Jellybeans"
 nvim = "nanotech/jellybeans.vim"
 colorscheme = "jellybeans"
 
-[themes.gotham]
-ghostty = "Gotham"
-nvim = "whatyouhide/vim-gotham"
-colorscheme = "gotham"
-
 [themes.srcery]
 ghostty = "Srcery"
 nvim = "srcery-colors/srcery-vim"
 colorscheme = "srcery"
-
-[themes.srcery.palette]
-background = "#1c1b19"
-foreground = "#fce8c3"
-selection_bg = "#fce8c3"
-selection_fg = "#1c1b19"
-cursor = "#fbb829"
-cursor_text = "#1c1b19"
-ansi = ["#1c1b19", "#ef2f27", "#519f50", "#fbb829", "#2c78bf", "#e02c6d", "#0aaeb3", "#baa67f"]
-brights = ["#918175", "#f75341", "#98bc37", "#fed06e", "#68a8e4", "#ff5c8f", "#2be4d0", "#fce8c3"]
-
-[themes.gotham.palette]
-background = "#0c1014"
-foreground = "#99d1ce"
-selection_bg = "#0a3749"
-selection_fg = "#99d1ce"
-cursor = "#99d1ce"
-cursor_text = "#11151c"
-ansi = ["#0c1014", "#c23127", "#2aa889", "#edb443", "#195466", "#4e5166", "#33859e", "#99d1ce"]
-brights = ["#0c1014", "#c23127", "#2aa889", "#edb443", "#195466", "#4e5166", "#33859e", "#99d1ce"]

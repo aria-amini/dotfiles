@@ -1,8 +1,6 @@
 {{ if eq .chezmoi.os "windows" -}}
-# Thin native-Windows bootstrap: terminal and core CLI only.
-# Dev work runs in WSL; the Linux suite owns the WSL-side setup.
-
-winget install --id wez.wezterm -e
+# Thin bootstrap: git fetches these dotfiles, opencode for agent work.
 winget install --id Git.Git -e
-# TODO: jj, uv, gh once this machine enters rotation; pick winget/scoop ids then
+winget install --id OpenJS.NodeJS.LTS -e
+npm install -g opencode-ai
 {{- end }}

@@ -5,26 +5,12 @@ This document outlines global rules for Aria's agents to follow.
 ## Remote Development
 
 My main coding sessions are done on my lima Ubuntu VM running on my macbook pro.
-I ssh into the laptop using tailscale and have the laptop set to stay awake
-using the amphetamine app.
+I ssh into the laptop using tailscale.
 
 ### Dotfiles
 
 Manage home-directory dotfiles with Chezmoi. Edit their source files in
 `~/dotfiles/home`, then apply only the changed targets with `chezmoi apply`.
-
-### Secret vault
-
-Self-hosted OpenBao at `https://vault.ariaamini.com`; personal secrets live
-under the `kv/personal-keyring/` KV v2 mount. Varlock resolves them at load:
-schema in `~/.config/secrets/.env.schema` (chezmoi-managed source
-`dot_config/private_secrets/private_dot_env.schema`), auth via the reader
-token in `~/.bao-token` (policy `personal-keys-reader`, 32-day TTL; reissue
-with `bao token create -policy=personal-keys-reader -ttl=8760h -orphan` when
-loads start failing). Login shells export keys through the varlock eval in
-`.zprofile`; `BAO_*` plumbing stays unexported. Validate with
-`varlock load --agent` from `~/.config/secrets`. Never place secret values in
-the dotfiles repo; the schema holds resolvers only.
 
 ### Notes
 
@@ -44,18 +30,18 @@ the dotfiles repo; the schema holds resolvers only.
 - Caddy terminates TLS on the Tailscale IP at port 443 and proxies to the
   Pitchfork proxy on loopback port 9443. Portless URLs are
   `https://<name>.dev.ariaamini.com` and `https://<name>.lvh.ariaamini.com`
-  (publicly trusted; `.dev` aliases `.lvh`). Hostnames are single-level:
-  slugs flatten directory dots to hyphens (`app.worktree` serves as
-  `app-worktree`). Nested hostnames (`worktree.app.lvh…`) and direct `:9443`
-  access do not work: the wildcard certificate covers one level, and the
-  proxy binds loopback only. Register a worktree with
+  (publicly trusted; `.dev` aliases `.lvh`). Hostnames are single-level: slugs
+  flatten directory dots to hyphens (`app.worktree` serves as `app-worktree`).
+  Nested hostnames (`worktree.app.lvh…`) and direct `:9443` access do not work:
+  the wildcard certificate covers one level, and the proxy binds loopback only.
+  Register a worktree with
   `pitchfork proxy add <slug> --daemon dev --dir <workspace-root>`.
 - Do not replace or reset mappings you did not start.
-- Publish Impeccable decision pages with `impeccable-decision serve
-  <payload.json>`. Share the printed tailnet URL. Collect the answer with
-  `impeccable-decision wait`. Tear down with `impeccable-decision down`.
-  The wrapper handles the engine Host check, the serve port, and the page
-  lifetime.
+- Publish Impeccable decision pages with
+  `impeccable-decision serve <payload.json>`. Share the printed tailnet URL.
+  Collect the answer with `impeccable-decision wait`. Tear down with
+  `impeccable-decision down`. The wrapper handles the engine Host check, the
+  serve port, and the page lifetime.
 - For T3 Code dev servers, use `vp run dev --share`; do not configure Tailscale
   Serve by hand.
 
@@ -69,15 +55,15 @@ Herdr panes run non-login shells on Linux. Keep `shell_mode = "login"` in
 ### Spin up a workspace
 
 When asked to "spin up a workspace" or to "implement X in a new workspace",
-follow this recipe. Derive `<name>` from X as short kebab-case,
-for example `auth-rework`. Pass X as the prompt in step 4. With no task, skip
-step 4. Create a jj-backed herdr workspace `<name>` for `<repo>`. Run all
-steps headlessly through the herdr socket CLI.
+follow this recipe. Derive `<name>` from X as short kebab-case, for example
+`auth-rework`. Pass X as the prompt in step 4. With no task, skip step 4. Create
+a jj-backed herdr workspace `<name>` for `<repo>`. Run all steps headlessly
+through the herdr socket CLI.
 
 1. From the repo root, run `jw add <name>`. jj-waltz creates the workspace at
    `<repo>.<name>`, creates the bookmark, and links required files such as
-   `.env.local` (see `.jwlinks.toml`), which prevents a varlock secret prompt
-   in headless panes.
+   `.env.local` (see `.jwlinks.toml`), which prevents a varlock secret prompt in
+   headless panes.
 2. Run
    `herdr worktree open --cwd <repo-root> --path <worktree> --label <name> --no-focus`.
 3. Run `herdr agent start <name> --kind pi --pane <root-pane>`. Pi Herdsman
@@ -89,31 +75,6 @@ steps headlessly through the herdr socket CLI.
 
 Create the jj workspace before opening it in herdr. herdr's `worktree create`
 makes git-only checkouts that jj cannot adopt.
-
-herdr 0.9.1 names: `pane wait-output` (not `wait output`), `agent start
---kind`, `worktree open --cwd --path`.
-
-### Repo setup commands
-
-Check the repo AGENTS.md for a startup command. If the repo defines one, split
-the root pane right, run it in the right pane, and poll
-`herdr pane read <right-pane> --source recent` for its completion message. Do
-not assume `mise run bootstrap`; dotfiles does not use it. Do not block on long
-`wait-output` calls.
-
-### Remove a workspace
-
-1. Close the herdr workspace.
-2. Run `jw remove <name>` from the repo root.
-
-### Update a copier project
-
-Run `copier update --trust --defaults`. Copier leaves conflict markers in
-files that diverged from the template. Resolve by taking the incoming side for
-template-managed files, then re-render a fresh copy of the template into a
-temp dir to verify the result. When a project's origin points at the template,
-copier checks the template ref out inside the project and jj imports stray
-template commits; rebase project history onto the real tip.
 
 ## Rules
 

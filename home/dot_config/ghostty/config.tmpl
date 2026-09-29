@@ -2,9 +2,5 @@ theme = {{ (index .themes .theme).ghostty | quote }}
 font-size = 12
 mouse-hide-while-typing = true
 window-decoration = true
-{{ if eq .chezmoi.os "darwin" -}}
 macos-option-as-alt = true
-{{ end -}}
 desktop-notifications = true
-# background-opacity = 0.7
-# background-blur-radius = 20

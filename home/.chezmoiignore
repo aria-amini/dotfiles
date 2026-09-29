@@ -1,14 +1,16 @@
-{{ if ne .chezmoi.os "darwin" }}
-.config/ghostty
+{{ if ne .chezmoi.os "linux" }}
+/*
+!/.ssh
+!/.config
+/.config/*
+{{ if eq .chezmoi.os "darwin" }}
+!/.config/ghostty
+!/.config/lima
+!/.config/opencode
+!/run_once_install-darwin.sh
+{{ else }}
+!/.config/opencode
+!/.config/wezterm
+!/run_once_install-windows.ps1
 {{ end }}
-{{ if ne .chezmoi.os "windows" }}
-.config/wezterm
-{{ end }}
-{{ if eq .chezmoi.os "windows" }}
-.zprofile
-.zshenv
-.zshrc
-.ssh
-.config/fzf
-.config/herdr
 {{ end }}
