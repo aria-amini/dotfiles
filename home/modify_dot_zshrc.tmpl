@@ -1,3 +1,13 @@
+#!/bin/sh
+# Preserve external appends (vite-plus, etc.); write our zshrc once.
+contents=$(cat)
+if [ -n "$contents" ]; then
+  printf '%s\n' "$contents"
+fi
+case "$contents" in
+  *"mise activate zsh"*) ;;
+  *)
+    cat <<'ZSHRC_EOF'
 # ── Environment ───────────────────────────────────────────────
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
@@ -157,3 +167,6 @@ zle-keymap-select() {
 }
 zle -N zle-keymap-select
 _set_cursor_shape "$_cursor_beam"
+ZSHRC_EOF
+  ;;
+esac
