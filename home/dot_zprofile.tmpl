@@ -12,9 +12,11 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
 
+{{ if eq .chezmoi.os "linux" -}}
 # SSOT for this VM's tailnet address; dev servers bind it so host-side
 # devices can reach them. Projects fall back to `tailscale ip -4`.
 export TAILSCALE_IP="100.103.205.111"
+{{ end }}
 
 # Personal secret vault (self-hosted OpenBao via varlock; schema in
 # ~/.env.schema). Keys resolve into login-shell env so every

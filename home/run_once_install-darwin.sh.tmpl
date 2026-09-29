@@ -2,7 +2,47 @@
 #!/bin/bash
 set -euo pipefail
 
-if ! command -v opencode &> /dev/null; then
-  brew install opencode
+# mise owns every CLI; brew stays out of the bootstrap.
+export PATH="$HOME/.local/bin:$PATH"
+
+# CLT provides git and the compiler toolchain mise-built languages need.
+if ! xcode-select -p &> /dev/null; then
+  xcode-select --install
 fi
+if ! command -v git &> /dev/null; then
+  echo "waiting for the Xcode CLT install (accept the dialog)" >&2
+  for _ in $(seq 1 30); do
+    command -v git &> /dev/null && break
+    sleep 10
+  done
+  command -v git &> /dev/null || {
+    echo "Xcode CLT is still installing. Re-run 'chezmoi apply' later." >&2
+    exit 1
+  }
+fi
+
+if ! command -v mise &> /dev/null; then
+  curl -fsSL https://mise.run | sh
+fi
+
+# github: backends clone private forks. Auth must exist before 'mise install'.
+eval "$(mise activate bash)"
+if ! mise where github-cli &> /dev/null; then
+  mise install --quiet github-cli
+fi
+if ! gh auth status &> /dev/null; then
+  if [ -t 0 ]; then
+    gh auth login --web --git-protocol https
+  else
+    echo "gh is not authenticated. Run 'gh auth login --web', then 'mise install'." >&2
+  fi
+fi
+
+# nix: backends in the mise config need Nix.
+if ! command -v nix &> /dev/null; then
+  sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon
+  . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+fi
+
+mise install --quiet
 {{- end }}

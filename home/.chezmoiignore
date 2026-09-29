@@ -1,16 +1,15 @@
-{{ if ne .chezmoi.os "linux" }}
+{{ if eq .chezmoi.os "linux" }}
+{{ else if eq .chezmoi.os "darwin" }}
+/.config/caddy-lab
+/.config/herdr
+/.config/pi
+/run_onchange_install-herdr-jj.sh
+{{ else }}
 /*
 !/.ssh
 !/.config
 /.config/*
-{{ if eq .chezmoi.os "darwin" }}
-!/.config/ghostty
-!/.config/lima
-!/.config/opencode
-!/run_once_install-darwin.sh
-{{ else }}
 !/.config/opencode
 !/.config/wezterm
 !/run_once_install-windows.ps1
-{{ end }}
 {{ end }}
