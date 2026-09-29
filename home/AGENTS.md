@@ -51,6 +51,11 @@ the dotfiles repo; the schema holds resolvers only.
   proxy binds loopback only. Register a worktree with
   `pitchfork proxy add <slug> --daemon dev --dir <workspace-root>`.
 - Do not replace or reset mappings you did not start.
+- Publish Impeccable decision pages with `impeccable-decision serve
+  <payload.json>`. Share the printed tailnet URL. Collect the answer with
+  `impeccable-decision wait`. Tear down with `impeccable-decision down`.
+  The wrapper handles the engine Host check, the serve port, and the page
+  lifetime.
 - For T3 Code dev servers, use `vp run dev --share`; do not configure Tailscale
   Serve by hand.
 
