@@ -17,11 +17,11 @@ esac
 export TAILSCALE_IP="100.103.205.111"
 
 # Personal secret vault (self-hosted OpenBao via varlock; schema in
-# ~/.config/secrets/.env.schema). Keys resolve into login-shell env so every
+# ~/.env.schema). Keys resolve into login-shell env so every
 # project and tool sees process env; BAO_* plumbing stays internal.
 # Failures stay silent so a broken vault never blocks a shell.
 _varlock="$HOME/.local/share/mise/shims/varlock"
-if [ -d "$HOME/.config/secrets" ] && [ -x "$_varlock" ]; then
-  eval "$("$_varlock" load -p "$HOME/.config/secrets" --format shell --compact --filter '!BAO_*' 2>/dev/null)"
+if [ -f "$HOME/.env.schema" ] && [ -x "$_varlock" ]; then
+  eval "$("$_varlock" load -p "$HOME" --format shell --compact --filter '!BAO_*' 2>/dev/null)"
 fi
 unset _varlock
