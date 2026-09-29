@@ -1,7 +1,15 @@
 # Single source of truth for the terminal theme stack.
 # Swap by editing 'theme' and running 'chezmoi apply'.
 # ghostty: exact built-in theme name (check with 'ghostty +list-themes').
-theme = "jellybeans"
+# ghostty_light/ghostty_dark: optional, makes Ghostty follow OS appearance.
+theme = "catppuccin"
+
+[themes.catppuccin]
+ghostty = "Catppuccin Mocha"
+ghostty_light = "Catppuccin Latte"
+ghostty_dark = "Catppuccin Mocha"
+nvim = "catppuccin/nvim"
+colorscheme = "catppuccin"
 
 [themes.jellybeans]
 ghostty = "Jellybeans"

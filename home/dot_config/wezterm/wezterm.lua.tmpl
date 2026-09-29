@@ -1,26 +1,11 @@
 local wezterm = require 'wezterm'
-local config = wezterm.config_builder()
 
--- Remote hosts lack wezterm terminfo; xterm-256color is the portable fallback
-config.term = 'xterm-256color'
+local scheme_light = {{ (index .themes .theme).ghostty_light | quote }}
+local scheme_dark = {{ (index .themes .theme).ghostty_dark | quote }}
 
-{{- with (index .themes .theme) }}
-{{- if hasKey . "palette" }}
-config.color_schemes = {
-  [{{ .ghostty | quote }}] = {
-    background = {{ .palette.background | quote }},
-    foreground = {{ .palette.foreground | quote }},
-    cursor_bg = {{ .palette.cursor | quote }},
-    cursor_fg = {{ .palette.cursor_text | quote }},
-    selection_bg = {{ .palette.selection_bg | quote }},
-    selection_fg = {{ .palette.selection_fg | quote }},
-    ansi = {{ .palette.ansi | toJson }},
-    brights = {{ .palette.brights | toJson }},
-  },
+local appearance = wezterm.gui and wezterm.gui.get_appearance() or 'Dark'
+
+return {
+	color_scheme = appearance:find 'Dark' and scheme_dark or scheme_light,
+	font_size = 12,
 }
-{{- end }}
-config.color_scheme = {{ .ghostty | quote }}
-config.font_size = 12
-{{- end }}
-
-return config

@@ -1,4 +1,9 @@
-theme = {{ (index .themes .theme).ghostty | quote }}
+{{- $t := index .themes .theme -}}
+{{ if $t.ghostty_light -}}
+theme = light:{{ $t.ghostty_light }},dark:{{ $t.ghostty_dark }}
+{{ else -}}
+theme = {{ $t.ghostty | quote }}
+{{ end }}
 font-size = 12
 mouse-hide-while-typing = true
 window-decoration = true
