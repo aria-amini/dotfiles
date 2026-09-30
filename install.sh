@@ -347,11 +347,16 @@ phase_gh() {
   show_version "GitHub CLI" 2 gh --version
   if gh auth status > /dev/null 2>&1; then
     ok "GitHub authenticated" "$(gh api user --jq .login 2> /dev/null || true)"
-  elif [[ $INTERACTIVE == true ]]; then
-    detail "authenticating with GitHub"
-    run_plain gh auth login --web --git-protocol https < /dev/tty
+  elif [[ $DRY_RUN == true ]]; then
+    printf '  [dry-run] Would offer GitHub sign in\n'
   else
-    warn "gh not authenticated; run 'gh auth login --web' anytime for GitHub auth (optional)"
+    detail "GitHub API rate limits: 60 requests/hour unauthenticated, 5,000 with sign in"
+    if [[ $INTERACTIVE == true ]] && gum confirm "Sign in to GitHub now?" < /dev/tty; then
+      run_plain gh auth login --web --git-protocol https < /dev/tty
+      ok "GitHub authenticated" "$(gh api user --jq .login 2> /dev/null || true)"
+    else
+      warn "gh not authenticated; run 'gh auth login --web' anytime for GitHub auth (optional)"
+    fi
   fi
 }
 
