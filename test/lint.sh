@@ -20,7 +20,7 @@ fi
 
 if command -v chezmoi > /dev/null 2>&1; then
   while IFS= read -r -d '' f; do
-    chezmoi execute-template < "$f" > /dev/null || {
+    chezmoi execute-template --source "$PWD" < "$f" > /dev/null || {
       echo "template failed: $f" >&2
       exit 1
     }
