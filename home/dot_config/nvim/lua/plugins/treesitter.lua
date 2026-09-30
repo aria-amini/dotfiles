@@ -9,20 +9,24 @@ return { -- Highlight, edit, and navigate code
     }
     require('nvim-treesitter').setup {}
     require('nvim-treesitter').install(parsers):wait(300000)
-    vim.filetype.add({
-      extension = {
-        tmpl = function(path)
-          local base = path:match('^(.*)%.tmpl$')
-          local embedded = base and base:match('%.([%w]+)$')
-          local known =
-            { lua = 'lua', yaml = 'yaml', yml = 'yaml', toml = 'toml', json = 'json', jsonc = 'jsonc' }
-          return (embedded and known[embedded]) or 'gotmpl'
-        end,
-      },
-    })
     vim.api.nvim_create_autocmd('FileType', {
       pattern = parsers,
-      callback = function(args) vim.treesitter.start(args.buf) end,
+      callback = function(args)
+        -- chezmoi.vim provides regex template syntax for these; treesitter cannot
+        if args.match:find 'chezmoitmpl' then return end
+        vim.treesitter.start(args.buf)
+      end,
+    })
+    -- Core ftplugins (e.g. ftplugin/lua.lua) component-match compound filetypes and
+    -- start treesitter, which sets b:ts_highlight and blocks chezmoi.vim's syntax
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = '*',
+      callback = function(args)
+        if not args.match:find 'chezmoitmpl' then return end
+        vim.treesitter.stop(args.buf)
+        vim.b[args.buf].ts_highlight = nil
+        vim.bo[args.buf].syntax = args.match
+      end,
     })
   end,
 }
