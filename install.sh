@@ -10,6 +10,14 @@ LOG_FILE="${TMPDIR:-/tmp}/dotfiles-install-$(date +%Y%m%d-%H%M%S).log"
 
 PHASES=(gum apt git mise gh dotfiles nix chezmoi mise_tools docker tailscale pitchfork t3 shell)
 MINIMAL_SKIPS=(docker tailscale pitchfork t3)
+SECTIONS=(
+  "System|apt git"
+  "Developer Tools|mise gh dotfiles nix chezmoi mise_tools"
+  "Docker|docker"
+  "Connectivity|tailscale pitchfork"
+  "Applications|t3"
+  "Finish|shell"
+)
 
 VERBOSE=false
 NON_INTERACTIVE=false
@@ -17,8 +25,8 @@ DRY_RUN=false
 SKIP=()
 NOTES=()
 CURRENT_PHASE=startup
-PHASE_NO=0
-PHASE_TOTAL=0
+SECTION_NO=0
+SECTION_TOTAL=0
 SUMMARY_SHELL_CHANGED=false
 
 usage() {
@@ -34,8 +42,10 @@ Options:
   --source DIR       use DIR as the dotfiles source without cloning or syncing
   -h, --help         show this help
 
-Phases: gum apt git mise gh dotfiles nix chezmoi mise_tools
-        docker tailscale pitchfork t3 shell
+Sections: System, Developer Tools, Docker, Connectivity,
+          Applications, Finish
+--skip takes a phase: gum apt git mise gh dotfiles nix chezmoi
+mise_tools docker tailscale pitchfork t3 shell
 
 herdr-jj-workspaces installs inside 'chezmoi apply' via a chezmoi
 script; set DOTFILES_SKIP_TOOLS=1 to skip.
@@ -144,8 +154,11 @@ title() {
 
 phase_begin() {
   CURRENT_PHASE="$1"
-  PHASE_NO=$((PHASE_NO + 1))
-  printf '\n▸ [%s/%s] %s\n' "$PHASE_NO" "$PHASE_TOTAL" "$1"
+}
+
+section_begin() {
+  SECTION_NO=$((SECTION_NO + 1))
+  ui style --margin "1 0 0 0" --bold --foreground 99 "▸ [$SECTION_NO/$SECTION_TOTAL] $1"
 }
 
 ok() {
@@ -183,6 +196,18 @@ show_version() {
 
 fetch() {
   curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 10 "$@"
+}
+
+in_list() {
+  local wanted="$1"
+  shift
+  local item
+  for item in "$@"; do
+    if [[ "$item" == "$wanted" ]]; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 run() {
@@ -241,18 +266,20 @@ phase_gum() {
   export PATH="$HOME/.local/bin:$PATH"
   if ! command -v gum > /dev/null 2>&1; then
     local arch gum_arch
-    mkdir -p "$HOME/.local/bin"
     arch="$(uname -m)"
     case "$arch" in
     x86_64) gum_arch="x86_64" ;;
     aarch64) gum_arch="arm64" ;;
     *) die "unsupported arch: $arch" ;;
     esac
-    run_task "Installing gum" bash -c "
-      curl -fsSL --retry 3 'https://github.com/charmbracelet/gum/releases/download/v${GUM_VERSION}/gum_${GUM_VERSION}_Linux_${gum_arch}.tar.gz' |
-        tar -xz -C /tmp 'gum_${GUM_VERSION}_Linux_${gum_arch}/gum' &&
-      mv '/tmp/gum_${GUM_VERSION}_Linux_${gum_arch}/gum' '$HOME/.local/bin/gum'
-    "
+    if [[ $DRY_RUN == true ]]; then
+      printf '  [dry-run] Installing gum %s\n' "$GUM_VERSION"
+    else
+      mkdir -p "$HOME/.local/bin"
+      fetch "https://github.com/charmbracelet/gum/releases/download/v${GUM_VERSION}/gum_${GUM_VERSION}_Linux_${gum_arch}.tar.gz" |
+        tar -xz -C /tmp "gum_${GUM_VERSION}_Linux_${gum_arch}/gum"
+      mv "/tmp/gum_${GUM_VERSION}_Linux_${gum_arch}/gum" "$HOME/.local/bin/gum"
+    fi
   fi
   title
   show_version "Gum" 2 "$HOME/.local/bin/gum" --version
@@ -528,19 +555,60 @@ finish() {
 
 RUN=()
 for p in "${PHASES[@]}"; do
-  skip_this=false
-  for s in "${SKIP[@]+"${SKIP[@]}"}"; do
-    if [[ "$s" == "$p" ]]; then
-      skip_this=true
-    fi
-  done
-  if [[ $skip_this == false ]]; then
+  if ! in_list "$p" "${SKIP[@]+"${SKIP[@]}"}"; then
     RUN+=("$p")
   fi
 done
-PHASE_TOTAL=${#RUN[@]}
 
-for p in "${RUN[@]}"; do
-  "phase_$p"
+for p in "${PHASES[@]}"; do
+  if [[ "$p" == gum ]]; then
+    continue
+  fi
+  covered=false
+  for entry in "${SECTIONS[@]}"; do
+    read -r -a entry_phases <<<"${entry#*|}"
+    if in_list "$p" "${entry_phases[@]}"; then
+      covered=true
+    fi
+  done
+  if [[ $covered == false ]]; then
+    die "phase missing from SECTIONS: $p"
+  fi
 done
+
+SECTION_TOTAL=0
+for entry in "${SECTIONS[@]}"; do
+  read -r -a entry_phases <<<"${entry#*|}"
+  entry_count=0
+  for p in "${entry_phases[@]}"; do
+    if in_list "$p" ${RUN[@]+"${RUN[@]}"}; then
+      entry_count=$((entry_count + 1))
+    fi
+  done
+  if ((entry_count > 0)); then
+    SECTION_TOTAL=$((SECTION_TOTAL + 1))
+  fi
+done
+
+if in_list gum ${RUN[@]+"${RUN[@]}"}; then
+  phase_gum
+fi
+
+for entry in "${SECTIONS[@]}"; do
+  read -r -a section_phases <<<"${entry#*|}"
+  runnable=()
+  for p in "${section_phases[@]}"; do
+    if in_list "$p" ${RUN[@]+"${RUN[@]}"}; then
+      runnable+=("$p")
+    fi
+  done
+  if ((${#runnable[@]} == 0)); then
+    continue
+  fi
+  section_begin "${entry%%|*}"
+  for p in "${runnable[@]}"; do
+    "phase_$p"
+  done
+done
+
 finish
