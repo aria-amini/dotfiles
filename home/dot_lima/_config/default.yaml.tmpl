@@ -1,0 +1,16 @@
+{{- $termfo := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{- $termfo = output "sh" "-c" "infocmp -x xterm-ghostty 2>/dev/null | base64 | tr -d '\\n'" -}}
+{{- end -}}
+# limactl create merges this into every new instance.
+# mounts cannot be removed via merged yaml (slices only concatenate), so the
+# provision script unmounts the home mount on every boot instead.
+provision:
+- mode: system
+  script: |
+    set -eu
+    umount "{{ .chezmoi.homeDir }}" 2>/dev/null || umount -l "{{ .chezmoi.homeDir }}" 2>/dev/null || true
+    printf %s '{{ $termfo }}' | base64 -d >/tmp/xterm-ghostty.src
+    if [ -s /tmp/xterm-ghostty.src ]; then
+      tic -x -o /etc/terminfo /tmp/xterm-ghostty.src
+    fi

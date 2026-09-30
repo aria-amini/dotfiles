@@ -1,4 +1,1 @@
-{{- $defaultSource := printf "%s/dotfiles" .chezmoi.homeDir -}}
-{{- if eq .chezmoi.os "darwin" -}}{{- $defaultSource = printf "%s/Developer/dotfiles" .chezmoi.homeDir -}}{{- end -}}
-
-sourceDir = {{ promptStringOnce . "sourceDir" "Dotfiles checkout" $defaultSource | quote }}
+sourceDir = {{ printf "%s/dotfiles" .chezmoi.homeDir | quote }}
