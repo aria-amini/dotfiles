@@ -8,9 +8,14 @@ Include ~/.lima/*/ssh.config
 Host lima
   HostName 127.0.0.1
   Port 60022
-  User {{ .chezmoi.username }}
+  User {{ .vm.user }}
   IdentityFile ~/.lima/_config/user
   IdentitiesOnly yes
-  StrictHostKeyChecking no
-  UserKnownHostsFile /dev/null
+  HostKeyAlias lima-default
+  StrictHostKeyChecking yes
+{{ else -}}
+Host lima {{ .vm.hostname }} {{ .vm.ip }}
+  HostName {{ .vm.ip }}
+  User {{ .vm.user }}
+  StrictHostKeyChecking accept-new
 {{ end -}}

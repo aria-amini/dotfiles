@@ -350,7 +350,7 @@ phase_gh() {
   elif [[ $DRY_RUN == true ]]; then
     printf '  [dry-run] Would offer GitHub sign in\n'
   else
-    detail "GitHub API rate limits: 60 requests/hour unauthenticated, 5,000 with sign in"
+    ui style --foreground 245 "  GitHub API rate limits: 60 requests/hour unauthenticated, 5,000 with sign in"
     if [[ $INTERACTIVE == true ]] && gum confirm "Sign in to GitHub now?" < /dev/tty; then
       run_plain gh auth login --web --git-protocol https < /dev/tty
       ok "GitHub authenticated" "$(gh api user --jq .login 2> /dev/null || true)"
@@ -471,7 +471,10 @@ phase_tailscale() {
     ok "Tailscale authenticated"
   elif [[ $INTERACTIVE == true ]]; then
     warn "Tailscale authentication required; open the login link printed next"
-    run_plain sudo tailscale up
+    if ! run_plain timeout 180 sudo tailscale up; then
+      warn "tailscale auth not completed; run 'sudo tailscale up' after install"
+      return
+    fi
   else
     warn "tailscale not authenticated; run 'sudo tailscale up' after install"
     return
@@ -512,6 +515,15 @@ phase_t3() {
   phase_begin t3
   if [[ $HAS_SYSTEMD == false ]]; then
     detail "no systemd; skipping T3 Code"
+    return
+  fi
+  ui style --foreground 245 "  T3 Code installs a systemd user service for pairing remote devices"
+  if [[ $DRY_RUN == true ]]; then
+    printf '  [dry-run] Would ask: Install T3 Code?\n'
+    return
+  fi
+  if [[ $INTERACTIVE == false ]] || ! gum confirm "Install T3 Code?" < /dev/tty; then
+    warn "T3 Code not installed; re-run ./install.sh to add it"
     return
   fi
   local opencode_bin t3_settings node_bin_dir
