@@ -192,7 +192,7 @@ run() {
     printf '  [dry-run] %s: %s\n' "$label" "$*"
     return 0
   fi
-  if [[ $VERBOSE == true ]]; then
+  if [[ $VERBOSE == true ]] || ! command -v gum > /dev/null 2>&1; then
     printf '  $ %s\n' "$*"
     "$@"
   else

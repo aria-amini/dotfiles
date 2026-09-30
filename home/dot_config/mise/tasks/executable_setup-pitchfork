@@ -7,6 +7,7 @@ pitchfork_bin="$(mise which pitchfork)"
 pitchfork settings set proxy.tld lvh.ariaamini.com --global
 pitchfork settings set proxy.host "$usage_host" --global
 pitchfork settings set proxy.sync_hosts false --global
+pitchfork settings set proxy.enable true --global
 pitchfork settings set supervisor.user "$(id -un)" --global
 if systemctl is-enabled pitchfork.service &>/dev/null; then
   sudo "$pitchfork_bin" boot disable
