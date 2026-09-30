@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 cd "$HOME"
 
-GUM_VERSION="0.16.1"
+GUM_VERSION="0.16.2"
 DOTFILES_REPO="https://github.com/aria-amini/dotfiles.git"
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 SYNC_DOTFILES=true
@@ -384,6 +384,14 @@ phase_nix() {
   fi
   command -v nix > /dev/null 2>&1 || die "nix not on PATH after install"
   show_version "Nix" 2 nix --version
+  # Nix adds a marked PATH block to shell profiles. The script sources Nix
+  # itself, and the managed zshrc already adds the Nix profile bin directory.
+  local profile
+  for profile in .zshrc .bashrc .bash_profile .profile; do
+    if [[ -f "$HOME/$profile" ]]; then
+      sed -i '/# added by Nix installer[[:space:]]*$/d' "$HOME/$profile"
+    fi
+  done
 }
 
 phase_chezmoi() {
@@ -484,6 +492,9 @@ phase_pitchfork() {
     else
       pitchfork_host="127.0.0.1"
     fi
+  fi
+  if [[ -z "$pitchfork_host" ]] && sudo -n tailscale status > /dev/null 2>&1; then
+    pitchfork_host="0.0.0.0"
   fi
   if [[ -z "$pitchfork_host" ]]; then
     pitchfork_host="127.0.0.1"
