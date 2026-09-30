@@ -104,9 +104,14 @@ height = "90%"
 directory = "~/.herdr/workspaces"
 
 [ui]
-sidebar_width = 40
-sidebar_min_width = 30
-sidebar_max_width = 60
+# Sidebar width (auto-scaled based on workspace names, this sets the default)
+# sidebar_width = 26
+
+# Minimum sidebar width when expanded (columns)
+# sidebar_min_width = 18
+
+# Maximum sidebar width when expanded (columns)
+# sidebar_max_width = 36
 
 mobile_width_threshold = 64
 
