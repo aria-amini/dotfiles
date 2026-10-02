@@ -28,8 +28,9 @@ workspace_picker = "prefix+w"
 # new_worktree = "prefix+shift+g"
 # open_worktree = ""    # optional, unset by default
 # rename_workspace = "prefix+shift+w"
-# prefix+shift+d removes a worktree; close_workspace stays unbound
-close_workspace = ""
+# prefix+d closes/detaches the workspace (worktree stays on disk);
+# prefix+shift+d removes the worktree
+close_workspace = "prefix+d"
 remove_worktree = "prefix+shift+d"
 
 [[keys.command]]
