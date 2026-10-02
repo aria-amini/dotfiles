@@ -1,5 +1,3 @@
-# Single source of truth for the shared VM target.
-# Edit these to your own VM, then run 'chezmoi apply'.
 [vm]
 user = "aria-amini"
 ip = "100.103.205.111"

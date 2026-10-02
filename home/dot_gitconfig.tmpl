@@ -11,12 +11,12 @@
 [rebase]
     updateRefs = true
 
-[merge]
-    conflictStyle = zdiff3
-
 # ============================================
 # Diff tools
 # ============================================
+
+[merge]
+    conflictStyle = zdiff3
 
 [core]
     pager = sh -c 'command -v hunk >/dev/null 2>&1 && exec hunk pager || exec less'
@@ -32,14 +32,3 @@
 
 [difftool]
     prompt = false
-
-[credential "https://github.com"]
-	helper =
-	helper = !gh auth git-credential
-
-[credential "https://gist.github.com"]
-	helper =
-	helper = !gh auth git-credential
-
-[coderabbit]
- 	machineId = cli/3b6783e4de2f405aba3006a22ff8817a
