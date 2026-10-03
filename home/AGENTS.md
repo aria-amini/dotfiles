@@ -9,8 +9,9 @@ I ssh into the laptop using tailscale.
 
 ### Dotfiles
 
-Manage home-directory dotfiles with Chezmoi. Edit their source files in
-`~/dotfiles/home`, then apply only the changed targets with `chezmoi apply`.
+Manage home-directory dotfiles with Chezmoi. The source repo lives at
+`~/.local/share/chezmoi`; edit source files under `home`, then apply only the
+changed targets with `chezmoi apply`.
 
 ### Notes
 

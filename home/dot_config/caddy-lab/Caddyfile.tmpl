@@ -15,7 +15,7 @@ https://*.dev.ariaamini.com, https://*.lvh.ariaamini.com {
 	reverse_proxy https://127.0.0.1:9443 {
 		header_up Host {pitchfork_host}
 		transport http {
-			tls_trust_pool file /home/aamini.guest/.local/state/pitchfork/proxy/ca.pem
+			tls_trust_pool file {{ .chezmoi.homeDir }}/.local/state/pitchfork/proxy/ca.pem
 			tls_server_name {pitchfork_host}
 		}
 	}

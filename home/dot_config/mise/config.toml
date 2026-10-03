@@ -82,7 +82,6 @@ imagemagick = "latest"
 "nix:gh-dash" = "latest"
 
 # Devops
-"pipx:azure-cli" = { version = "latest", uvx_args = "--prerelease=allow --overrides {{ env.HOME }}/.config/mise/azure-cli-overrides.txt" }
 kubectl = "latest"
 helm = "latest"
 pulumi = "latest"

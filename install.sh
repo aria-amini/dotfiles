@@ -4,7 +4,7 @@ cd "$HOME"
 
 GUM_VERSION="0.16.2"
 DOTFILES_REPO="https://github.com/aria-amini/dotfiles.git"
-DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.local/share/chezmoi}"
 SYNC_DOTFILES=true
 LOG_FILE="${TMPDIR:-/tmp}/dotfiles-install-$(date +%Y%m%d-%H%M%S).log"
 
@@ -409,14 +409,10 @@ phase_chezmoi() {
     fi
   fi
   show_version "Chezmoi" 2 chezmoi --version
-  if [[ ! -s "$HOME/.config/chezmoi/chezmoi.toml" ]]; then
-    run_task "Seeding chezmoi config" bash -c \
-      "mkdir -p '$HOME/.config/chezmoi' && printf 'sourceDir = \"%s\"\n' '$DOTFILES_DIR' > '$HOME/.config/chezmoi/chezmoi.toml'"
-  fi
   detail "applying dotfiles"
-  # chezmoi init re-executes .chezmoi.toml.tmpl without previous-config data,
-  # so promptStringOnce would prompt even with a seeded config. The seeded
-  # config makes apply equivalent and prompt-free.
+  # --source is required on the first apply: it creates the
+  # ~/.local/share/chezmoi symlink (managed source state) that bare
+  # chezmoi commands rely on afterwards.
   run "Applying dotfiles" chezmoi apply --source "$DOTFILES_DIR"
   ok "Applying dotfiles"
 }
@@ -457,7 +453,7 @@ phase_docker() {
 phase_tailscale() {
   phase_begin tailscale
   if [[ $HAS_SYSTEMD == false ]]; then
-    detail "no systemd; skipping (manual daemon: mise -C ~/dotfiles run tailscaled)"
+    detail "no systemd; skipping (manual daemon: mise -C \"$DOTFILES_DIR\" run tailscaled)"
     return
   fi
   need_sudo
@@ -508,7 +504,7 @@ phase_pitchfork() {
     pitchfork_host="127.0.0.1"
   fi
   detail "Pitchfork installs a boot service and a local TLS certificate authority"
-  run_task "Configuring Pitchfork URLs" mise -C "$HOME/dotfiles" run setup-pitchfork "$pitchfork_host"
+  run_task "Configuring Pitchfork URLs" mise -C "$DOTFILES_DIR" run setup-pitchfork "$pitchfork_host"
 }
 
 phase_t3() {
@@ -527,13 +523,13 @@ phase_t3() {
     return
   fi
   local opencode_bin t3_settings node_bin_dir
-  opencode_bin="$(mise -C "$HOME/dotfiles" which opencode)"
+  opencode_bin="$(mise -C "$DOTFILES_DIR" which opencode)"
   t3_settings="$HOME/.t3/userdata/settings.json"
   if [[ ! -f "$t3_settings" ]]; then
     run_task "Writing T3 Code settings" bash -c \
       "mkdir -p '$HOME/.t3/userdata' && jq -n --arg b '$opencode_bin' '{providers: {opencode: {enabled: true, binaryPath: \$b}}}' > '$t3_settings'"
   fi
-  node_bin_dir="$(dirname "$(mise -C "$HOME/dotfiles" which node)")"
+  node_bin_dir="$(dirname "$(mise -C "$DOTFILES_DIR" which node)")"
   if [[ ! -x /usr/bin/g++ ]]; then
     need_sudo
     run_task "Installing build tools" sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
