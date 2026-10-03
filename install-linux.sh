@@ -187,7 +187,9 @@ show_version() {
   local label="$1" field="$2" line=""
   shift 2
   command -v "$1" > /dev/null 2>&1 || return 0
-  IFS= read -r line < <("$@" 2>&1) || true
+  # || true inside the substitution: set -E fires the ERR trap in the
+  # subshell otherwise, printing a bogus "Failed during" line.
+  IFS= read -r line < <("$@" 2>&1 || true) || true
   [[ -n "$line" ]] || return 0
   local -a fields
   read -r -a fields <<<"$line"
@@ -220,8 +222,20 @@ run() {
   if [[ $VERBOSE == true ]] || ! command -v gum > /dev/null 2>&1; then
     printf '  $ %s\n' "$*"
     "$@"
+    return
+  fi
+  # gum spin does not capture child output; keep it out of the terminal
+  # and print it only when the command fails.
+  local log rc
+  log="$(mktemp "${TMPDIR:-/tmp}/dotfiles-run-XXXXXX")"
+  if gum spin --show-error --title "  $label..." -- \
+    bash -c 'exec "$2" "${@:3}" >"$1" 2>&1' _ "$log" "$@"; then
+    rm -f "$log"
   else
-    gum spin --show-error --title "  $label..." -- "$@"
+    rc=$?
+    cat "$log" >&2
+    rm -f "$log"
+    return "$rc"
   fi
 }
 
@@ -336,9 +350,11 @@ phase_mise() {
   export PATH="$HOME/.local/share/mise/shims:$PATH"
   # Bootstrap the tools the apply itself needs: gh (auth), uv and herdr
   # (the herdr-jj-workspaces chezmoi script). The full toolset converges
-  # in the mise_tools phase after apply writes the mise config.
+  # in the mise_tools phase after apply writes the mise config. mise use
+  # -g sets a default version; bare mise install leaves shims broken with
+  # "No version is set for shim".
   run_task "Installing bootstrap tools (gh, uv, herdr)" \
-    mise install --quiet github-cli uv "github:herdrdev/herdr@0.9.1"
+    mise use -g --quiet github-cli uv "github:herdrdev/herdr@0.9.1"
   show_version "Mise" 0 mise --version
 }
 

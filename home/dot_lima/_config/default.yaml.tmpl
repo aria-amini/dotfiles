@@ -1,6 +1,6 @@
 {{- $termfo := "" -}}
 {{- if eq .chezmoi.os "darwin" -}}
-{{- $termfo = output "sh" "-c" "infocmp -x xterm-ghostty 2>/dev/null | base64 | tr -d '\\n'" -}}
+{{- $termfo = output "sh" "-c" "infocmp -x xterm-ghostty 2>/dev/null | base64 | tr -d '\\n' || true" -}}
 {{- end -}}
 # limactl create merges this into every new instance.
 # mounts cannot be removed via merged yaml (slices only concatenate), so the

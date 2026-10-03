@@ -1,3 +1,15 @@
+#!/bin/sh
+# Preserve external appends (nix installer, vite-plus, etc.); write our
+# profile once. modify_ targets are never conflict-prompted, unlike
+# dot_ targets which break apply when anything mutates the file.
+contents=$(cat)
+if [ -n "$contents" ]; then
+  printf '%s\n' "$contents"
+fi
+case "$contents" in
+  *"bash login shells (WSL default"*) ;;
+  *)
+    cat <<'BP_EOF'
 # bash login shells (WSL default, servers). zsh uses .zprofile.
 # Our setup runs first; the shared ~/.profile (Ubuntu defaults, the nix
 # installer line, vite-plus) is chained in last. Everything here is
@@ -16,3 +28,6 @@ esac
 if [ -f "$HOME/.profile" ]; then
   . "$HOME/.profile"
 fi
+BP_EOF
+  ;;
+esac
