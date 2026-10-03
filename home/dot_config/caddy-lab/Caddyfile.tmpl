@@ -3,20 +3,19 @@
 	skip_install_trust
 }
 
-https://*.dev.ariaamini.com, https://*.lvh.ariaamini.com {
-	bind 100.103.205.111
+{{ $tsIp := output "sh" "-c" "command -v tailscale >/dev/null && tailscale ip -4 2>/dev/null | tr -d ' \n'" }}
+{{ if $tsIp }}
+https://*.{{ .proxyTld }} {
+	bind {{ $tsIp }}
 	tls {
 		dns cloudflare {env.CF_API_TOKEN}
 	}
-	map {host} {pitchfork_host} {
-		~^([a-z0-9]+(?:-[a-z0-9]+)*)\.dev\.ariaamini\.com$ ${1}.lvh.ariaamini.com
-		default {host}
-	}
 	reverse_proxy https://127.0.0.1:9443 {
-		header_up Host {pitchfork_host}
+		header_up Host {host}
 		transport http {
 			tls_trust_pool file {{ .chezmoi.homeDir }}/.local/state/pitchfork/proxy/ca.pem
-			tls_server_name {pitchfork_host}
+			tls_server_name {host}
 		}
 	}
 }
+{{ end }}

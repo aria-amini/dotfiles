@@ -30,10 +30,10 @@ changed targets with `chezmoi apply`.
   HTTPS URL. Inspect existing Serve mappings first.
 - Caddy terminates TLS on the Tailscale IP at port 443 and proxies to the
   Pitchfork proxy on loopback port 9443. Portless URLs are
-  `https://<name>.dev.ariaamini.com` and `https://<name>.lvh.ariaamini.com`
-  (publicly trusted; `.dev` aliases `.lvh`). Hostnames are single-level: slugs
+  `https://<name>.dev.ariaamini.com` (publicly trusted; this is the only URL
+  form — `.lvh` is gone). Hostnames are single-level: slugs
   flatten directory dots to hyphens (`app.worktree` serves as `app-worktree`).
-  Nested hostnames (`worktree.app.lvh…`) and direct `:9443` access do not work:
+  Nested hostnames (`worktree.app.dev…`) and direct `:9443` access do not work:
   the wildcard certificate covers one level, and the proxy binds loopback only.
   Register a worktree with
   `pitchfork proxy add <slug> --daemon dev --dir <workspace-root>`.

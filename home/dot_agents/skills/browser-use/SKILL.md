@@ -58,7 +58,7 @@ client network independently.
 
 ### Certificates
 
-The private CA (Pitchfork Local CA for `*.lvh.ariaamini.com`) lives on the
+The private CA (Pitchfork Local CA for `*.dev.ariaamini.com`) lives on the
 server. Fresh client profiles reject it. In order:
 
 1. Durable: trust `ca.pem` on the client. Server-side `pitchfork proxy trust`
@@ -149,7 +149,7 @@ const { chromium, firefox } = require('@playwright/test')
 
 Rules from live captures:
 
-- Pass `ignoreHTTPSErrors: true` on `newContext` for `*.lvh.ariaamini.com`.
+- Pass `ignoreHTTPSErrors: true` on `newContext` for `*.dev.ariaamini.com`.
   Firefox keeps certificates in its own NSS store. Without the flag, it
   renders the Pitchfork CA error page.
 - Validate captures with `md5sum`. Identical hashes across pages mean every
