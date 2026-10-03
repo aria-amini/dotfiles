@@ -1,1 +1,30 @@
-proxyTld = "dev.ariaamini.com"
+# Single source of truth for the terminal theme stack.
+# Swap by editing 'theme' and running 'chezmoi apply'.
+# ghostty: exact built-in theme name (check with 'ghostty +list-themes').
+# ghostty_light/ghostty_dark: optional, makes Ghostty follow OS appearance.
+theme = "catppuccin"
+
+[proxy]
+tld = "dev.ariaamini.com"
+
+[vm]
+user = "aria-amini"
+ip = "100.103.205.111"
+hostname = "lima.tail6c944a.ts.net"
+
+[themes.catppuccin]
+ghostty = "Catppuccin Mocha"
+ghostty_light = "Catppuccin Latte"
+ghostty_dark = "Catppuccin Mocha"
+nvim = "catppuccin/nvim"
+colorscheme = "catppuccin"
+
+[themes.jellybeans]
+ghostty = "Jellybeans"
+nvim = "nanotech/jellybeans.vim"
+colorscheme = "jellybeans"
+
+[themes.srcery]
+ghostty = "Srcery"
+nvim = "srcery-colors/srcery-vim"
+colorscheme = "srcery"

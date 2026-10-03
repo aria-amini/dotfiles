@@ -10,8 +10,8 @@ I ssh into the laptop using tailscale.
 ### Dotfiles
 
 Manage home-directory dotfiles with Chezmoi. The source repo lives at
-`~/.local/share/chezmoi`; edit source files under `home`, then apply only the
-changed targets with `chezmoi apply`.
+`~/.local/share/chezmoi`; edit source files under `~/.local/share/chezmoi/home`,
+then apply only the changed targets with `chezmoi apply`.
 
 ### Notes
 
@@ -25,22 +25,21 @@ changed targets with `chezmoi apply`.
   or published DNS), never server-side localhost. No shared filesystem exists
   between server and clients. When the user must view a file, start a loopback
   server and publish it with
-  `tailscale serve --bg --https=8443 --set-path=/<unique-path> <port>`. Read
-  the node DNS name with `tailscale status --json`, then hand over the full
-  HTTPS URL. Inspect existing Serve mappings first.
+  `tailscale serve --bg --https=8443 --set-path=/<unique-path> <port>`. Read the
+  node DNS name with `tailscale status --json`, then hand over the full HTTPS
+  URL. Inspect existing Serve mappings first.
 - Caddy terminates TLS on the Tailscale IP at port 443 and proxies to the
   Pitchfork proxy on loopback port 9443. Portless URLs are
-  `https://<name>.dev.ariaamini.com` (publicly trusted; this is the only URL
-  form — `.lvh` is gone). Hostnames are single-level: slugs
-  flatten directory dots to hyphens (`app.worktree` serves as `app-worktree`).
-  Nested hostnames (`worktree.app.dev…`) and direct `:9443` access do not work:
-  the wildcard certificate covers one level, and the proxy binds loopback only.
+  `https://<name>.dev.ariaamini.com`. Hostnames are single-level: slugs flatten
+  directory dots to hyphens (`app.worktree` serves as `app-worktree`). Nested
+  hostnames (`worktree.app.dev…`) and direct `:9443` access do not work: the
+  wildcard certificate covers one level, and the proxy binds loopback only.
   Register a worktree with
   `pitchfork proxy add <slug> --daemon dev --dir <workspace-root>`.
 - Port ownership on the Tailscale IP: Caddy owns port 443. Ad-hoc Tailscale
   Serve publishes set an explicit `--https` port in the 8443–8499 range, never
-  the default 443. Evict a Serve mapping from 443 on sight; never touch
-  mappings on other ports without their owner.
+  the default 443. Evict a Serve mapping from 443 on sight; never touch mappings
+  on other ports without their owner.
 - Publish Impeccable decision pages with
   `impeccable-decision serve <payload.json>`. Share the printed tailnet URL.
   Collect the answer with `impeccable-decision wait`. Tear down with

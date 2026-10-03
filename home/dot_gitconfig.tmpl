@@ -32,3 +32,10 @@
 
 [difftool]
     prompt = false
+
+# gh as credential helper; run 'gh auth login' to activate.
+[credential "https://github.com"]
+    helper = !gh auth git-credential
+
+[credential "https://gist.github.com"]
+    helper = !gh auth git-credential
