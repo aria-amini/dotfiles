@@ -1,7 +1,7 @@
 local wezterm = require 'wezterm'
 
-local scheme_light = {{ (index .themes .theme).ghostty_light | quote }}
-local scheme_dark = {{ (index .themes .theme).ghostty_dark | quote }}
+local scheme_light = 'Catppuccin Latte'
+local scheme_dark = 'Catppuccin Mocha'
 
 local appearance = wezterm.gui and wezterm.gui.get_appearance() or 'Dark'
 
