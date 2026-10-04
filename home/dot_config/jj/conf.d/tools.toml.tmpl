@@ -1,0 +1,37 @@
+{{ range (include "dot_config/tools/repos.toml" | fromToml) -}}
+{{ if hasKey . "upstream" -}}
+[[--scope]]
+--when.repositories = [{{ printf "~/%s" .path | quote }}]
+
+[--scope.git]
+fetch = ["origin", "upstream"]
+push = "origin"
+
+[--scope.remotes.origin]
+fetch-bookmarks = "main | aamini/*"
+auto-track-bookmarks = "main | aamini/*"
+
+[--scope.remotes.upstream]
+fetch-bookmarks = {{ .branch | quote }}
+auto-track-bookmarks = "~*"
+
+[--scope.revsets]
+log = "tools_log()"
+
+[--scope.templates]
+git_push_bookmark = '"aamini/" ++ change_id.short()'
+
+[--scope.revset-aliases]
+"trunk()" = "main"
+"immutable_heads()" = "builtin_immutable_heads() | present(main) | (working_copies() ~ @)"
+"tools_work()" = '''
+working_copies() |
+bookmarks("aamini/*" ~ "aamini/archive-*") |
+remote_bookmarks("aamini/*" ~ "aamini/archive-*", "origin")
+'''
+"tools_log()" = 'ancestors((trunk()..tools_work()) | trunk() | present({{ .branch }}@upstream), 2)'
+"tools_upstream()" = 'trunk()..present({{ .branch }}@upstream)'
+"tools_all()" = "all()"
+
+{{ end -}}
+{{ end -}}

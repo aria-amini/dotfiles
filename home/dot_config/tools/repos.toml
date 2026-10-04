@@ -1,0 +1,25 @@
+[herdr-jj-workspaces]
+origin = "aria-amini/tools"
+path = "tools/herdr-jj-workspaces"
+provider = "editable"
+package = "herdr-jj-workspaces"
+command = "herdr-jj"
+plugin = "herdr-jj-workspaces/herdr-plugin"
+plugin_id = "aamini.jj"
+
+# This fork is temporary until upstream supports Git worktree adoption.
+[jj]
+origin = "aria-amini/jj"
+upstream = "jj-vcs/jj"
+path = "tools/jj"
+branch = "main"
+
+[t3code]
+origin = "aria-amini/t3code"
+upstream = "pingdotgg/t3code"
+path = "tools/t3code"
+branch = "main"
+provider = "service"
+release = "fork-runtime"
+asset = "t3-0.0.40-fork.4.tgz"
+sha256 = "a8e307d40cf0007b332822871c5892293480dd2e09f60084c9afe3b7f10f3c59"

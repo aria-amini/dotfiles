@@ -3,13 +3,11 @@
 .config/caddy-lab
 .config/herdr
 .config/pi
-run_install-herdr-jj-workspaces.sh
 {{ else }}
-/*
-!.ssh
+**
+!.ssh/**
 !.config
-.config/*
-!.config/opencode
-!.config/wezterm
-!run_once_install-windows.ps1
+!.config/opencode/**
+!.config/wezterm/**
+!install-windows.ps1
 {{ end }}
