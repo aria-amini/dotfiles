@@ -1,0 +1,6 @@
+# Request CodeRabbit only after the other PR checks pass.
+reviews:
+  auto_review:
+    enabled: false
+    drafts: false
+  request_changes_workflow: true

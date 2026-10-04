@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install Chezmoi
+        run: |
+          curl -fsSL --retry 3 https://get.chezmoi.io -o "$RUNNER_TEMP/chezmoi-install.sh"
+          sh "$RUNNER_TEMP/chezmoi-install.sh" -b "$RUNNER_TEMP/chezmoi-bin"
+      - name: Shell checks
+        run: |
+          shellcheck -x home/.chezmoiscripts/run_bootstrap.sh .github/scripts/*.sh
+          for script in home/.chezmoiscripts/run_bootstrap.sh .github/scripts/*.sh; do
+            bash -n "$script"
+          done
+          for os in linux darwin; do
+            "$RUNNER_TEMP/chezmoi-bin/chezmoi" --source "$PWD" --override-data "{\"chezmoi\":{\"os\":\"$os\"}}" \
+              cat "$HOME/.chezmoiscripts/setup-$os.sh" > "$RUNNER_TEMP/setup-$os.sh"
+            shellcheck "$RUNNER_TEMP/setup-$os.sh"
+            bash -n "$RUNNER_TEMP/setup-$os.sh"
+          done
+      - name: JSON checks
+        run: jq empty .github/repo-settings.json .github/rulesets/*.json
+      - name: Install Actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+      - name: Workflow checks
+        run: '"$(go env GOPATH)/bin/actionlint"'
