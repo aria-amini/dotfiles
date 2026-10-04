@@ -1,0 +1,54 @@
+param([Parameter(Mandatory = $true)][string]$Source)
+
+$ErrorActionPreference = 'Stop'
+
+if ($env:OS -ne 'Windows_NT') {
+    throw 'This setup supports Windows only.'
+}
+
+function Update-ProcessPath {
+    # cmd.exe can discard PATH when repeated refreshes exceed its 8191-character limit.
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    $paths = @(
+        $env:PATH
+        [Environment]::GetEnvironmentVariable('Path', 'Machine')
+        [Environment]::GetEnvironmentVariable('Path', 'User')
+    ) -join ';'
+    $env:PATH = (@($paths -split ';' | ForEach-Object {
+        if (-not [string]::IsNullOrWhiteSpace($_)) {
+            $entry = [Environment]::ExpandEnvironmentVariables($_.Trim().Trim('"'))
+            if ($seen.Add($entry)) { $entry }
+        }
+    })) -join ';'
+}
+
+function Install-PackageIfMissing {
+    param([string]$Command, [string]$Package)
+
+    Update-ProcessPath
+    if (Get-Command $Command -ErrorAction SilentlyContinue) {
+        return
+    }
+    winget.exe install --id $Package -e --accept-package-agreements --accept-source-agreements --disable-interactivity
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Package installation failed with exit code $LASTEXITCODE."
+    }
+    Update-ProcessPath
+    if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
+        throw "$Command is not on PATH after installation. Open a new PowerShell window and run bootstrap.ps1 again."
+    }
+}
+
+Install-PackageIfMissing -Command git.exe -Package Git.Git
+Install-PackageIfMissing -Command node.exe -Package OpenJS.NodeJS.LTS
+
+chezmoi.exe --source $Source --no-tty --error-on-conflict apply
+if ($LASTEXITCODE -ne 0) {
+    throw "Chezmoi apply failed with exit code $LASTEXITCODE."
+}
+
+# npm.cmd avoids PowerShell execution-policy restrictions on npm.ps1.
+npm.cmd install -g opencode-ai
+if ($LASTEXITCODE -ne 0) {
+    throw "OpenCode installation failed with exit code $LASTEXITCODE."
+}
