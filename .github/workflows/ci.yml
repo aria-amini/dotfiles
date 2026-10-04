@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Shell checks
+        run: |
+          shellcheck -x bootstrap.sh setup/*.sh setup/linux/*.sh scripts/*.sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.12.19"
+          enable-cache: true
+      - name: Install check dependencies
+        run: uv sync --locked
+      - name: Python checks
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+          uv run basedpyright
+      - name: Setup regression tests
+        run: uv run pytest -v
+      - name: Real setup smoke test
+        run: uv run pytest --e2e -m e2e -v
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-smoke-logs
+          path: .pytest_cache/smoke/
+          include-hidden-files: true
+          if-no-files-found: ignore
