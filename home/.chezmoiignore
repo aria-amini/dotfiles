@@ -5,9 +5,9 @@
 .config/pi
 {{ else }}
 **
-!.ssh/**
+!.ssh{,/**}
 !.config
-!.config/opencode/**
-!.config/wezterm/**
-!install-windows.ps1
+!.config/{opencode,wezterm}{,/**}
+!.chezmoiscripts{,/setup-windows.ps1}
 {{ end }}
+.chezmoiscripts/bootstrap.*
