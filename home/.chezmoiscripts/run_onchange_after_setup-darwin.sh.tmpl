@@ -2,8 +2,23 @@
 #!/bin/bash
 set -euo pipefail
 
+# Mise config: {{ include "dot_config/mise/config.toml" | sha256sum }}
+
 # mise owns every CLI; brew stays out of the bootstrap.
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.nix-profile/bin:$PATH"
+
+install_script() {
+  local url="$1" script rc=0
+  shift
+  script="$(mktemp "${TMPDIR:-/tmp}/dotfiles-script-XXXXXX")"
+  if curl -fsSL --retry 3 --connect-timeout 10 "$url" -o "$script"; then
+    sh "$script" "$@" || rc=$?
+  else
+    rc=$?
+  fi
+  rm -f -- "$script"
+  return "$rc"
+}
 
 # CLT provides git and the compiler toolchain mise-built languages need.
 if ! xcode-select -p &> /dev/null; then
@@ -22,7 +37,7 @@ if ! command -v git &> /dev/null; then
 fi
 
 if ! command -v mise &> /dev/null; then
-  curl -fsSL https://mise.run | sh
+  install_script https://mise.run
 fi
 
 # github: backends clone private forks. Auth must exist before 'mise install'.
@@ -31,7 +46,7 @@ if ! mise where github-cli &> /dev/null; then
   mise install --quiet github-cli
 fi
 if ! gh auth status &> /dev/null; then
-  if [ -t 0 ]; then
+  if [[ ${DOTFILES_ASSUME_YES:-false} != true ]] && [ -t 1 ]; then
     gh auth login --web --git-protocol https
   else
     echo "gh is not authenticated. Run 'gh auth login --web', then 'mise install'." >&2
@@ -40,7 +55,8 @@ fi
 
 # nix: backends in the mise config need Nix.
 if ! command -v nix &> /dev/null; then
-  sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon
+  install_script https://nixos.org/nix/install --no-daemon
+  # shellcheck source=/dev/null
   . "$HOME/.nix-profile/etc/profile.d/nix.sh"
 fi
 
