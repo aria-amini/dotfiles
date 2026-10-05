@@ -1,4 +1,4 @@
 return {
 	plugin = "catppuccin/nvim",
-	colorscheme = "catppuccin",
+	colorscheme = "catppuccin-mocha",
 }
