@@ -111,3 +111,16 @@ tmux = "latest"
 "gum" = "latest"
 "aqua:openbao/openbao/bao" = "latest"
 chezmoi = "latest"
+
+[tools."http:caddy-cf"]
+version = "2.11.6"
+bin = "caddy-cf"
+os = ["linux"]
+
+[tools."http:caddy-cf".platforms.linux-arm64]
+url = "https://caddyserver.com/api/download?os=linux&arch=arm64&v=2.11.6&p=github.com%2Fcaddy-dns%2Fcloudflare%40v0.2.4"
+checksum = "sha256:4364fded3c7a5abdabc525043c9c35e939cacf5d68417a788b8e9290cb684249"
+
+[tools."http:caddy-cf".platforms.linux-x64]
+url = "https://caddyserver.com/api/download?os=linux&arch=amd64&v=2.11.6&p=github.com%2Fcaddy-dns%2Fcloudflare%40v0.2.4"
+checksum = "sha256:61a9f4bb5666e851f44aafde487c6a6b5ce70a3ee924393d7c28ac556651258f"

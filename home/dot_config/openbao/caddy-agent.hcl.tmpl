@@ -1,0 +1,33 @@
+{{- $mise := lookPath "mise" -}}
+{{- if not $mise }}{{ fail "Mise must be on PATH before Caddy configuration is applied" }}{{ end -}}
+vault {
+  address = "https://vault.ariaamini.com"
+}
+
+auto_auth {
+  method "approle" {
+    mount_path = "auth/approle"
+    config = {
+      role_id_file_path = "{{ .chezmoi.homeDir }}/.config/openbao/caddy-role-id"
+      secret_id_file_path = "{{ .chezmoi.homeDir }}/.config/openbao/caddy-secret-id"
+      remove_secret_id_file_after_reading = false
+    }
+  }
+}
+
+template_config {
+  static_secret_render_interval = "5m"
+}
+
+env_template "CF_API_TOKEN" {
+  contents = "[[ with secret \"kv/data/personal-keyring/caddy-lab\" ]][[ .Data.data.CF_API_TOKEN ]][[ end ]]"
+  left_delimiter = "[["
+  right_delimiter = "]]"
+  error_on_missing_key = true
+}
+
+exec {
+  command = [{{ $mise | quote }}, "exec", "http:caddy-cf", "--", "caddy-cf", "run", "--config", "{{ .chezmoi.homeDir }}/.config/caddy-lab/Caddyfile"]
+  restart_on_secret_changes = "always"
+  restart_stop_signal = "SIGTERM"
+}

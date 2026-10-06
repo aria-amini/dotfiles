@@ -1,15 +1,19 @@
 {
 	auto_https disable_redirects
 	skip_install_trust
+	persist_config off
 }
 
-{{ $tsIp := output "sh" "-c" "command -v tailscale >/dev/null && tailscale ip -4 2>/dev/null | tr -d ' \n' || true" }}
-{{ if $tsIp }}
 https://*.{{ .proxy.tld }} {
-	bind {{ $tsIp }}
+	bind {env.CADDY_BIND}
 	tls {
 		dns cloudflare {env.CF_API_TOKEN}
 	}
+	@health {
+		host caddy-health.{{ .proxy.tld }}
+		path /healthz
+	}
+	respond @health "ok" 200
 	reverse_proxy https://127.0.0.1:9443 {
 		header_up Host {host}
 		transport http {
@@ -18,4 +22,3 @@ https://*.{{ .proxy.tld }} {
 		}
 	}
 }
-{{ end }}
