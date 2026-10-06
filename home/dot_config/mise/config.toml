@@ -91,7 +91,7 @@ railway = "5.62.1"
 # CLIs 
 "bat" = "latest"
 jq = "latest"
-"fd" = "latest"
+fd = "latest"
 "nix:eza" = "latest"
 "just" = "latest"
 "fzf" = "latest"
