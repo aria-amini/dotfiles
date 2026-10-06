@@ -1,8 +1,9 @@
 Include ~/.ssh/devboxes.d/*.conf
-# Forward the real terminal identity so remote apps like herdr can pick the
-# right notification escape; servers opt in with AcceptEnv TERM_PROGRAM.
 SendEnv TERM_PROGRAM
 {{ if eq .chezmoi.os "darwin" -}}
+Host lima-devbox
+  User {{ .vm.user }}
+
 Include ~/.lima/*/ssh.config
 
 Host lima
@@ -11,7 +12,7 @@ Host lima
   User {{ .vm.user }}
   IdentityFile ~/.lima/_config/user
   IdentitiesOnly yes
-  HostKeyAlias lima-default
+  HostKeyAlias lima-devbox
   StrictHostKeyChecking yes
 {{ else -}}
 Host lima {{ .vm.hostname }} {{ .vm.ip }}
