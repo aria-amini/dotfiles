@@ -45,6 +45,90 @@ def linux(tmp_path: Path) -> Shell:
     return execute
 
 
+@pytest.mark.parametrize("stage", ["mise", "clone", "install", "link"])
+def test_herdr_jj_hook_retries_failures_and_is_idempotent(
+    linux: Shell, stage: str
+) -> None:
+    template = (ROOT / "home/run_after_herdr_jj_plugin.sh.tmpl").read_text()
+    hook = template.removeprefix('{{ if eq .chezmoi.os "linux" -}}\n').removesuffix(
+        "{{ end -}}\n"
+    )
+    assert "{{" not in hook
+    result = linux(
+        f"HOOK={shlex.quote(hook)}\nFAIL_STAGE={stage}\n"
+        + """
+export FAIL_STAGE
+printf '/home/old-user/tools/herdr-jj-workspaces\n' > "$HOME/linked"
+call() {
+  printf '%s\n' "$1" >> "$HOME/calls"
+  [[ $FAIL_STAGE != "$1" ]] || return 17
+}
+mise() {
+  [[ $MISE_AUTO_INSTALL == false ]]
+  [[ "$*" == 'install --quiet uv github:herdrdev/herdr' ]] || return 99
+  call mise
+}
+git() {
+  call clone || return $?
+  [[ "${*:1:3}" == 'clone --quiet https://github.com/aria-amini/tools' ]] \\
+    || return 99
+  [[ "$4" == "$HOME/tools/herdr-jj-workspaces" ]] || return 99
+  mkdir -p "$HOME/tools/herdr-jj-workspaces/.git"
+}
+uv() {
+  call install || return $?
+  expected='tool install --quiet --python 3.14 --editable '
+  expected+="$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces"
+  [[ "$*" == "$expected" ]] || return 99
+  mkdir -p "$HOME/.local/bin"
+  printf '#!/usr/bin/env bash\n' > "$HOME/.local/bin/herdr-jj"
+  chmod +x "$HOME/.local/bin/herdr-jj"
+}
+herdr() {
+  local plugin_path="$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces/herdr-plugin"
+  case "$*" in
+  "plugin link $plugin_path")
+    call link || return $?
+    printf '%s\n' "$plugin_path" > "$HOME/linked"
+    ;;
+  *) return 99 ;;
+  esac
+}
+export -f call mise git uv herdr
+if bash -c "$HOOK"; then exit 99; else [[ $? == 17 ]]; fi
+FAIL_STAGE=''
+bash -c "$HOOK"
+plugin_path="$HOME/tools/herdr-jj-workspaces/herdr-jj-workspaces/herdr-plugin"
+[[ $(< "$HOME/linked") == "$plugin_path" ]]
+cp "$HOME/calls" "$HOME/first-calls"
+bash -c "$HOOK"
+previous=$(grep -Ec 'clone|install' "$HOME/first-calls")
+current=$(grep -Ec 'clone|install' "$HOME/calls")
+[[ $current == "$previous" ]]
+previous=$(grep -c link "$HOME/first-calls")
+current=$(grep -c link "$HOME/calls")
+[[ $current == "$((previous + 1))" ]]
+"""
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.count("Herdr jj plugin         ready") == 2
+
+
+def test_herdr_jj_hook_shellcheck() -> None:
+    template = (ROOT / "home/run_after_herdr_jj_plugin.sh.tmpl").read_text()
+    hook = template.removeprefix('{{ if eq .chezmoi.os "linux" -}}\n').removesuffix(
+        "{{ end -}}\n"
+    )
+    result = subprocess.run(
+        ["shellcheck", "--shell=bash", "-"],
+        input=hook,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_transcripts_are_private_and_unique(linux: Shell) -> None:
     logs: list[Path] = []
     for _ in range(2):
