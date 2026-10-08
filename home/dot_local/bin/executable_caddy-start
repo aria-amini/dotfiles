@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$HOME"
+for credential in caddy-role-id caddy-secret-id; do
+  if [[ ! -s "$HOME/.config/openbao/$credential" ]]; then
+    printf 'Caddy startup failed: OpenBao credential %s is unavailable.\n' "$credential" >&2
+    exit 1
+  fi
+done
+
+export MISE_AUTO_INSTALL=false
+mise which caddy-cf >/dev/null
+
+# Tailscale can start after the user-level Pitchfork boot service.
+for ((attempt = 0; attempt < 60; attempt++)); do
+  address="$(tailscale ip -4 2>/dev/null || true)"
+  if [[ -n "$address" ]] && ip -4 address show dev tailscale0 2>/dev/null | grep -Fq "inet $address/"; then
+    export CADDY_BIND="$address"
+    unset CF_API_TOKEN BAO_TOKEN VAULT_TOKEN
+    exec bao agent -config="$HOME/.config/openbao/caddy-agent.hcl" -log-format=json
+  fi
+  sleep 1
+done
+
+printf 'Caddy startup failed: Tailscale address is unavailable.\n' >&2
+exit 1

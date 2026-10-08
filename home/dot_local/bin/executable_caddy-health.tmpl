@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+address="$(tailscale ip -4)"
+exec curl --fail --silent --show-error --max-time 4 --noproxy '*' \
+  --resolve "caddy-health.{{ .proxy.tld }}:443:$address" \
+  --output /dev/null "https://caddy-health.{{ .proxy.tld }}/healthz"

@@ -120,22 +120,8 @@ phase_pitchfork() {
   if [[ $SKIP_MANAGED_TOOLS == true ]]; then
     run 'Installing Pitchfork prerequisite' --live mise install pitchfork
   fi
-  local pitchfork_host="${PITCHFORK_PROXY_HOST:-}" pitchfork_access=''
-  if [[ -z "$pitchfork_host" && $INTERACTIVE == true ]]; then
-    pitchfork_access="$(gum_ui choose --header 'Where will you open local app URLs?' \
-      'On this machine' 'From another machine' < /dev/tty 2> /dev/tty)"
-    if [[ "$pitchfork_access" == 'From another machine' ]]; then
-      pitchfork_host=0.0.0.0
-    else
-      pitchfork_host=127.0.0.1
-    fi
-  fi
-  if [[ -z "$pitchfork_host" ]] && root_plain tailscale status > /dev/null 2>&1; then
-    pitchfork_host=0.0.0.0
-  fi
-  pitchfork_host="${pitchfork_host:-127.0.0.1}"
   detail 'Pitchfork installs a boot service and a local TLS certificate authority'
-  run_task 'Configuring Pitchfork URLs' mise -C "$DOTFILES_DIR" run setup-pitchfork "$pitchfork_host"
+  run_task 'Configuring Pitchfork URLs' mise -C "$DOTFILES_DIR" run setup-pitchfork 127.0.0.1
 }
 
 write_t3_settings() {

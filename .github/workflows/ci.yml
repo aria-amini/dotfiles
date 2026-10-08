@@ -22,7 +22,11 @@ jobs:
         uses: actions/checkout@v6
       - name: Shell checks
         run: |
-          shellcheck -x bootstrap.sh setup/*.sh setup/linux/*.sh scripts/*.sh
+          shellcheck -x bootstrap.sh setup/*.sh setup/linux/*.sh scripts/*.sh home/dot_local/bin/executable_caddy-start home/dot_local/bin/executable_caddy-health.tmpl
+      - name: Install Chezmoi for integration tests
+        uses: jdx/mise-action@v5
+        with:
+          install_args: chezmoi
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:

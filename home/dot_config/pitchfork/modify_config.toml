@@ -1,0 +1,12 @@
+# chezmoi:modify-template
+{{- $config := .chezmoi.stdin | fromToml -}}
+{{- $tls := dict
+    "run" "exec \"$HOME/.local/bin/caddy-start\""
+    "retry" true
+    "proxy" false
+    "boot_start" true
+    "mise" true
+    "ready_cmd" (dict "run" "\"$HOME/.local/bin/caddy-health\"" "timeout" "180s")
+    "health_cmd" (dict "run" "\"$HOME/.local/bin/caddy-health\"" "interval" "30s" "timeout" "5s" "retries" 3)
+-}}
+{{- $config | setValueAtPath "daemons.tls" $tls | toToml -}}
