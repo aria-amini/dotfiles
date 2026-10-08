@@ -14,7 +14,9 @@ from test_setup import linux as linux
 
 @pytest.fixture(scope="module")
 def chezmoi_binary() -> str:
-    return subprocess.check_output(["mise", "which", "chezmoi"], text=True).strip()
+    binary = shutil.which("chezmoi")
+    assert binary is not None, "Install the test dependency with: mise install chezmoi"
+    return binary
 
 
 @pytest.fixture

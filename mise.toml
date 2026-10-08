@@ -1,11 +1,12 @@
 [tools]
 uv = "0.12.19"
+chezmoi = "2.73.0"
 
 [tasks.check]
 description = "Check shell scripts, Python style, and Python types"
 dir = "{{config_root}}"
 run = [
-  "shellcheck -x bootstrap.sh setup/*.sh setup/linux/*.sh scripts/*.sh",
+  "shellcheck -x bootstrap.sh setup/*.sh setup/linux/*.sh scripts/*.sh home/dot_local/bin/executable_caddy-start home/dot_local/bin/executable_caddy-health.tmpl",
   "uv run --locked ruff check",
   "uv run --locked ruff format --check",
   "uv run --locked basedpyright",
