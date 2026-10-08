@@ -57,7 +57,7 @@ def test_herdr_jj_hook_retries_failures_and_is_idempotent(
     result = linux(
         f"HOOK={shlex.quote(hook)}\nFAIL_STAGE={stage}\n"
         + """
-export FAIL_STAGE
+export FAIL_STAGE DOTFILES_PROFILE=full DOTFILES_SKIP_MANAGED_TOOLS=false
 printf '/home/old-user/tools/herdr-jj-workspaces\n' > "$HOME/linked"
 call() {
   printf '%s\n' "$1" >> "$HOME/calls"
@@ -112,6 +112,30 @@ current=$(grep -c link "$HOME/calls")
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.count("Herdr jj plugin         ready") == 2
+
+
+@pytest.mark.parametrize(
+    ("profile", "skip"), [("core", "false"), ("full", "true"), ("core", "true")]
+)
+def test_herdr_jj_hook_respects_setup_selection(
+    linux: Shell, profile: str, skip: str
+) -> None:
+    template = (ROOT / "home/run_after_herdr_jj_plugin.sh.tmpl").read_text()
+    hook = template.removeprefix('{{ if eq .chezmoi.os "linux" -}}\n').removesuffix(
+        "{{ end -}}\n"
+    )
+    result = linux(
+        f"HOOK={shlex.quote(hook)}\n"
+        f"export DOTFILES_PROFILE={profile} DOTFILES_SKIP_MANAGED_TOOLS={skip}\n"
+        + """
+mise() { printf 'unexpected install\n'; return 99; }
+export -f mise
+bash -c "$HOOK"
+test ! -e "$HOME/tools/herdr-jj-workspaces"
+"""
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout == ""
 
 
 def test_herdr_jj_hook_shellcheck() -> None:
@@ -179,6 +203,7 @@ def test_dotfile_apply_captures_output_and_preserves_failures(
     binary.write_text("""#!/usr/bin/env bash
 [[ "$1" == --source && "$2" == "$DOTFILES_DIR" ]] || exit 99
 [[ "${*:3}" == '--no-tty --error-on-conflict apply' ]] || exit 98
+[[ $DOTFILES_PROFILE == full && $DOTFILES_SKIP_MANAGED_TOOLS == true ]] || exit 97
 printf '{"plugin":"aamini.jj"}\n'
 exit "$APPLY_STATUS"
 """)
@@ -186,6 +211,8 @@ exit "$APPLY_STATUS"
     script = f"""
 source "$DOTFILES_DIR/setup/linux.sh"
 export PATH="$HOME/bin:$PATH" APPLY_STATUS={status}
+PROFILE=full
+SKIP_MANAGED_TOOLS=true
 INTERACTIVE=true
 LOG_FILE="$HOME/transcript.log"
 gum() {{

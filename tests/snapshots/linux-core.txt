@@ -4,7 +4,6 @@
 ✓ Mise
 ✓ Nix
 ▸ [2/3] Dotfiles
-✓ Herdr jj plugin         ready
 ✓ Dotfiles               applied
 ▸ [3/3] Summary
 ✓ Login shell            Zsh

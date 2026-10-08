@@ -148,8 +148,8 @@ phase_mise_tools() {
 }
 
 phase_dotfiles() {
-  # shellcheck disable=SC2016
-  run 'Applying dotfiles' bash -Eeuo pipefail -c '
+  # shellcheck disable=SC2016,SC2153
+  run 'Applying dotfiles' env DOTFILES_PROFILE="$PROFILE" DOTFILES_SKIP_MANAGED_TOOLS="$SKIP_MANAGED_TOOLS" bash -Eeuo pipefail -c '
     DOTFILES_DIR="$1"
     source "$DOTFILES_DIR/setup/common.sh"
     apply_dotfiles

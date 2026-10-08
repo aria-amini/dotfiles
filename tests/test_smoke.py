@@ -31,6 +31,7 @@ bash /dotfiles/setup/linux.sh
 
 VERIFY = """
 set -Eeuo pipefail
+trap 'printf "Verification failed: %s\\n" "$BASH_COMMAND" >&2' ERR
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 export PATH="$HOME/.nix-profile/bin:$PATH"
 gum --version
@@ -39,16 +40,17 @@ zsh --version
 mise --version
 nix --version
 if MISE_AUTO_INSTALL=false gh --version > /dev/null 2>&1; then exit 99; fi
-uv --version
-herdr --version
-command -v herdr-jj
-herdr plugin list | grep -q aamini.jj
+for tool in uv herdr; do
+  if MISE_AUTO_INSTALL=false "$tool" --version > /dev/null 2>&1; then exit 99; fi
+done
+if command -v herdr-jj > /dev/null 2>&1; then exit 99; fi
+test ! -e "$HOME/tools/herdr-jj-workspaces"
 test "$(getent passwd smoke | cut -d: -f7)" = "$(command -v zsh)"
 test -s "$HOME/.zshrc"
 test -s "$HOME/.config/mise/config.toml"
 test -x "$HOME/.config/mise/tasks/setup-pitchfork"
 test -s "$HOME/AGENTS.md"
-chezmoi --source /dotfiles --no-tty --error-on-conflict verify
+chezmoi --source /dotfiles --no-tty --error-on-conflict verify --exclude scripts
 logs=(/tmp/dotfiles-setup-*.log)
 test "${#logs[@]}" = 1
 test "$(stat -c %a "${logs[0]}")" = 600
@@ -58,7 +60,7 @@ chezmoi --source /dotfiles --no-tty --error-on-conflict apply --include scripts 
 test ! -s /tmp/hook-reapply.txt
 test -z "$(chezmoi --source /dotfiles \\
   --override-data '{"chezmoi":{"os":"darwin"}}' execute-template \\
-  < /dotfiles/home/run_onchange_after_herdr_jj_plugin.sh.tmpl)"
+  < /dotfiles/home/run_after_herdr_jj_plugin.sh.tmpl)"
 """
 
 VERIFY_COLOR = """

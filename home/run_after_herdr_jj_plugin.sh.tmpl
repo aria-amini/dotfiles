@@ -2,6 +2,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ ${DOTFILES_PROFILE:-full} == core || ${DOTFILES_SKIP_MANAGED_TOOLS:-false} == true ]]; then
+  exit 0
+fi
+
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 export MISE_AUTO_INSTALL=false
 
