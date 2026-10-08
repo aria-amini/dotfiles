@@ -94,6 +94,33 @@ makes git-only checkouts that jj cannot adopt.
   divergent and discard reviewable history. Prefer a new descendant commit and a
   forward bookmark move when that preserves the intended stack.
 
+### Stacked PRs
+
+Use stacked diffs by default for dependent changes. Use
+[my jj-ryu fork](https://github.com/aria-amini/jj-ryu) as the Graphite equivalent for jj.
+
+- Keep one focused PR per bookmark, with dependencies below consumers and all branches in the same repository.
+- Describe each layer with `jj describe -m "<summary>"`.
+- Name it with `jj bookmark create <layer> -r @`.
+- Start the next layer with `jj new <layer>`.
+- Inspect with `ryu`, then track with `ryu track --all`.
+- Publish with `ryu submit`; ryu registers the native GitHub stack where available.
+- After fixes, update the affected bookmarks with jj, then resubmit with `ryu submit`.
+- After review approval, merge bottom-up with `ryu merge <layer>`, then run `ryu sync`.
+
+`ryu merge <layer>` also merges every unmerged layer below it. The immutable-history rules apply to all stack operations.
+
+### Greptile Auto-Fix and Review
+
+Use [Greptile's auto-fix skills](https://www.greptile.com/docs/mcp-v2/skills) on every PR before merge.
+
+- Use `/check-pr <number>` for comments and failed checks; use `/greploop <number>` for up to five review/fix cycles.
+- Replace the skills' Git steps with jj and `ryu submit`; use Greptile MCP or `gh` if skills are unavailable.
+- Validate findings, test fixes, and explain false positives in review threads.
+- Target 5/5 confidence and zero unresolved comments; report blockers at the loop limit.
+- Before merge, require latest-diff review, green required checks, resolved threads, and required reviewer approvals for every affected PR.
+- Recheck after stack updates; a Greptile score alone does not authorize merge.
+
 ### Coding Style
 
 - When making technical decisions, do not give much weight to development cost.
