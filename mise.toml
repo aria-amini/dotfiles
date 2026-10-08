@@ -1,0 +1,28 @@
+[tools]
+uv = "0.12.19"
+
+[tasks.check]
+description = "Check shell scripts, Python style, and Python types"
+dir = "{{config_root}}"
+run = [
+  "shellcheck -x bootstrap.sh setup/*.sh setup/linux/*.sh scripts/*.sh",
+  "uv run --locked ruff check",
+  "uv run --locked ruff format --check",
+  "uv run --locked basedpyright",
+]
+
+[tasks.test]
+description = "Run setup regression tests"
+dir = "{{config_root}}"
+run = "uv run --locked pytest"
+
+[tasks."test:e2e"]
+description = "Run the real Ubuntu core-install smoke test"
+dir = "{{config_root}}"
+run = "uv run --locked pytest --e2e -m e2e -v"
+
+[tasks."debug:linux"]
+description = "Run the local installer in a fresh Ubuntu container"
+dir = "{{config_root}}"
+raw = true
+run = "bash scripts/debug-linux.sh"

@@ -1,0 +1,27 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ${DOTFILES_PROFILE:-full} == core || ${DOTFILES_SKIP_MANAGED_TOOLS:-false} == true ]]; then
+  exit 0
+fi
+
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+export MISE_AUTO_INSTALL=false
+
+mise install --quiet uv github:herdrdev/herdr
+
+repo="$HOME/tools/herdr-jj-workspaces"
+if [[ ! -d "$repo/.git" ]]; then
+  mkdir -p "${repo%/*}"
+  git clone --quiet https://github.com/aria-amini/tools "$repo"
+fi
+
+if ! command -v herdr-jj > /dev/null 2>&1; then
+  uv tool install --quiet --python 3.14 --editable "$repo/herdr-jj-workspaces"
+fi
+
+herdr plugin link "$repo/herdr-jj-workspaces/herdr-plugin"
+
+printf '  ✓ Herdr jj plugin         ready\n'
+{{ end -}}

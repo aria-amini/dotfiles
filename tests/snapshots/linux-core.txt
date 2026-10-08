@@ -1,0 +1,11 @@
+▸ [1/3] System
+✓ Zsh
+✓ Git
+✓ Mise
+✓ Nix
+▸ [2/3] Dotfiles
+✓ Dotfiles               applied
+▸ [3/3] Summary
+✓ Login shell            Zsh
+✓ Setup complete
+Open a new login session to use Zsh.
