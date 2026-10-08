@@ -53,6 +53,7 @@ shellcheck = "latest"
 "npm:@openai/codex" = "latest"
 pi = "latest"
 "npm:greptile" = "latest"
+claude = "latest"
 
 # nvim
 neovim = "0.12.5"
@@ -102,6 +103,7 @@ fd = "latest"
 "nix:erdtree" = "latest"
 "pipx:copier" = "latest"
 pitchfork = "2.28.0"
+fastfetch = "latest"
 
 "npm:chrome-devtools-axi" = "latest"
 tmux = "latest"
