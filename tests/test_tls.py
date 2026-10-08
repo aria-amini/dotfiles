@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tomllib
@@ -158,4 +159,35 @@ run_task() { shift; "$@"; }
 mise() { [[ "$*" == "-C $DOTFILES_DIR run setup-pitchfork 127.0.0.1" ]]; }
 phase_pitchfork
 """)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("first_port", [0, 443, 1024])
+def test_caddy_install_grants_bind_permission_when_required(
+    linux: Shell, first_port: int
+) -> None:
+    config = tomllib.loads((ROOT / "home/dot_config/mise/config.toml").read_text())
+    hook = config["tools"]["http:caddy-cf"]["postinstall"]
+    result = linux(
+        f"FIRST_PORT={first_port}\nHOOK={shlex.quote(hook)}\n"
+        + r"""
+export FIRST_PORT MISE_TOOL_INSTALL_PATH="$HOME/mise installs/caddy"
+sysctl() {
+  [[ "$*" == '-n net.ipv4.ip_unprivileged_port_start' ]]
+  printf '%s\n' "$FIRST_PORT"
+}
+sudo() {
+  [[ $# == 3 && $1 == setcap && $2 == cap_net_bind_service=+ep ]]
+  [[ $3 == "$MISE_TOOL_INSTALL_PATH/caddy-cf" ]]
+  printf granted > "$HOME/capability"
+}
+export -f sysctl sudo
+bash -e -c "$HOOK"
+if [[ $FIRST_PORT -gt 443 ]]; then
+  test -s "$HOME/capability"
+else
+  test ! -e "$HOME/capability"
+fi
+"""
+    )
     assert result.returncode == 0, result.stdout + result.stderr

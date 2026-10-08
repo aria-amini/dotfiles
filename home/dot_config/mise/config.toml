@@ -116,6 +116,7 @@ chezmoi = "latest"
 version = "2.11.6"
 bin = "caddy-cf"
 os = ["linux"]
+postinstall = 'set -eu; first_port="$(sysctl -n net.ipv4.ip_unprivileged_port_start)"; if [ "$first_port" -gt 443 ]; then sudo setcap cap_net_bind_service=+ep "$MISE_TOOL_INSTALL_PATH/caddy-cf"; fi'
 
 [tools."http:caddy-cf".platforms.linux-arm64]
 url = "https://caddyserver.com/api/download?os=linux&arch=arm64&v=2.11.6&p=github.com%2Fcaddy-dns%2Fcloudflare%40v0.2.4"

@@ -20,7 +20,18 @@ Authenticate Tailscale before Caddy starts.
 Apply the dotfiles and install the tools before enrollment:
 
 ```sh
+sudo apt-get install libcap2-bin procps
 mise install http:caddy-cf aqua:openbao/openbao/bao
+```
+
+If the kernel restricts port 443, the Caddy install hook uses `sudo setcap` to grant `CAP_NET_BIND_SERVICE`.
+The hook runs after Caddy installation or replacement, including upgrades.
+It targets the installed Caddy executable, not the Mise shim.
+
+If Caddy was installed before this hook, grant the capability once:
+
+```sh
+sudo setcap cap_net_bind_service=+ep "$(mise which caddy-cf)"
 ```
 
 Log in with an administrator token at the hidden prompt:
