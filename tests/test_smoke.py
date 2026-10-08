@@ -63,6 +63,21 @@ test -z "$(chezmoi --source /dotfiles \\
   < /dotfiles/home/run_after_herdr_jj_plugin.sh.tmpl)"
 """
 
+VERIFY_FULL_PLUGIN = """
+set -Eeuo pipefail
+trap 'printf "Full-profile verification failed: %s\\n" "$BASH_COMMAND" >&2' ERR
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+export DOTFILES_PROFILE=full DOTFILES_SKIP_MANAGED_TOOLS=false MISE_AUTO_INSTALL=false
+chezmoi --source /dotfiles --no-tty --error-on-conflict apply --include scripts
+uv --version
+herdr --version
+command -v herdr-jj
+herdr plugin list
+herdr plugin list | grep -q aamini.jj
+chezmoi --source /dotfiles --no-tty --error-on-conflict apply --include scripts
+herdr plugin list | grep -q aamini.jj
+"""
+
 VERIFY_COLOR = """
 set -Eeuo pipefail
 export PATH="$HOME/.local/bin:$PATH"
@@ -139,3 +154,4 @@ def test_linux_core_setup() -> None:
         assert "\x1b]11;" not in colors
         assert "\x1b[6n" not in colors
         assert actual == SNAPSHOT.read_text()
+        execute(container, VERIFY_FULL_PLUGIN, "full-plugin")
