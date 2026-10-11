@@ -1,0 +1,79 @@
+#!/usr/bin/python3
+import argparse
+import json
+import os
+import re
+import subprocess
+import tempfile
+import tomllib
+from pathlib import Path
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Register a proxy slug and matching daemon namespace"
+    )
+    parser.add_argument("slug")
+    parser.add_argument("--daemon", default="dev")
+    parser.add_argument("--dir", type=Path, default=Path.cwd())
+    args = parser.parse_args()
+    if (
+        not re.fullmatch(r"[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]*[a-zA-Z0-9_])?", args.slug)
+        or "--" in args.slug
+        or ".." in args.slug
+    ):
+        parser.error("The slug must be a valid Pitchfork namespace")
+
+    root = args.dir.expanduser().resolve(strict=True)
+    if not root.is_dir():
+        parser.error("--dir must be a directory")
+    local = root / "pitchfork.local.toml"
+    if local.is_symlink():
+        parser.error("pitchfork.local.toml must be checkout-specific, not a symlink")
+    paths = [
+        root / ".config/pitchfork.toml",
+        root / ".config/pitchfork.local.toml",
+        root / "pitchfork.toml",
+        local,
+    ]
+    for path in paths:
+        if path.exists():
+            namespace = tomllib.loads(path.read_text()).get("namespace")
+            if namespace is not None and namespace != args.slug:
+                parser.error(
+                    f"{path} declares namespace {namespace!r}; use that namespace or update the file"
+                )
+
+    content = local.read_text() if local.exists() else ""
+    if "namespace" not in tomllib.loads(content):
+        content = f"namespace = {json.dumps(args.slug)}\n\n{content}"
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", dir=root, delete=False) as file:
+                temporary = Path(file.name)
+                file.write(content)
+            os.chmod(
+                temporary, local.stat().st_mode & 0o777 if local.exists() else 0o644
+            )
+            temporary.replace(local)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    subprocess.run(
+        [
+            "pitchfork",
+            "proxy",
+            "add",
+            args.slug,
+            "--daemon",
+            args.daemon,
+            "--dir",
+            str(root),
+        ],
+        check=True,
+    )
+
+
+if __name__ == "__main__":
+    main()

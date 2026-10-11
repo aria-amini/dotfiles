@@ -35,7 +35,8 @@ then apply only the changed targets with `chezmoi apply`.
   hostnames (`worktree.app.dev…`) and direct `:9443` access do not work: the
   wildcard certificate covers one level, and the proxy binds loopback only.
   Register a worktree with
-  `pitchfork proxy add <slug> --daemon dev --dir <workspace-root>`.
+  `pitchfork-register <slug> --daemon dev --dir <workspace-root>`.
+  The helper sets the checkout namespace to the slug, for example `portfolio-animations/dev`.
 - Port ownership on the Tailscale IP: Caddy owns port 443. Ad-hoc Tailscale
   Serve publishes set an explicit `--https` port in the 8443–8499 range, never
   the default 443. Evict a Serve mapping from 443 on sight; never touch mappings
