@@ -6,6 +6,7 @@ local scheme_dark = 'Catppuccin Mocha'
 local appearance = wezterm.gui and wezterm.gui.get_appearance() or 'Dark'
 
 return {
+	default_domain = 'WSL:Ubuntu',
 	-- Remote hosts lack wezterm terminfo; xterm-256color is the portable fallback
 	term = 'xterm-256color',
 	color_scheme = appearance:find 'Dark' and scheme_dark or scheme_light,
