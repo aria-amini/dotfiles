@@ -72,7 +72,7 @@ phase_apt() {
     env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     software-properties-common xz-utils zsh curl ca-certificates libcap2-bin procps
   show_version Zsh 1 zsh --version
-  if [[ $IS_WSL == true ]] && ! grep -qs 'appendWindowsPath=false' /etc/wsl.conf; then
+  if host_is_wsl && ! grep -qs 'appendWindowsPath=false' /etc/wsl.conf; then
     run_task 'Disabling Windows PATH interop' --sudo tee -a /etc/wsl.conf \
       <<< $'\n[interop]\nappendWindowsPath=false'
     NOTES+=("WSL interop: run 'wsl.exe --shutdown' on the Windows host to apply appendWindowsPath=false")

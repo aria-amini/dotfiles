@@ -182,7 +182,7 @@ def test_caddy_start_requires_enrollment(linux: Shell) -> None:
 
 def test_pitchfork_setup_starts_supervisor_and_trusts_ca(linux: Shell) -> None:
     result = linux("""
-HAS_SYSTEMD=true
+host_has_systemd() { return 0; }
 SKIP_MANAGED_TOOLS=false
 USER=tester
 XDG_STATE_HOME="$HOME/state"
