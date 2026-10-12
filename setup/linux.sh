@@ -4,13 +4,13 @@ set -Eeuo pipefail
 PROFILE="${DOTFILES_PROFILE:-full}"
 ASSUME_YES="${DOTFILES_ASSUME_YES:-false}"
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-IS_WSL=false
-HAS_SYSTEMD=false
 OPTIONAL_STEPS="${DOTFILES_WITH:-}"
 SKIP_MANAGED_TOOLS="${DOTFILES_SKIP_MANAGED_TOOLS:-false}"
 
 # shellcheck source=setup/common.sh
 source "$DOTFILES_DIR/setup/common.sh"
+# shellcheck source=setup/linux/host.sh
+source "$DOTFILES_DIR/setup/linux/host.sh"
 # shellcheck source=setup/linux/runtime.sh
 source "$DOTFILES_DIR/setup/linux/runtime.sh"
 # shellcheck source=setup/linux/tools.sh
@@ -109,12 +109,6 @@ main() {
   cd "$HOME"
   if [[ -t 1 && $ASSUME_YES == false ]]; then
     INTERACTIVE=true
-  fi
-  if grep -qi microsoft /proc/version 2> /dev/null; then
-    IS_WSL=true
-  fi
-  if [[ -d /run/systemd/system ]]; then
-    HAS_SYSTEMD=true
   fi
   LOG_FILE="$(mktemp "${TMPDIR:-/tmp}/dotfiles-setup-XXXXXX.log")"
   trap on_err ERR

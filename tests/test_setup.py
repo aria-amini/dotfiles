@@ -14,6 +14,8 @@ Shell = Callable[[str], subprocess.CompletedProcess[str]]
 
 @pytest.fixture
 def linux(tmp_path: Path) -> Shell:
+    proc_version = tmp_path / "proc-version"
+    proc_version.write_text("Linux version 6.8.0-generic\n")
     env = {
         **os.environ,
         "HOME": str(tmp_path),
@@ -25,6 +27,8 @@ def linux(tmp_path: Path) -> Shell:
         "DOTFILES_WITH": "",
         "DOTFILES_SKIP_MANAGED_TOOLS": "false",
         "XDG_CONFIG_HOME": str(tmp_path / ".config"),
+        "HOST_PROC_VERSION": str(proc_version),
+        "HOST_SYSTEMD_DIR": str(tmp_path / "no-systemd"),
     }
 
     def execute(script: str) -> subprocess.CompletedProcess[str]:
@@ -647,12 +651,33 @@ fi
     assert re.search(r"✓ T3 Code\s+1\.2\.3\s+Ready", result.stdout)
 
 
+@pytest.mark.parametrize(
+    ("version", "wsl"),
+    [
+        ("Linux version 5.15.167.4-microsoft-standard-WSL2", True),
+        ("Linux version 6.8.0-generic", False),
+    ],
+)
+def test_host_detects_wsl_from_the_kernel_version(
+    linux: Shell, tmp_path: Path, version: str, wsl: bool
+) -> None:
+    (tmp_path / "proc-version").write_text(version + "\n")
+    result = linux("host_is_wsl")
+    assert (result.returncode == 0) is wsl
+
+
+def test_host_detects_systemd(linux: Shell, tmp_path: Path) -> None:
+    assert linux("host_has_systemd").returncode != 0
+    (tmp_path / "no-systemd").mkdir()
+    assert linux("host_has_systemd").returncode == 0
+
+
 def test_menu_does_not_preselect_docker_on_wsl(linux: Shell) -> None:
     script = """
 source "$DOTFILES_DIR/setup/linux.sh"
 PROFILE=full
 INTERACTIVE=true
-IS_WSL=true
+host_is_wsl() { return 0; }
 setup_step_installed() { return 1; }
 gum() {
   if [[ "$1" == choose ]]; then
@@ -758,7 +783,7 @@ def test_skipped_catalog_installs_only_selected_service_prerequisites(
     linux: Shell,
 ) -> None:
     result = linux("""
-HAS_SYSTEMD=true
+host_has_systemd() { return 0; }
 SKIP_MANAGED_TOOLS=true
 run() { printf '%s\n' "$*"; }
 run_task() { :; }
