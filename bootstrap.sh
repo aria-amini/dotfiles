@@ -73,13 +73,7 @@ core | full) ;;
 *) die "unknown profile: $PROFILE (expected core or full)" ;;
 esac
 
-IFS=, read -r -a optional_steps <<< "$OPTIONAL_STEPS"
-for step in "${optional_steps[@]}"; do
-  case "$step" in
-  docker | tailscale | pitchfork | t3) ;;
-  *) die "unknown optional step: $step (expected docker, tailscale, pitchfork, t3)" ;;
-  esac
-done
+# setup/linux.sh owns the optional step catalog and validates step names.
 [[ $PROFILE == full || -z $OPTIONAL_STEPS ]] || die '--with requires the full profile'
 
 os="$(uname -s)"

@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+# Optional step catalog. Add a step here and define its label, probes, and phase below.
+SETUP_STEPS=(docker tailscale pitchfork t3)
+
+setup_step_valid() {
+  local step
+  for step in "${SETUP_STEPS[@]}"; do
+    [[ $1 != "$step" ]] || return 0
+  done
+  return 1
+}
+
 DOCKER_CLIENT_LINK=/usr/bin/docker
 
 # Docker Desktop for Windows links its client into WSL. The link dangles while Desktop is stopped.
@@ -11,8 +22,15 @@ docker_engine_installed() {
   command -v dockerd > /dev/null 2>&1
 }
 
+# An explicit --with request replaces the defaults for services.
 setup_step_default_selected() {
-  case "$1" in
+  local step="$1" requested="${2:-}"
+  [[ $step != mise_tools ]] || return 0
+  if [[ -n $requested ]]; then
+    [[ ,$requested, == *,"$step",* ]]
+    return
+  fi
+  case "$step" in
   docker) ! host_is_wsl ;;
   *) return 0 ;;
   esac

@@ -23,24 +23,22 @@ validate_optional_steps() {
   true | false) ;;
   *) die 'DOTFILES_SKIP_MANAGED_TOOLS must be true or false' ;;
   esac
-  local step
+  local step expected
   local -a steps
+  printf -v expected '%s, ' "${SETUP_STEPS[@]}"
   IFS=, read -r -a steps <<< "$OPTIONAL_STEPS"
   for step in "${steps[@]}"; do
-    case "$step" in
-    docker | tailscale | pitchfork | t3) ;;
-    *) die "unknown optional step: $step (expected docker, tailscale, pitchfork, t3)" ;;
-    esac
+    setup_step_valid "$step" || die "unknown optional step: $step (expected ${expected%, })"
   done
   [[ $PROFILE == full || -z $OPTIONAL_STEPS ]] || die '--with requires the full profile'
 }
 
 configure_sections() {
   if [[ $PROFILE == full && $INTERACTIVE == true ]]; then
-    local selection label step status version action row header
+    local selection label step status version action row header requested="$OPTIONAL_STEPS"
     local -a selected=() options=()
     local -a ready=()
-    for step in mise_tools docker tailscale pitchfork t3; do
+    for step in mise_tools "${SETUP_STEPS[@]}"; do
       label="$(setup_step_label "$step")"
       if setup_step_installed "$step"; then
         version="$(setup_step_version "$step")"
@@ -60,7 +58,7 @@ configure_sections() {
       printf -v row '%-20s %-28s %s' "$label" "$status" "$action"
       options+=("$row|$step")
       [[ $step != mise_tools || $SKIP_MANAGED_TOOLS != true ]] || continue
-      ! setup_step_default_selected "$step" || selected+=("$row")
+      ! setup_step_default_selected "$step" "$requested" || selected+=("$row")
     done
     printf -v row '      %-20s %-28s %s' 'Tool' 'Version / Status' 'Action'
     header="$row"
@@ -75,10 +73,11 @@ configure_sections() {
     OPTIONAL_STEPS=''
     SKIP_MANAGED_TOOLS=true
     while IFS= read -r step; do
-      case "$step" in
-      mise_tools) SKIP_MANAGED_TOOLS=false ;;
-      docker | tailscale | pitchfork | t3) OPTIONAL_STEPS+=",$step" ;;
-      esac
+      if [[ $step == mise_tools ]]; then
+        SKIP_MANAGED_TOOLS=false
+      elif setup_step_valid "$step"; then
+        OPTIONAL_STEPS+=",$step"
+      fi
     done <<< "$selection"
     OPTIONAL_STEPS="${OPTIONAL_STEPS#,}"
   fi
@@ -86,7 +85,7 @@ configure_sections() {
   if [[ $PROFILE == full ]]; then
     [[ $SKIP_MANAGED_TOOLS == true ]] || SECTIONS+=('Developer Tools|mise_tools')
     local services='' service
-    for service in docker tailscale pitchfork t3; do
+    for service in "${SETUP_STEPS[@]}"; do
       [[ ,$OPTIONAL_STEPS, != *,"$service",* ]] || services+=" $service"
     done
     [[ -z $services ]] || SECTIONS+=("Services|${services# }")
