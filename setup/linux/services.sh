@@ -13,7 +13,7 @@ docker_engine_installed() {
 
 setup_step_default_selected() {
   case "$1" in
-  docker) [[ $IS_WSL != true ]] ;;
+  docker) ! host_is_wsl ;;
   *) return 0 ;;
   esac
 }
@@ -96,7 +96,7 @@ phase_docker() {
     run_task 'Adding user to docker group' --sudo usermod -aG docker "$USER"
     NOTES+=('Docker group: log out and back in to run docker without sudo')
   fi
-  if [[ $HAS_SYSTEMD == true ]]; then
+  if host_has_systemd; then
     run_task 'Enabling Docker' --sudo systemctl enable --now docker
   else
     detail 'no systemd; start dockerd manually with: sudo dockerd'
@@ -104,7 +104,7 @@ phase_docker() {
 }
 
 phase_tailscale() {
-  if [[ $HAS_SYSTEMD == false ]]; then
+  if ! host_has_systemd; then
     detail 'no systemd; skipping Tailscale service setup'
     return
   fi
@@ -131,7 +131,7 @@ phase_tailscale() {
 }
 
 phase_pitchfork() {
-  if [[ $HAS_SYSTEMD == false ]]; then
+  if ! host_has_systemd; then
     detail 'no systemd; skipping Pitchfork URL setup'
     return
   fi
@@ -171,7 +171,7 @@ write_t3_settings() {
 }
 
 phase_t3() {
-  if [[ $HAS_SYSTEMD == false ]]; then
+  if ! host_has_systemd; then
     detail 'no systemd; skipping T3 Code'
     return
   fi
