@@ -1,0 +1,9 @@
+[[--scope]]
+--when.repositories = ["~/tools/t3code"]
+
+[--scope.revset-aliases]
+"tools_log()" = '''
+working_copies() | (main@upstream..main) |
+(main@upstream..tools_work()) |
+(tags(regex:"^v0[.]0[.][0-9]+$") & ::main@upstream)
+'''
