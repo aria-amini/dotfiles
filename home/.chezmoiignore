@@ -1,3 +1,4 @@
+**/__pycache__
 {{ if eq .chezmoi.os "linux" }}
 {{ else if eq .chezmoi.os "darwin" }}
 .config/caddy-lab
