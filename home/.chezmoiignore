@@ -1,5 +1,7 @@
 **/__pycache__
 {{ if eq .chezmoi.os "linux" }}
+.config/lima
+.lima
 {{ else if eq .chezmoi.os "darwin" }}
 .config/caddy-lab
 .config/openbao/caddy-agent.hcl
