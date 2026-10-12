@@ -791,42 +791,31 @@ def test_docker_repository_rejects_other_distributions(
     assert "Ubuntu only" in result.stderr
 
 
-@pytest.mark.parametrize(
-    ("conf", "expected"),
-    [
-        (None, "\n[interop]\nappendWindowsPath=false\n"),
-        (
-            "[boot]\nsystemd=true\n",
-            "[boot]\nsystemd=true\n\n[interop]\nappendWindowsPath=false\n",
-        ),
-        (
-            "[interop]\nenabled=true\n",
-            "[interop]\nappendWindowsPath=false\nenabled=true\n",
-        ),
-        (
-            "[interop]\nappendWindowsPath = true\nenabled=true\n",
-            "[interop]\nappendWindowsPath=false\nenabled=true\n",
-        ),
-        (
-            "[interop]\nappendWindowsPath = false\n",
-            "[interop]\nappendWindowsPath = false\n",
-        ),
-        (
-            "[interop]\nappendWindowsPath = false # keep\n",
-            "[interop]\nappendWindowsPath = false # keep\n",
-        ),
-        (
-            "[interop]\nappendWindowsPath=falsehood\n",
-            "[interop]\nappendWindowsPath=false\n",
-        ),
-        (
-            "[boot]\nappendWindowsPath=false\n",
-            "[boot]\nappendWindowsPath=false\n\n[interop]\nappendWindowsPath=false\n",
-        ),
-    ],
-)
-def test_wsl_conf_disables_windows_path_once(
-    linux: Shell, tmp_path: Path, conf: str | None, expected: str
+WSL_CONFS = [
+    None,
+    "[boot]\nsystemd=true\n",
+    "[interop]\nenabled=true\n",
+    (
+        "# keep me\n[interop]\nappendWindowsPath = true\nenabled=true\n"
+        "[boot]\nsystemd=true\n"
+    ),
+    "[interop]\nappendWindowsPath=falsehood\n",
+    "[boot]\nappendWindowsPath=false\n",
+]
+
+
+def git_config(path: Path, *args: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "config", "-f", str(path), *args],
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.split()
+
+
+@pytest.mark.parametrize("conf", WSL_CONFS)
+def test_wsl_interop_step_disables_windows_path_once(
+    linux: Shell, tmp_path: Path, conf: str | None
 ) -> None:
     path = tmp_path / "wsl.conf"
     if conf is not None:
@@ -834,12 +823,53 @@ def test_wsl_conf_disables_windows_path_once(
     result = linux(f"""
 WSL_CONF={shlex.quote(str(path))}
 run_task() {{ shift; [[ $1 != --sudo ]] || shift; "$@"; }}
-for _ in 1 2; do
-  wsl_windows_path_disabled || wsl_disable_windows_path
-done
+if wsl_windows_path_disabled; then exit 99; fi
+phase_wsl_interop
+phase_wsl_interop
+wsl_windows_path_disabled
 """)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert path.read_text() == expected
+    assert git_config(path, "--get-all", "interop.appendWindowsPath") == ["false"]
+    for line in (conf or "").splitlines():
+        if "interop" not in line and "appendWindowsPath" not in line:
+            assert line in path.read_text(), line
+
+
+@pytest.mark.parametrize(
+    "conf",
+    [
+        "[interop]\nappendWindowsPath=false\n",
+        "[interop]\nappendWindowsPath = false # keep\n",
+        "[Interop]\nappendWindowsPath = False\n",
+    ],
+)
+def test_wsl_windows_path_already_disabled(
+    linux: Shell, tmp_path: Path, conf: str
+) -> None:
+    path = tmp_path / "wsl.conf"
+    path.write_text(conf)
+    result = linux(f"WSL_CONF={shlex.quote(str(path))}; wsl_windows_path_disabled")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_wsl_interop_step_only_exists_on_wsl(linux: Shell) -> None:
+    result = linux("setup_step_available wsl_interop")
+    assert result.returncode != 0
+    result = linux("""
+OPTIONAL_STEPS=wsl_interop
+PROFILE=full
+validate_optional_steps
+""")
+    assert "not available on this host" in result.stderr
+    result = linux("""
+host_is_wsl() { return 0; }
+OPTIONAL_STEPS=wsl_interop
+PROFILE=full
+validate_optional_steps
+setup_step_default_selected wsl_interop && exit 99
+setup_step_default_selected wsl_interop wsl_interop
+""")
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_docker_client_only_skips_engine_setup(linux: Shell) -> None:

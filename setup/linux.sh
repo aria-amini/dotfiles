@@ -29,6 +29,7 @@ validate_optional_steps() {
   IFS=, read -r -a steps <<< "$OPTIONAL_STEPS"
   for step in "${steps[@]}"; do
     setup_step_valid "$step" || die "unknown optional step: $step (expected ${expected%, })"
+    setup_step_available "$step" || die "optional step is not available on this host: $step"
   done
   [[ $PROFILE == full || -z $OPTIONAL_STEPS ]] || die '--with requires the full profile'
 }
@@ -39,6 +40,7 @@ configure_sections() {
     local -a selected=() options=()
     local -a ready=()
     for step in mise_tools "${SETUP_STEPS[@]}"; do
+      setup_step_available "$step" || continue
       label="$(setup_step_label "$step")"
       if setup_step_installed "$step"; then
         version="$(setup_step_version "$step")"

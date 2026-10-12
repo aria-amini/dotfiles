@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Optional step catalog. Add a step here and define its label, probes, and phase below.
-SETUP_STEPS=(docker tailscale pitchfork t3)
+SETUP_STEPS=(docker tailscale pitchfork t3 wsl_interop)
 T3_VERSION=0.0.45
 
 setup_step_valid() {
@@ -31,6 +31,13 @@ docker_engine_installed() {
   command -v dockerd > /dev/null 2>&1
 }
 
+setup_step_available() {
+  case "$1" in
+  wsl_interop) host_is_wsl ;;
+  *) return 0 ;;
+  esac
+}
+
 # An explicit --with request replaces the defaults for services.
 setup_step_default_selected() {
   local step="$1" requested="${2:-}"
@@ -41,6 +48,7 @@ setup_step_default_selected() {
   fi
   case "$step" in
   docker) ! host_is_wsl ;;
+  wsl_interop) return 1 ;;
   *) return 0 ;;
   esac
 }
@@ -61,6 +69,7 @@ setup_step_label() {
   tailscale) printf 'Tailscale' ;;
   pitchfork) printf 'Pitchfork' ;;
   t3) printf 'T3 Code' ;;
+  wsl_interop) printf 'WSL Windows PATH' ;;
   esac
 }
 
@@ -70,6 +79,7 @@ setup_step_installed() {
   tailscale) tailscale_installed ;;
   pitchfork) [[ -n "$(setup_step_version pitchfork)" ]] ;;
   t3) t3_service_installed ;;
+  wsl_interop) wsl_windows_path_disabled ;;
   *) return 1 ;;
   esac
 }
@@ -98,6 +108,19 @@ setup_step_version() {
   version="${fields[$field]:-}"
   [[ $version =~ ^v?[0-9] ]] || return 0
   printf '%s' "${version%,}"
+}
+
+: "${WSL_CONF:=/etc/wsl.conf}"
+
+# git config is a section-aware INI editor; it keeps other sections and comments.
+wsl_windows_path_disabled() {
+  [[ "$(git config -f "$WSL_CONF" --type=bool --get interop.appendWindowsPath 2> /dev/null)" == false ]]
+}
+
+phase_wsl_interop() {
+  run_task 'Disabling Windows PATH interop' --sudo \
+    git config -f "$WSL_CONF" --replace-all interop.appendWindowsPath false
+  NOTES+=("WSL interop: run 'wsl.exe --shutdown' on the Windows host to apply appendWindowsPath=false")
 }
 
 phase_docker() {

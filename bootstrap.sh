@@ -22,7 +22,7 @@ Obtain the dotfiles source, then run macOS or Linux machine setup.
 
 Options:
   --profile PROFILE  Linux setup: core or full (default: full)
-  --with STEPS       Linux optional steps: docker,tailscale,pitchfork,t3
+  --with STEPS       Linux optional steps: docker,tailscale,pitchfork,t3,wsl_interop
   --skip-managed-tools  Linux debug: skip the managed mise tool catalog
   --branch BRANCH    branch to clone into a new source directory
   --source DIR       use a specific chezmoi repository directory

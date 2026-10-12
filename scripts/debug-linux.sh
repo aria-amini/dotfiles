@@ -18,7 +18,7 @@ Keep the container and open a shell after setup for inspection.
 
 Options:
   --profile PROFILE  core or full (default: full)
-  --with STEPS       optional steps: docker,tailscale,pitchfork,t3
+  --with STEPS       optional steps: docker,tailscale,pitchfork,t3,wsl_interop
   --skip-managed-tools  skip the managed mise tool catalog
   --yes              skip installer prompts
   --no-shell         exit after setup without an inspection shell
