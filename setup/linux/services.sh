@@ -252,9 +252,14 @@ phase_t3() {
   if [[ ! -x /usr/bin/g++ ]]; then
     run_task 'Installing build tools' --sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
   fi
-  if ! t3_service_installed; then
+  local fresh=false
+  t3_service_installed || fresh=true
+  # An unresolved active version means a broken service, so reinstall to repair it.
+  if [[ $fresh == true || -z "$(setup_step_version t3)" ]]; then
     run_task 'Installing T3 Code' env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ \
       NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" "$node_bin_dir/npx" --yes "t3@$T3_VERSION" service install
+  fi
+  if [[ $fresh == true ]]; then
     NOTES+=($'Pair a device:\n  t3 pair --tailscale --tailscale-serve-port 8443\n  then scan the QR code')
   fi
   switch_t3_to_fork
