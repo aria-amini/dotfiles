@@ -95,21 +95,29 @@ makes git-only checkouts that jj cannot adopt.
   divergent and discard reviewable history. Prefer a new descendant commit and a
   forward bookmark move when that preserves the intended stack.
 
-### Stacked PRs
+### Pull Requests
 
-Use stacked diffs by default for dependent changes. Use
-[my jj-ryu fork](https://github.com/aria-amini/jj-ryu) as the Graphite equivalent for jj.
+Open one PR for each task. Split the work into one jj commit for each concern.
+Do not split a task into micro PRs.
 
-- Keep one focused PR per bookmark, with dependencies below consumers and all branches in the same repository.
-- Describe each layer with `jj describe -m "<summary>"`.
-- Name it with `jj bookmark create <layer> -r @`.
-- Start the next layer with `jj new <layer>`.
+Stack PRs in two cases only:
+
+- Dependent work continues while the previous PR is in review or CI.
+- A small subset is certain to be good, for example a minor cleanup or a focused fix.
+  Put that subset at the bottom of the stack. Merge it first while the rest iterates.
+
+Use [my jj-ryu fork](https://github.com/aria-amini/jj-ryu) as the Graphite equivalent for jj.
+
+- Keep dependencies below consumers. Keep all branches in the same repository.
+- Describe each commit with `jj describe -m "<summary>"`.
+- Name each PR bookmark with `jj bookmark create <name> -r @`.
+- Start dependent work with `jj new <name>`.
 - Inspect with `ryu`, then track with `ryu track --all`.
 - Publish with `ryu submit`; ryu registers the native GitHub stack where available.
 - After fixes, update the affected bookmarks with jj, then resubmit with `ryu submit`.
-- After review approval, merge bottom-up with `ryu merge <layer>`, then run `ryu sync`.
+- After review approval, merge bottom-up with `ryu merge <name>`, then run `ryu sync`.
 
-`ryu merge <layer>` also merges every unmerged layer below it. The immutable-history rules apply to all stack operations.
+`ryu merge <name>` also merges every unmerged PR below it. The immutable-history rules apply to all stack operations.
 
 ### Greptile Auto-Fix and Review
 
