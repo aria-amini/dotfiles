@@ -101,7 +101,6 @@ fd = "latest"
 "delta" = "latest"
 "ripgrep" = "latest"
 "nix:erdtree" = "latest"
-"pipx:copier" = "latest"
 pitchfork = "2.28.0"
 fastfetch = "latest"
 
