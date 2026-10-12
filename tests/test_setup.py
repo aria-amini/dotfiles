@@ -455,7 +455,9 @@ printf '%s\\n' "${{NOTES[@]}}"
 
 
 @pytest.mark.parametrize("status", [0, 17])
-def test_live_output_uses_tty_and_preserves_logs(linux: Shell, status: int) -> None:
+def test_live_output_streams_to_tty_and_preserves_logs(
+    linux: Shell, status: int
+) -> None:
     script = f"""
 source "$DOTFILES_DIR/setup/linux.sh"
 INTERACTIVE=true
@@ -475,7 +477,8 @@ grep -q 'live output' "$LOG_FILE"
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Live probe..." in result.stdout
     assert "live output" in result.stdout
-    assert "\x1b[J" in result.stdout
+    assert "\x1b[" not in result.stdout.replace("\x1b[?", "")
+    assert result.stdout.count("live output") == 1
     assert f"completed with {status}" in result.stdout
 
 
