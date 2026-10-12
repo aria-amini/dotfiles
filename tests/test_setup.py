@@ -759,6 +759,77 @@ docker_installed
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+@pytest.mark.parametrize(
+    ("release", "expected"),
+    [
+        ("ID=ubuntu\nVERSION_CODENAME=noble\n", "noble"),
+        (
+            "ID=linuxmint\nID_LIKE=ubuntu\nVERSION_CODENAME=wilma\nUBUNTU_CODENAME=noble\n",
+            "noble",
+        ),
+    ],
+)
+def test_docker_repository_uses_the_ubuntu_codename(
+    linux: Shell, tmp_path: Path, release: str, expected: str
+) -> None:
+    os_release = tmp_path / "os-release"
+    os_release.write_text(release)
+    result = linux(f"HOST_OS_RELEASE={shlex.quote(str(os_release))}; ubuntu_codename")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout == expected
+
+
+def test_docker_repository_rejects_other_distributions(
+    linux: Shell, tmp_path: Path
+) -> None:
+    os_release = tmp_path / "os-release"
+    os_release.write_text("ID=fedora\nVERSION_CODENAME=\n")
+    result = linux(
+        f'HOST_OS_RELEASE={shlex.quote(str(os_release))}\ncodename="$(ubuntu_codename)"'
+    )
+    assert result.returncode != 0
+    assert "Ubuntu only" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("conf", "expected"),
+    [
+        (None, "\n[interop]\nappendWindowsPath=false\n"),
+        (
+            "[boot]\nsystemd=true\n",
+            "[boot]\nsystemd=true\n\n[interop]\nappendWindowsPath=false\n",
+        ),
+        (
+            "[interop]\nenabled=true\n",
+            "[interop]\nappendWindowsPath=false\nenabled=true\n",
+        ),
+        (
+            "[interop]\nappendWindowsPath = true\nenabled=true\n",
+            "[interop]\nappendWindowsPath=false\nenabled=true\n",
+        ),
+        (
+            "[interop]\nappendWindowsPath = false\n",
+            "[interop]\nappendWindowsPath = false\n",
+        ),
+    ],
+)
+def test_wsl_conf_disables_windows_path_once(
+    linux: Shell, tmp_path: Path, conf: str | None, expected: str
+) -> None:
+    path = tmp_path / "wsl.conf"
+    if conf is not None:
+        path.write_text(conf)
+    result = linux(f"""
+WSL_CONF={shlex.quote(str(path))}
+run_task() {{ shift; [[ $1 != --sudo ]] || shift; "$@"; }}
+for _ in 1 2; do
+  wsl_windows_path_disabled || wsl_disable_windows_path
+done
+""")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert path.read_text() == expected
+
+
 def test_docker_client_only_skips_engine_setup(linux: Shell) -> None:
     result = linux("""
 docker_installed() { return 0; }
