@@ -220,6 +220,19 @@ write_t3_settings() {
   ' _ "$1" "$2"
 }
 
+# Upstream t3 only follows its own release channel. Fork builds self-update after this one-time switch.
+T3_FORK_VERSION='0.0.45-fork.21001'
+T3_FORK_RELEASE_BASE_URL='https://github.com/aria-amini/t3code/releases/download'
+
+switch_t3_to_fork() {
+  local active
+  active="$(setup_step_version t3)"
+  [[ -n $active && $active != *-fork.* ]] || return 0
+  run_task 'Switching T3 Code to the fork runtime' \
+    env T3CODE_HOME="$HOME/.t3" T3CODE_RELEASE_BASE_URL="$T3_FORK_RELEASE_BASE_URL" \
+    "$HOME/.t3/runtime/versions/$active/t3" update --yes --allow-downgrade "$T3_FORK_VERSION"
+}
+
 phase_t3() {
   if ! host_has_systemd; then
     detail 'no systemd; skipping T3 Code'
@@ -239,11 +252,10 @@ phase_t3() {
   if [[ ! -x /usr/bin/g++ ]]; then
     run_task 'Installing build tools' --sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
   fi
-  local action=Installing
-  ! t3_service_installed || action=Updating
-  run_task "$action T3 Code" env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ \
-    NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" "$node_bin_dir/npx" --yes "t3@$T3_VERSION" service install
-  if [[ $action == Installing ]]; then
+  if ! t3_service_installed; then
+    run_task 'Installing T3 Code' env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ \
+      NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" "$node_bin_dir/npx" --yes "t3@$T3_VERSION" service install
     NOTES+=($'Pair a device:\n  t3 pair --tailscale --tailscale-serve-port 8443\n  then scan the QR code')
   fi
+  switch_t3_to_fork
 }
