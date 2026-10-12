@@ -10,13 +10,11 @@ dev = [
   "pytest>=8.4",
   "pytest-timeout>=2.4",
   "ruff>=0.12",
-  "testcontainers>=4.13",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
-markers = ["e2e: real machine setup in Docker; enable with --e2e"]
 timeout = 30
 
 [tool.ruff]
