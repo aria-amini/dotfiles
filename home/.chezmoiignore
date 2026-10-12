@@ -1,8 +1,17 @@
 **/__pycache__
-{{ if eq .chezmoi.os "linux" }}
+{{ $host := includeTemplate "host-kind" (dict "os" .chezmoi.os "osrelease" (get .chezmoi.kernel "osrelease" | default "")) -}}
+{{ if eq $host "linux" }}
 .config/lima
 .lima
-{{ else if eq .chezmoi.os "darwin" }}
+{{ else if eq $host "wsl" }}
+.config/lima
+.lima
+.config/caddy-lab
+.config/openbao/caddy-agent.hcl
+.config/pitchfork/config.toml
+.local/bin/caddy-start
+.local/bin/caddy-health
+{{ else if eq $host "mac" }}
 .config/caddy-lab
 .config/openbao/caddy-agent.hcl
 .config/pitchfork/config.toml
