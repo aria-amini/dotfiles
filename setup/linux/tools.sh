@@ -142,7 +142,8 @@ phase_github_notice() {
 
 phase_nix() {
   if ! command -v nix > /dev/null 2>&1; then
-    run_script 'Installing Nix' https://nixos.org/nix/install sh --no-daemon
+    # The managed zshrc already provides the Nix PATH.
+    run_script 'Installing Nix' https://nixos.org/nix/install sh --no-daemon --no-modify-profile
   fi
   if [[ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
     # shellcheck source=/dev/null
@@ -150,13 +151,6 @@ phase_nix() {
   fi
   command -v nix > /dev/null 2>&1 || die 'nix not on PATH after install'
   show_version Nix 2 nix --version
-  # Nix adds a marked PATH block. The managed zshrc already provides this PATH.
-  local profile
-  for profile in .zshrc .bashrc .bash_profile .profile; do
-    if [[ -f "$HOME/$profile" ]]; then
-      sed -i '/# added by Nix installer[[:space:]]*$/d' "$HOME/$profile"
-    fi
-  done
 }
 
 phase_mise_tools() {
