@@ -1,6 +1,7 @@
 [tools]
 uv = "0.12.19"
 chezmoi = "2.73.0"
+shellcheck = "0.11.0"
 
 [tasks.check]
 description = "Check shell scripts, Python style, and Python types"
