@@ -69,7 +69,7 @@ setup_step_label() {
   tailscale) printf 'Tailscale' ;;
   pitchfork) printf 'Pitchfork' ;;
   t3) printf 'T3 Code' ;;
-  wsl_interop) printf 'WSL Windows PATH' ;;
+  wsl_interop) printf 'WSL Windows PATH and automount' ;;
   esac
 }
 
@@ -79,7 +79,7 @@ setup_step_installed() {
   tailscale) tailscale_installed ;;
   pitchfork) [[ -n "$(setup_step_version pitchfork)" ]] ;;
   t3) t3_service_installed ;;
-  wsl_interop) wsl_windows_path_disabled ;;
+  wsl_interop) wsl_windows_path_disabled && wsl_automount_disabled ;;
   *) return 1 ;;
   esac
 }
@@ -117,10 +117,16 @@ wsl_windows_path_disabled() {
   [[ "$(git config -f "$WSL_CONF" --type=bool --get interop.appendWindowsPath 2> /dev/null)" == false ]]
 }
 
+wsl_automount_disabled() {
+  [[ "$(git config -f "$WSL_CONF" --type=bool --get automount.enabled 2> /dev/null)" == false ]]
+}
+
 phase_wsl_interop() {
   run_task 'Disabling Windows PATH interop' --sudo \
     git config -f "$WSL_CONF" --replace-all interop.appendWindowsPath false
-  NOTES+=("WSL interop: run 'wsl.exe --shutdown' on the Windows host to apply appendWindowsPath=false")
+  run_task 'Disabling Windows drive automount' --sudo \
+    git config -f "$WSL_CONF" --replace-all automount.enabled false
+  NOTES+=("WSL interop: run 'wsl.exe --shutdown' on the Windows host to apply appendWindowsPath=false and automount.enabled=false")
 }
 
 phase_docker() {

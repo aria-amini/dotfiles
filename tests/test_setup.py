@@ -830,9 +830,11 @@ if wsl_windows_path_disabled; then exit 99; fi
 phase_wsl_interop
 phase_wsl_interop
 wsl_windows_path_disabled
+wsl_automount_disabled
 """)
     assert result.returncode == 0, result.stdout + result.stderr
     assert git_config(path, "--get-all", "interop.appendWindowsPath") == ["false"]
+    assert git_config(path, "--get-all", "automount.enabled") == ["false"]
     for line in (conf or "").splitlines():
         if "interop" not in line and "appendWindowsPath" not in line:
             assert line in path.read_text(), line

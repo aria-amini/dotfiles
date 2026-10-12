@@ -33,7 +33,7 @@ Linux core installs base packages, bootstrap tools, Nix, dotfiles, and the login
 Linux full also installs managed tools and the Herdr jj plugin.
 Use `--skip-managed-tools` to skip the managed tool catalog and the plugin during setup.
 Select optional steps with `--with docker,tailscale,pitchfork,t3,wsl_interop` on the full profile.
-The `wsl_interop` step turns off Windows PATH interop. It applies to WSL only and needs `wsl.exe --shutdown` to take effect.
+The `wsl_interop` step turns off Windows PATH interop and Windows drive automount. It applies to WSL only and needs `wsl.exe --shutdown` to take effect.
 
 Full-profile plugin failures stop apply. Correct the failure, then repeat setup or Chezmoi apply to retry.
 Direct Linux Chezmoi apply installs the plugin unless `DOTFILES_PROFILE=core` or `DOTFILES_SKIP_MANAGED_TOOLS=true`.
