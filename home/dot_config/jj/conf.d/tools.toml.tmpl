@@ -1,5 +1,4 @@
-{{ range (include "dot_config/tools/repos.toml" | fromToml) -}}
-{{ if hasKey . "upstream" -}}
+{{ range .forks -}}
 [[--scope]]
 --when.repositories = [{{ printf "~/%s" .path | quote }}]
 
@@ -33,5 +32,4 @@ remote_bookmarks("aamini/*" ~ "aamini/archive-*", "origin")
 "tools_upstream()" = 'trunk()..present({{ .branch }}@upstream)'
 "tools_all()" = "all()"
 
-{{ end -}}
 {{ end -}}

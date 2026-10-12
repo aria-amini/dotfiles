@@ -5,3 +5,17 @@ tld = "dev.ariaamini.com"
 user = "aria-amini"
 ip = "100.103.205.111"
 hostname = "lima.tail6c944a.ts.net"
+
+# Forks of upstream projects with aamini/* patch bookmarks.
+# dot_config/jj/conf.d/tools.toml.tmpl renders one jj scope for each fork.
+
+# This fork is temporary until upstream supports Git worktree adoption.
+[forks.jj]
+upstream = "jj-vcs/jj"
+path = "tools/jj"
+branch = "main"
+
+[forks.t3code]
+upstream = "pingdotgg/t3code"
+path = "tools/t3code"
+branch = "main"
