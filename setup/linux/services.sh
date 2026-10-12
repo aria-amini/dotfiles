@@ -101,9 +101,7 @@ setup_step_version() {
     ;;
   *) return 0 ;;
   esac
-  # Version probes must not trigger downloads through mise shims.
-  line="$(MISE_AUTO_INSTALL=false MISE_OFFLINE=true MISE_NO_ENV=true MISE_NO_HOOKS=true \
-    timeout 5 "${probe[@]}" 2> /dev/null)" || return 0
+  line="$(mise_probe "${probe[@]}" 2> /dev/null)" || return 0
   read -r -a fields <<< "$line"
   version="${fields[$field]:-}"
   [[ $version =~ ^v?[0-9] ]] || return 0
@@ -140,7 +138,7 @@ phase_docker() {
     run_task 'Adding the Docker repository' --sudo tee /etc/apt/sources.list.d/docker.list \
       <<< "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${codename} stable"
     run_task 'Updating the Docker package index' --sudo apt-get update
-    run 'Installing Docker' --sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    apt_install 'Installing Docker' \
       docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
   show_version Docker 2 docker --version

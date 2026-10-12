@@ -72,10 +72,6 @@ show_version() {
   ok "$label" "${version%,}"
 }
 
-fetch() {
-  curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 10 "$@"
-}
-
 run_script() {
   local label="$1" url="$2" interpreter="$3"
   shift 3
@@ -137,6 +133,17 @@ run_live() {
   shift 2
   printf '  %s...\n' "$label" > /dev/tty
   "$@" 2>&1 | tee "$log" > /dev/tty
+}
+
+# Probes must not trigger tool downloads, hooks, or network access through mise shims.
+mise_probe() {
+  MISE_AUTO_INSTALL=false MISE_OFFLINE=true MISE_NO_ENV=true MISE_NO_HOOKS=true timeout 5 "$@"
+}
+
+apt_install() {
+  local label="$1"
+  shift
+  run "$label" --sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
 }
 
 run_task() {
