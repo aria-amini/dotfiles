@@ -2,6 +2,7 @@
 
 # Optional step catalog. Add a step here and define its label, probes, and phase below.
 SETUP_STEPS=(docker tailscale pitchfork t3)
+T3_VERSION=0.0.45
 
 setup_step_valid() {
   local step
@@ -17,6 +18,14 @@ DOCKER_CLIENT_LINK=/usr/bin/docker
 docker_installed() {
   command -v docker > /dev/null 2>&1 || [[ -L $DOCKER_CLIENT_LINK ]]
 }
+
+# Ubuntu derivatives report their own codename; Docker publishes the Ubuntu base codename.
+ubuntu_codename() (
+  # shellcheck source=/dev/null
+  . "$HOST_OS_RELEASE"
+  [[ ${ID:-} == ubuntu || ${ID_LIKE:-} == *ubuntu* ]] || die "Docker setup supports Ubuntu only (found ${ID:-unknown})"
+  printf '%s' "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+)
 
 docker_engine_installed() {
   command -v dockerd > /dev/null 2>&1
@@ -93,14 +102,14 @@ setup_step_version() {
 
 phase_docker() {
   if ! docker_installed; then
+    local codename
+    codename="$(ubuntu_codename)"
     run_task 'Creating the Docker key directory' --sudo install -m 0755 -d /etc/apt/keyrings
     run_task 'Downloading the Docker key' --sudo curl -fsSL --retry 3 \
       https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
     run_task 'Setting Docker key permissions' --sudo chmod a+r /etc/apt/keyrings/docker.asc
-    # shellcheck source=/dev/null
-    . /etc/os-release
     run_task 'Adding the Docker repository' --sudo tee /etc/apt/sources.list.d/docker.list \
-      <<< "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable"
+      <<< "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${codename} stable"
     run_task 'Updating the Docker package index' --sudo apt-get update
     run 'Installing Docker' --sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
       docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -207,12 +216,11 @@ phase_t3() {
   if [[ ! -x /usr/bin/g++ ]]; then
     run_task 'Installing build tools' --sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
   fi
-  if t3_service_installed; then
-    run_task 'Updating T3 Code' env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ \
-      NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" "$node_bin_dir/npx" --yes t3@0.0.45 service install
-  else
-    run_task 'Installing T3 Code' env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ \
-      NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" "$node_bin_dir/npx" --yes t3@0.0.45 service install
+  local action=Installing
+  ! t3_service_installed || action=Updating
+  run_task "$action T3 Code" env PATH="$node_bin_dir:/usr/bin:/bin" CC=/usr/bin/gcc CXX=/usr/bin/g++ \
+    NPM_CONFIG_CACHE="$HOME/.cache/npm-t3" "$node_bin_dir/npx" --yes "t3@$T3_VERSION" service install
+  if [[ $action == Installing ]]; then
     NOTES+=($'Pair a device:\n  t3 pair --tailscale --tailscale-serve-port 8443\n  then scan the QR code')
   fi
 }

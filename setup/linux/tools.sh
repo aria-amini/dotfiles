@@ -72,10 +72,27 @@ phase_apt() {
     env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     software-properties-common xz-utils zsh curl ca-certificates libcap2-bin procps
   show_version Zsh 1 zsh --version
-  if host_is_wsl && ! grep -qs 'appendWindowsPath=false' /etc/wsl.conf; then
-    run_task 'Disabling Windows PATH interop' --sudo tee -a /etc/wsl.conf \
-      <<< $'\n[interop]\nappendWindowsPath=false'
+  if host_is_wsl && ! wsl_windows_path_disabled; then
+    wsl_disable_windows_path
     NOTES+=("WSL interop: run 'wsl.exe --shutdown' on the Windows host to apply appendWindowsPath=false")
+  fi
+}
+
+: "${WSL_CONF:=/etc/wsl.conf}"
+
+wsl_windows_path_disabled() {
+  grep -Eqs '^[[:space:]]*appendWindowsPath[[:space:]]*=[[:space:]]*false' "$WSL_CONF"
+}
+
+# A second [interop] header in wsl.conf is invalid, so edit an existing section in place.
+wsl_disable_windows_path() {
+  if grep -Eqs '^\[interop\]' "$WSL_CONF"; then
+    run_task 'Disabling Windows PATH interop' --sudo sed -i \
+      -e '/^[[:space:]]*appendWindowsPath[[:space:]]*=/d' \
+      -e '/^\[interop\]/a appendWindowsPath=false' "$WSL_CONF"
+  else
+    run_task 'Disabling Windows PATH interop' --sudo tee -a "$WSL_CONF" \
+      <<< $'\n[interop]\nappendWindowsPath=false'
   fi
 }
 
