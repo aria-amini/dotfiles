@@ -672,6 +672,54 @@ def test_host_detects_systemd(linux: Shell, tmp_path: Path) -> None:
     assert linux("host_has_systemd").returncode == 0
 
 
+@pytest.mark.parametrize(
+    ("step", "requested", "wsl", "selected"),
+    [
+        ("docker", "", False, True),
+        ("docker", "", True, False),
+        ("tailscale", "", True, True),
+        ("docker", "docker", True, True),
+        ("docker", "t3", False, False),
+        ("t3", "t3", False, True),
+        ("tailscale", "t3", False, False),
+        ("mise_tools", "t3", True, True),
+    ],
+)
+def test_default_selection_follows_host_and_request(
+    linux: Shell, step: str, requested: str, wsl: bool, selected: bool
+) -> None:
+    host = "return 0" if wsl else "return 1"
+    result = linux(
+        f"host_is_wsl() {{ {host}; }}\nsetup_step_default_selected {step} '{requested}'"
+    )
+    assert (result.returncode == 0) is selected
+
+
+def test_menu_preselects_only_the_requested_steps(linux: Shell) -> None:
+    script = """
+source "$DOTFILES_DIR/setup/linux.sh"
+PROFILE=full
+INTERACTIVE=true
+OPTIONAL_STEPS=t3
+setup_step_installed() { return 1; }
+gum() {
+  if [[ "$1" == choose ]]; then
+    printf '%s\\n' "$@" > "$HOME/menu-args"
+  fi
+}
+configure_sections
+selected="$(grep -A 1 -- '--selected' "$HOME/menu-args")"
+[[ "$selected" == *'T3 Code'* ]]
+[[ "$selected" == *'Developer tools'* ]]
+for label in Docker Tailscale Pitchfork; do
+  [[ "$selected" != *"$label"* ]]
+done
+"""
+    command = shlex.quote("bash -Eeuo pipefail -c " + shlex.quote(script))
+    result = linux(f"script -q -e -c {command} /dev/null")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_menu_does_not_preselect_docker_on_wsl(linux: Shell) -> None:
     script = """
 source "$DOTFILES_DIR/setup/linux.sh"
