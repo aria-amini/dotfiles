@@ -713,6 +713,8 @@ run_task() { :; }
 root_plain() { return 1; }
 write_t3_settings() { :; }
 mise() { printf '/tools/node/bin/node\n'; }
+mkdir -p "$HOME/.local/state/pitchfork/proxy"
+touch "$HOME/.local/state/pitchfork/proxy/ca.pem"
 phase_pitchfork
 phase_t3
 """)

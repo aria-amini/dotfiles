@@ -1,5 +1,6 @@
 import json
 import os
+import pwd
 import re
 import shlex
 import shutil
@@ -26,6 +27,7 @@ def modifier(tmp_path: Path, chezmoi_binary: str) -> tuple[list[str], Path]:
     template = source / "dot_config/pitchfork/modify_config.toml"
     template.parent.mkdir(parents=True)
     shutil.copyfile(ROOT / "home/dot_config/pitchfork/modify_config.toml", template)
+    shutil.copyfile(ROOT / "home/.chezmoidata.toml", source / ".chezmoidata.toml")
     target = tmp_path / "home/.config/pitchfork/config.toml"
     target.parent.mkdir(parents=True)
     config = tmp_path / "chezmoi.toml"
@@ -47,6 +49,20 @@ def modifier(tmp_path: Path, chezmoi_binary: str) -> tuple[list[str], Path]:
     return command, target
 
 
+MANAGED_SETTINGS = {
+    "proxy": {
+        "enable": True,
+        "host": "127.0.0.1",
+        "port": 9443,
+        "sync_hosts": False,
+        "tld": tomllib.loads((ROOT / "home/.chezmoidata.toml").read_text())["proxy"][
+            "tld"
+        ],
+    },
+    "supervisor": {"user": pwd.getpwuid(os.getuid()).pw_name},
+}
+
+
 @pytest.mark.parametrize(
     "config",
     [
@@ -55,6 +71,7 @@ def modifier(tmp_path: Path, chezmoi_binary: str) -> tuple[list[str], Path]:
         '[slugs]\napp = {dir = "/app", daemon = "dev"}\n',
         '[daemons.tls]\nrun = "old"\n[daemons.tls.ready_cmd]\nrun = "old-check"\n'
         '[daemons.tls.health_cmd]\nrun = "old-health"\n',
+        '[settings]\nlog_level = "debug"\n[settings.proxy]\nport = 1\nhttps = false\n',
     ],
 )
 def test_tls_modifier_preserves_other_configuration(
@@ -71,6 +88,18 @@ def test_tls_modifier_preserves_other_configuration(
     rendered = apply(config)
     after = tomllib.loads(rendered)
     assert after["daemons"].pop("tls")["retry"] is True
+    for table, values in MANAGED_SETTINGS.items():
+        for key, value in values.items():
+            assert after["settings"][table][key] == value
+    for config_table in (before, after):
+        settings = config_table.get("settings", {})
+        for table, values in MANAGED_SETTINGS.items():
+            for key in values:
+                settings.get(table, {}).pop(key, None)
+            if settings.get(table) == {}:
+                del settings[table]
+        if settings == {}:
+            config_table.pop("settings", None)
     if "daemons" in before:
         before["daemons"].pop("tls", None)
     else:
@@ -151,15 +180,32 @@ def test_caddy_start_requires_enrollment(linux: Shell) -> None:
     assert "OpenBao credential caddy-role-id is unavailable" in result.stderr
 
 
-def test_pitchfork_setup_uses_loopback(linux: Shell) -> None:
+def test_pitchfork_setup_starts_supervisor_and_trusts_ca(linux: Shell) -> None:
     result = linux("""
 HAS_SYSTEMD=true
 SKIP_MANAGED_TOOLS=false
-run_task() { shift; "$@"; }
-mise() { [[ "$*" == "-C $DOTFILES_DIR run setup-pitchfork 127.0.0.1" ]]; }
+USER=tester
+XDG_STATE_HOME="$HOME/state"
+mkdir -p "$XDG_STATE_HOME/pitchfork/proxy"
+touch "$XDG_STATE_HOME/pitchfork/proxy/ca.pem"
+run_task() { shift; [[ $1 != --sudo ]] || shift; printf '%s\n' "$*" >> "$HOME/calls"; }
+mise() { [[ "$*" == "which pitchfork" ]] && printf 'pitchfork\n'; }
+pitchfork() {
+  case "$1 $2" in
+  'supervisor status') return 1 ;;
+  'proxy status') printf 'Trusted: no\n' ;;
+  esac
+}
 phase_pitchfork
+cat "$HOME/calls"
 """)
     assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[-4:] == [
+        "loginctl enable-linger tester",
+        "pitchfork boot enable",
+        "pitchfork supervisor start",
+        "pitchfork proxy trust",
+    ]
 
 
 @pytest.mark.parametrize("first_port", [0, 443, 1024])

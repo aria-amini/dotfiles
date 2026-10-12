@@ -121,7 +121,23 @@ phase_pitchfork() {
     run 'Installing Pitchfork prerequisite' --live mise install pitchfork
   fi
   detail 'Pitchfork installs a boot service and a local TLS certificate authority'
-  run_task 'Configuring Pitchfork URLs' mise -C "$DOTFILES_DIR" run setup-pitchfork 127.0.0.1
+  local pitchfork_bin ca
+  pitchfork_bin="$(mise which pitchfork)"
+  ca="${XDG_STATE_HOME:-$HOME/.local/state}/pitchfork/proxy/ca.pem"
+  run_task 'Enabling user service lingering' --sudo loginctl enable-linger "$USER"
+  run_task 'Enabling the Pitchfork boot service' "$pitchfork_bin" boot enable
+  if ! "$pitchfork_bin" supervisor status > /dev/null 2>&1; then
+    run_task 'Starting the Pitchfork supervisor' "$pitchfork_bin" supervisor start
+  fi
+  # The supervisor writes the proxy CA asynchronously after start.
+  for _ in {1..20}; do
+    [[ -f $ca ]] && break
+    sleep 0.5
+  done
+  [[ -f $ca ]] || die "Pitchfork did not generate its CA certificate at $ca"
+  if ! "$pitchfork_bin" proxy status | grep -q 'Trusted: yes'; then
+    run_task 'Trusting the Pitchfork CA' --sudo "$pitchfork_bin" proxy trust
+  fi
 }
 
 write_t3_settings() {
