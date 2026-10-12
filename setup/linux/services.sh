@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 
+DOCKER_CLIENT_LINK=/usr/bin/docker
+
+# Docker Desktop for Windows links its client into WSL. The link dangles while Desktop is stopped.
 docker_installed() {
-  command -v docker > /dev/null 2>&1
+  command -v docker > /dev/null 2>&1 || [[ -L $DOCKER_CLIENT_LINK ]]
+}
+
+docker_engine_installed() {
+  command -v dockerd > /dev/null 2>&1
+}
+
+setup_step_default_selected() {
+  case "$1" in
+  docker) [[ $IS_WSL != true ]] ;;
+  *) return 0 ;;
+  esac
 }
 
 tailscale_installed() {
@@ -74,6 +88,10 @@ phase_docker() {
       docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
   show_version Docker 2 docker --version
+  if ! docker_engine_installed; then
+    detail 'docker client only (Docker Desktop); skipping group and service setup'
+    return
+  fi
   if ! id -nG "$USER" | grep -qw docker; then
     run_task 'Adding user to docker group' --sudo usermod -aG docker "$USER"
     NOTES+=('Docker group: log out and back in to run docker without sudo')

@@ -647,6 +647,58 @@ fi
     assert re.search(r"✓ T3 Code\s+1\.2\.3\s+Ready", result.stdout)
 
 
+def test_menu_does_not_preselect_docker_on_wsl(linux: Shell) -> None:
+    script = """
+source "$DOTFILES_DIR/setup/linux.sh"
+PROFILE=full
+INTERACTIVE=true
+IS_WSL=true
+setup_step_installed() { return 1; }
+gum() {
+  if [[ "$1" == choose ]]; then
+    printf '%s\\n' "$@" > "$HOME/menu-args"
+  fi
+}
+configure_sections
+selected="$(grep -A 1 -- '--selected' "$HOME/menu-args")"
+grep -q '[|]docker$' "$HOME/menu-args"
+[[ "$selected" != *Docker* ]]
+for label in Tailscale Pitchfork 'T3 Code'; do
+  [[ "$selected" == *"$label"* ]]
+done
+"""
+    command = shlex.quote("bash -Eeuo pipefail -c " + shlex.quote(script))
+    result = linux(f"script -q -e -c {command} /dev/null")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_docker_desktop_link_counts_as_installed(linux: Shell, tmp_path: Path) -> None:
+    result = linux(f"""
+command() {{
+  if [[ "$1" == -v && "$2" == docker ]]; then return 1; fi
+  builtin command "$@"
+}}
+DOCKER_CLIENT_LINK={shlex.quote(str(tmp_path / "docker"))}
+if docker_installed; then exit 99; fi
+ln -s /nonexistent/docker "$DOCKER_CLIENT_LINK"
+docker_installed
+""")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_docker_client_only_skips_engine_setup(linux: Shell) -> None:
+    result = linux("""
+docker_installed() { return 0; }
+docker_engine_installed() { return 1; }
+docker() { printf 'Docker version 29.8.2, build abc\\n'; }
+run_task() { printf 'RAN: %s\\n' "$1"; }
+phase_docker
+""")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "RAN:" not in result.stdout
+    assert "docker client only" in result.stdout
+
+
 @pytest.mark.parametrize("skip", ["false", "true"])
 def test_menu_selects_all_missing_options(linux: Shell, skip: str) -> None:
     script = f"""
