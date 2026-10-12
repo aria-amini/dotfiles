@@ -16,9 +16,6 @@ export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspace
 
 # ── Path ──────────────────────────────────────────────────────
 export PATH="$PATH:/usr/sbin:/sbin"
-{{ if eq .chezmoi.os "linux" -}}
-export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
-{{ end -}}
 [[ -f "$HOME/.vite-plus/env" ]] && . "$HOME/.vite-plus/env"
 
 # ── History ───────────────────────────────────────────────────
@@ -106,14 +103,6 @@ nvim()
 }
 
 alias vim='nvim'
-
-ta() {
-  if [[ -n "${TMUX:-}" ]]; then
-    print 'already inside tmux' >&2
-    return 1
-  fi
-  exec tmux new-session -A -s main
-}
 
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
