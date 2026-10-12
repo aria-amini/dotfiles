@@ -60,7 +60,7 @@ configure_sections() {
       printf -v row '%-20s %-28s %s' "$label" "$status" "$action"
       options+=("$row|$step")
       [[ $step != mise_tools || $SKIP_MANAGED_TOOLS != true ]] || continue
-      selected+=("$row")
+      ! setup_step_default_selected "$step" || selected+=("$row")
     done
     printf -v row '      %-20s %-28s %s' 'Tool' 'Version / Status' 'Action'
     header="$row"
