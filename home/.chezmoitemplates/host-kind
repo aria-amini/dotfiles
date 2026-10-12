@@ -1,0 +1,10 @@
+{{- /* Input: dict with os and osrelease. Output: mac, wsl, linux (the Lima VM), or other. */ -}}
+{{- if eq .os "darwin" -}}
+mac
+{{- else if and (eq .os "linux") (contains "microsoft" (lower .osrelease)) -}}
+wsl
+{{- else if eq .os "linux" -}}
+linux
+{{- else -}}
+other
+{{- end -}}
