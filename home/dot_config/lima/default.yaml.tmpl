@@ -11,9 +11,6 @@ param:
 cpus: 4
 memory: 16GiB
 disk: 160GiB
-mounts:
-- location: {{ .chezmoi.homeDir }}
-  mountPoint: {{ .chezmoi.homeDir }}
-  writable: false
+mounts: []
 ssh:
   localPort: 60022
