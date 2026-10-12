@@ -48,7 +48,6 @@ test ! -e "$HOME/tools/herdr-jj-workspaces"
 test "$(getent passwd smoke | cut -d: -f7)" = "$(command -v zsh)"
 test -s "$HOME/.zshrc"
 test -s "$HOME/.config/mise/config.toml"
-test -x "$HOME/.config/mise/tasks/setup-pitchfork"
 test -s "$HOME/AGENTS.md"
 chezmoi --source /dotfiles --no-tty --error-on-conflict verify --exclude scripts
 logs=(/tmp/dotfiles-setup-*.log)
