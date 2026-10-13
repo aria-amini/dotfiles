@@ -7830,10 +7830,6 @@ backend = "npm:chrome-devtools-axi"
 version = "0.36.0"
 backend = "npm:corepack"
 
-[[tools."npm:greptile"]]
-version = "3.6.0"
-backend = "npm:greptile"
-
 [[tools."npm:hunkdiff"]]
 version = "0.22.0"
 backend = "npm:hunkdiff"

@@ -52,7 +52,6 @@ shellcheck = "latest"
 "opencode" = "latest"
 "npm:@openai/codex" = "latest"
 pi = "latest"
-"npm:greptile" = "latest"
 claude = "latest"
 
 # nvim
