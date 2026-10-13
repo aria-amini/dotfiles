@@ -1,0 +1,7 @@
+version: 2.0
+
+kodusConfigFileOverridesWebPreferences: true
+reviewCadence:
+  type: auto_pause
+isRequestChangesActive: true
+pullRequestApprovalActive: true

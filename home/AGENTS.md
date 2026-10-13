@@ -119,16 +119,15 @@ Use [my jj-ryu fork](https://github.com/aria-amini/jj-ryu) as the Graphite equiv
 
 `ryu merge <name>` also merges every unmerged PR below it. The immutable-history rules apply to all stack operations.
 
-### Greptile Auto-Fix and Review
+### Kodus Review
 
-Use [Greptile's auto-fix skills](https://www.greptile.com/docs/mcp-v2/skills) on every PR before merge.
+Kodus reviews every PR. The `Kody Code Review` check is required on `main`.
 
-- Use `/check-pr <number>` for comments and failed checks; use `/greploop <number>` for up to five review/fix cycles.
-- Replace the skills' Git steps with jj and `ryu submit`; use Greptile MCP or `gh` if skills are unavailable.
-- Validate findings, test fixes, and explain false positives in review threads.
-- Target 5/5 confidence and zero unresolved comments; report blockers at the loop limit.
-- Before merge, require latest-diff review, green required checks, resolved threads, and required reviewer approvals for every affected PR.
-- Recheck after stack updates; a Greptile score alone does not authorize merge.
+- Wait for the `Kody Code Review` check on the latest commit before merge.
+- Read each Kody comment. Validate the finding, test the fix, and explain false positives in the review thread.
+- Fix with jj, then resubmit with `ryu submit`.
+- Before merge, require a Kody review of the latest diff, green required checks, and resolved threads for every affected PR.
+- Recheck after stack updates. A passing check alone does not authorize merge.
 
 ### Coding Style
 
