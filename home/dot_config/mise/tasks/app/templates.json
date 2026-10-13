@@ -1,0 +1,14 @@
+[
+  {
+    "name": "tanstack",
+    "description": "TanStack Start app with Better Auth, Drizzle, Sentry, and PostHog",
+    "source": "https://github.com/aria-amini/tanstack-template",
+    "name_var": "app_name",
+    "checks": ["check"]
+  },
+  {
+    "name": "empty",
+    "description": "Empty jj repo with a README",
+    "checks": []
+  }
+]

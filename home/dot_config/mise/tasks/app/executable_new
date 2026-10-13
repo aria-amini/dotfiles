@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+#MISE description="Create an app from a template, with an optional GitHub repo"
+#MISE raw=true
+#MISE tools={copier="latest"}
+set -euo pipefail
+
+config_dir="$(dirname "$MISE_TASK_FILE")"
+templates_file="$config_dir/templates.json"
+
+if [[ ! -t 0 || ! -t 1 ]]; then
+  echo "app:new is interactive. Run it in a terminal." >&2
+  exit 2
+fi
+
+# ===== Prompts =====
+template="$(jq -r '.[] | "\(.name)\t\(.description)"' "$templates_file" |
+  gum choose --header "Template" | cut -f1)"
+template_json="$(jq --arg t "$template" '.[] | select(.name == $t)' "$templates_file")"
+
+name="$(gum input --header "App name (kebab-case)")"
+if [[ ! "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+  echo "The app name must be kebab-case: lowercase letters, digits, and single hyphens." >&2
+  exit 2
+fi
+
+dest="$HOME/apps/$name"
+if [[ -e "$dest" ]]; then
+  echo "$dest already exists." >&2
+  exit 2
+fi
+
+github=false
+if gum confirm "Create a GitHub repo?"; then
+  github=true
+  repo="$(gh api user --jq .login)/$name"
+  if gh repo view "$repo" >/dev/null 2>&1; then
+    echo "The GitHub repo $repo already exists." >&2
+    exit 2
+  fi
+  visibility="$(gum choose --header "Visibility" public private)"
+  description="$(gum input --header "Description (optional)")"
+elif [[ $? -ne 1 ]]; then
+  # gum confirm exits 1 for "No" and 130 for a cancel.
+  exit 130
+fi
+
+# ===== Scaffold =====
+source_url="$(jq -r '.source // empty' <<<"$template_json")"
+if [[ -n "$source_url" ]]; then
+  name_var="$(jq -r '.name_var // empty' <<<"$template_json")"
+  copier_args=(copy --trust)
+  [[ -n "$name_var" ]] && copier_args+=(--data "$name_var=$name")
+  copier "${copier_args[@]}" "$source_url" "$dest"
+else
+  mkdir -p "$dest"
+  printf '# %s\n' "$name" >"$dest/README.md"
+fi
+
+cd "$dest"
+[[ -d .jj ]] || jj git init --colocate
+jj commit -m "Create $name from the $template template"
+jj bookmark create main -r @-
+
+if [[ "$github" == false ]]; then
+  echo "Created $dest without a GitHub repo."
+  exit 0
+fi
+
+# ===== GitHub =====
+gh repo create "$repo" "--$visibility" --description "$description" --source . --remote origin
+# The ruleset blocks the creation of main, so push main before the ruleset exists.
+jj git push --remote origin --bookmark main
+
+gh api --method PATCH "repos/$repo" --input "$config_dir/repo.json" >/dev/null
+echo "Applied the repo settings to $repo."
+
+# The template CI checks replace the baseline CI checks. App checks (integration_id) stay.
+ruleset_body="$(jq --argjson ci "$(jq -c '.checks | map({context: .})' <<<"$template_json")" '
+  (.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks)
+    |= $ci + map(select(has("integration_id")))
+' "$config_dir/ruleset-main.json")"
+
+gh_err="$(mktemp)"
+trap 'rm -f "$gh_err"' EXIT
+if gh api --method POST "repos/$repo/rulesets" --input - <<<"$ruleset_body" >/dev/null 2>"$gh_err"; then
+  echo "Created the main ruleset on $repo."
+elif grep -q 'Upgrade to GitHub Pro or make this repository public' "$gh_err"; then
+  echo "Skipped the main ruleset: GitHub Free has no rulesets on private repos." >&2
+else
+  cat "$gh_err" >&2
+  exit 1
+fi
