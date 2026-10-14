@@ -47,7 +47,14 @@ elif [[ $? -ne 1 ]]; then
 fi
 
 if [[ "$github" == true ]]; then
-  gh repo create "$repo" --public --description "$description"
+  # GitHub also returns 404 for repositories that the token cannot access.
+  if repo_error="$(gh api "repos/$repo" 2>&1 >/dev/null)"; then
+    echo "The GitHub repo $repo already exists." >&2
+    exit 2
+  elif [[ "$repo_error" != *"(HTTP 404)"* ]]; then
+    printf '%s\n' "$repo_error" >&2
+    exit 1
+  fi
 fi
 
 # ===== Scaffold =====
@@ -75,6 +82,10 @@ if [[ "$github" == false ]]; then
 fi
 
 # ===== GitHub =====
+if ! gh repo create "$repo" --public --description "$description"; then
+  echo "GitHub repo creation failed. The local project remains at $dest." >&2
+  exit 1
+fi
 jj git remote add origin "https://github.com/$repo.git"
 # The ruleset blocks the creation of main.
 jj git push --remote origin --bookmark main
