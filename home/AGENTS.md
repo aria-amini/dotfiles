@@ -32,21 +32,30 @@ the VM over Tailscale. Clients and the server share no filesystem.
 
 ## Pull Requests
 
-Open one PR for each task. Split the work into one jj commit for each concern.
-Do not split a task into micro PRs.
+Open one PR for each task. A large PR is acceptable. Each PR uses one review
+from a limited review quota. Do not split a task into more PRs to make each PR
+smaller. Split the work into one jj commit for each concern instead. The
+reviewer reads the PR one commit at a time.
 
 When a task is complete, push its bookmarks and open or update its PR. Do not
 ask for permission first. Ask before you push to the default branch or merge.
 
 Stack PRs in two cases only:
 
-- Dependent work continues while the previous PR is in review or CI.
-- A small subset is certain to be good, for example a minor cleanup or a focused
-  fix. Put that subset at the bottom of the stack. Merge it first while the rest
-  iterates.
+- Dependent work must continue while the previous PR waits for review or CI.
+- The main PR has a lot of churn, and cleanups or small unrelated fixes
+  accumulate in it. These changes are ready to merge now. Move them to one PR
+  at the bottom of the stack. Merge it first while the rest iterates.
+
+Do not stack PRs for other reasons.
 
 Request a CodeRabbit review only for large PRs or PRs that change auth, data,
 migrations, or infrastructure. CodeRabbit reviews are expensive.
+
+Use `ryu` to create, update, and merge PRs. Do not use `gh pr create` or
+`gh pr merge`. ryu sets the PR base for each stack layer and registers the
+GitHub stack. Use `gh` only for operations that ryu does not support, for
+example checks, labels, and review comments.
 
 To publish, review, or merge a PR, follow the `ship-pr` skill.
 
