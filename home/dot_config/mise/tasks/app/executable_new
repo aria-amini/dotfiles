@@ -33,9 +33,12 @@ github=false
 if gum confirm "Create a public GitHub repo?"; then
   github=true
   repo="$(gh api user --jq .login)/$name"
-  if gh repo view "$repo" >/dev/null 2>&1; then
+  if repo_error="$(gh repo view "$repo" 2>&1 >/dev/null)"; then
     echo "The GitHub repo $repo already exists." >&2
     exit 2
+  elif [[ "$repo_error" != *"Could not resolve to a Repository"* ]]; then
+    printf '%s\n' "$repo_error" >&2
+    exit 1
   fi
   description="$(gum input --header "Description (optional)")"
 elif [[ $? -ne 1 ]]; then
@@ -67,13 +70,12 @@ fi
 
 # ===== GitHub =====
 gh repo create "$repo" --public --description "$description" --source . --remote origin
-# The ruleset blocks the creation of main, so push main before the ruleset exists.
+# The ruleset blocks the creation of main.
 jj git push --remote origin --bookmark main
 
 gh api --method PATCH "repos/$repo" --input "$config_dir/repo.json" >/dev/null
 echo "Applied the repo settings to $repo."
 
-# The template CI checks replace the baseline CI checks. App checks (integration_id) stay.
 ruleset_body="$(jq --argjson ci "$(jq -c '.checks | map({context: .})' <<<"$template_json")" '
   (.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks)
     |= $ci + map(select(has("integration_id")))
