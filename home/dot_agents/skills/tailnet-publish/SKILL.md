@@ -35,8 +35,8 @@ client network (Tailscale or published DNS), never server-side localhost.
 
 Portless URLs are `https://<name>.dev.ariaamini.com`.
 
-- Hostnames are single-level. Slugs flatten directory dots to hyphens:
-  `app.worktree` serves as `app-worktree`.
+- Slugs are single DNS labels. Pitchfork rejects dots in a slug. For a
+  workspace directory `app.worktree`, register the slug `app-worktree`.
 - Nested hostnames (`worktree.app.dev…`) do not work. The wildcard certificate
   covers one level.
 - Direct `:9443` access does not work. The proxy binds loopback only.
