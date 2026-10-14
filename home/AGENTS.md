@@ -35,6 +35,9 @@ the VM over Tailscale. Clients and the server share no filesystem.
 Open one PR for each task. Split the work into one jj commit for each concern.
 Do not split a task into micro PRs.
 
+When a task is complete, push its bookmarks and open or update its PR. Do not
+ask for permission first. Ask before you push to the default branch or merge.
+
 Stack PRs in two cases only:
 
 - Dependent work continues while the previous PR is in review or CI.
