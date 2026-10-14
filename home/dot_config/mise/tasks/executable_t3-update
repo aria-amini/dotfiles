@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#MISE description="Update the T3 Code service to the newest fork runtime, with before/after logging"
+#MISE quiet=true
+#
+# mise run t3-update              update, restart the service, verify, follow the log
+# mise run t3-update -- --status  print what is running now and change nothing
+#
+# The update runs in its own systemd unit. A shell started by an agent lives inside the service's
+# cgroup, so stopping the service would otherwise kill the update halfway. Every run is logged to
+# $XDG_STATE_HOME/t3-update/<timestamp>.log (latest.log points at the newest).
+set -uo pipefail
+
+home="${T3CODE_HOME:-$HOME/.t3}"
+port="${T3_PORT:-3773}"
+state_file="$home/runtime/service-state.json"
+versions_dir="$home/runtime/versions"
+log_root="${XDG_STATE_HOME:-$HOME/.local/state}/t3-update"
+
+log() { printf '[%s] %s\n' "$(date +%T)" "$*"; }
+active_version() { sed -n 's/.*"activeVersion": *"\([^"]*\)".*/\1/p' "$state_file" 2>/dev/null | head -1; }
+service_state() { systemctl --user is-active t3code.service 2>/dev/null || true; }
+listener_pid() { ss -H -ltnp "sport = :$port" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2; }
+# The version directory of the executable that owns the port; a server started by hand shows up here.
+listener_version() {
+  local pid
+  pid="$(listener_pid)"
+  [ -n "$pid" ] || { echo "none"; return; }
+  basename "$(dirname "$(readlink "/proc/$pid/exe" 2>/dev/null)")"
+}
+snapshot() {
+  log "$1: service=$(service_state) active=$(active_version) listening=$(listener_version) port=$port"
+  [ -e "$home/runtime/.service-stopping" ] && log "$1: WARN stale .service-stopping marker"
+  return 0
+}
+
+run_update() {
+  local before after rc bin
+  before="$(active_version)"
+  [ -n "$before" ] || { log "ERROR: no activeVersion in $state_file"; exit 2; }
+  bin="$versions_dir/$before/t3"
+  [ -x "$bin" ] || { log "ERROR: $bin is not executable"; exit 2; }
+  log "update started from t3 $before"
+  snapshot before
+  "$bin" update --yes 2>&1 | sed 's/^/    /'
+  rc="${PIPESTATUS[0]}"
+  log "t3 update exit=$rc"
+  # Give the service up to 30s to come back on the new version before judging it.
+  for _ in $(seq 1 30); do
+    [ "$(service_state)" = active ] && [ "$(listener_version)" = "$(active_version)" ] && break
+    sleep 1
+  done
+  after="$(active_version)"
+  snapshot after
+  if [ "$rc" -ne 0 ] || [ "$(service_state)" != active ] || [ "$(listener_version)" != "$after" ]; then
+    log "RESULT: FAILED (exit=$rc, service=$(service_state), active=$after, listening=$(listener_version))"
+    exit 1
+  fi
+  if [ "$before" = "$after" ]; then
+    log "RESULT: already up to date on $after"
+  else
+    log "RESULT: updated $before -> $after"
+  fi
+}
+
+case "${1:-}" in
+  --status) snapshot now; exit 0 ;;
+  --run) run_update; exit $? ;;
+esac
+
+mkdir -p "$log_root"
+stamp="$(date +%Y%m%d-%H%M%S)"
+log_file="$log_root/$stamp.log"
+: > "$log_file"
+ln -sfn "$log_file" "$log_root/latest.log"
+unit="t3-update-$stamp"
+log "starting $unit; log: $log_file"
+systemd-run --user --collect --unit="$unit" \
+  --property=StandardOutput=append:"$log_file" --property=StandardError=append:"$log_file" \
+  "$(readlink -f "$0")" --run >/dev/null || { log "ERROR: could not start $unit"; exit 2; }
+tail -n +1 -f "$log_file" &
+tail_pid=$!
+while systemctl --user is-active --quiet "$unit"; do sleep 1; done
+sleep 1
+kill "$tail_pid" 2>/dev/null
+grep -q 'RESULT: FAILED' "$log_file" && exit 1
+grep -q 'RESULT:' "$log_file" || { log "ERROR: no RESULT line in $log_file"; exit 1; }
+exit 0
