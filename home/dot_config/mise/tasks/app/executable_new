@@ -12,6 +12,13 @@ if [[ ! -t 0 || ! -t 1 ]]; then
   exit 2
 fi
 
+dotfiles_root="$(dirname "$(chezmoi source-path)")"
+kodus_config="$dotfiles_root/kodus-config.yml"
+if [[ ! -r "$kodus_config" ]]; then
+  echo "Cannot read $kodus_config." >&2
+  exit 2
+fi
+
 # ===== Prompts =====
 template="$(jq -r '.[] | "\(.name)\t\(.description)"' "$templates_file" |
   gum choose --header "Template" | cut -f1)"
@@ -55,6 +62,8 @@ else
   printf '# %s\n' "$name" >"$dest/README.md"
 fi
 
+cp "$kodus_config" "$dest/kodus-config.yml"
+
 cd "$dest"
 [[ -d .jj ]] || jj git init --colocate
 jj commit -m "Create $name from the $template template"
@@ -69,6 +78,7 @@ fi
 jj git remote add origin "https://github.com/$repo.git"
 # The ruleset blocks the creation of main.
 jj git push --remote origin --bookmark main
+jj bookmark track main --remote=origin
 
 gh api --method PATCH "repos/$repo" --input "$config_dir/repo.json" >/dev/null
 echo "Applied the repo settings to $repo."
