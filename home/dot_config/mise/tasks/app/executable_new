@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+#MISE description="Create an app from a template, with an optional GitHub repo"
+#MISE raw=true
+#MISE tools={copier="latest"}
+set -euo pipefail
+
+config_dir="$(dirname "$MISE_TASK_FILE")"
+templates_file="$config_dir/templates.json"
+
+if [[ ! -t 0 || ! -t 1 ]]; then
+  echo "app:new is interactive. Run it in a terminal." >&2
+  exit 2
+fi
+
+dotfiles_root="$(dirname "$(chezmoi source-path)")"
+kodus_config="$dotfiles_root/kodus-config.yml"
+if [[ ! -r "$kodus_config" ]]; then
+  echo "Cannot read $kodus_config." >&2
+  exit 2
+fi
+
+# ===== Prompts =====
+template="$(jq -r '.[] | "\(.name)\t\(.description)"' "$templates_file" |
+  gum choose --header "Template" | cut -f1)"
+template_json="$(jq --arg t "$template" '.[] | select(.name == $t)' "$templates_file")"
+
+name="$(gum input --header "App name (kebab-case)")"
+if [[ ! "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+  echo "The app name must be kebab-case: lowercase letters, digits, and single hyphens." >&2
+  exit 2
+fi
+
+dest="$HOME/apps/$name"
+if [[ -e "$dest" ]]; then
+  echo "$dest already exists." >&2
+  exit 2
+fi
+
+github=false
+if gum confirm "Create a public GitHub repo?"; then
+  github=true
+  repo="$(gh api user --jq .login)/$name"
+  description="$(gum input --header "Description (optional)")"
+elif [[ $? -ne 1 ]]; then
+  # gum confirm exits 1 for "No" and 130 for a cancel.
+  exit 130
+fi
+
+if [[ "$github" == true ]]; then
+  # GitHub also returns 404 for repositories that the token cannot access.
+  if repo_error="$(gh api "repos/$repo" 2>&1 >/dev/null)"; then
+    echo "The GitHub repo $repo already exists." >&2
+    exit 2
+  elif [[ "$repo_error" != *"(HTTP 404)"* ]]; then
+    printf '%s\n' "$repo_error" >&2
+    exit 1
+  fi
+fi
+
+# ===== Scaffold =====
+source_url="$(jq -r '.source // empty' <<<"$template_json")"
+if [[ -n "$source_url" ]]; then
+  name_var="$(jq -r '.name_var // empty' <<<"$template_json")"
+  copier_args=(copy --trust)
+  [[ -n "$name_var" ]] && copier_args+=(--data "$name_var=$name")
+  copier "${copier_args[@]}" "$source_url" "$dest"
+else
+  mkdir -p "$dest"
+  printf '# %s\n' "$name" >"$dest/README.md"
+fi
+
+cp "$kodus_config" "$dest/kodus-config.yml"
+
+cd "$dest"
+[[ -d .jj ]] || jj git init --colocate
+jj commit -m "Create $name from the $template template"
+jj bookmark create main -r @-
+
+if [[ "$github" == false ]]; then
+  echo "Created $dest without a GitHub repo."
+  exit 0
+fi
+
+# ===== GitHub =====
+if ! gh repo create "$repo" --public --description "$description"; then
+  echo "GitHub repo creation failed. The local project remains at $dest." >&2
+  exit 1
+fi
+jj git remote add origin "https://github.com/$repo.git"
+# The ruleset blocks the creation of main.
+jj git push --remote origin --bookmark main
+jj bookmark track main --remote=origin
+
+gh api --method PATCH "repos/$repo" --input "$config_dir/repo.json" >/dev/null
+echo "Applied the repo settings to $repo."
+
+ruleset_body="$(jq --argjson ci "$(jq -c '.checks | map({context: .})' <<<"$template_json")" '
+  (.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks)
+    |= $ci + map(select(has("integration_id")))
+' "$config_dir/ruleset-main.json")"
+
+gh api --method POST "repos/$repo/rulesets" --input - <<<"$ruleset_body" >/dev/null
+echo "Created the main ruleset on $repo."

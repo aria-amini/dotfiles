@@ -109,6 +109,8 @@ fastfetch = "latest"
 "gum" = "latest"
 "aqua:openbao/openbao/bao" = "latest"
 chezmoi = "latest"
+"npm:@kodus/cli" = "latest"
+wrangler = "4.149.0"
 
 [tools."http:caddy-cf"]
 version = "2.11.6"
