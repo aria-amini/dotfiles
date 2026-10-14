@@ -16,7 +16,6 @@ the VM over Tailscale. Clients and the server share no filesystem.
 - Caddy owns port 443 on the Tailscale IP. Never publish a Tailscale Serve
   mapping on 443.
 - For browser work, follow the `browser-use` skill.
-- To spin up a workspace, follow the `herdr-workspace` skill.
 
 ## Version Control
 
