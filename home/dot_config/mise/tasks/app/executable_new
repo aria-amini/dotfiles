@@ -12,13 +12,6 @@ if [[ ! -t 0 || ! -t 1 ]]; then
   exit 2
 fi
 
-dotfiles_root="$(dirname "$(chezmoi source-path)")"
-kodus_config="$dotfiles_root/kodus-config.yml"
-if [[ ! -r "$kodus_config" ]]; then
-  echo "Cannot read $kodus_config." >&2
-  exit 2
-fi
-
 # ===== Prompts =====
 template="$(jq -r '.[] | "\(.name)\t\(.description)"' "$templates_file" |
   gum choose --header "Template" | cut -f1)"
@@ -68,8 +61,6 @@ else
   mkdir -p "$dest"
   printf '# %s\n' "$name" >"$dest/README.md"
 fi
-
-cp "$kodus_config" "$dest/kodus-config.yml"
 
 cd "$dest"
 [[ -d .jj ]] || jj git init --colocate

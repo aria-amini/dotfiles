@@ -47,10 +47,6 @@
         "required_status_checks": [
           {
             "context": "check"
-          },
-          {
-            "context": "Kody Code Review",
-            "integration_id": 413034
           }
         ]
       }
