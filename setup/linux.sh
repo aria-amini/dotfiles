@@ -85,7 +85,7 @@ choose_setup_steps() {
 
 configure_sections() {
   if [[ $PROFILE == full && $INTERACTIVE == true ]]; then
-    choose_setup_steps
+    choose_setup_steps || return $?
   fi
   SECTIONS=('System|apt git mise nix' 'Dotfiles|dotfiles')
   if [[ $PROFILE == full ]]; then
