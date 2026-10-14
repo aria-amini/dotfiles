@@ -30,14 +30,13 @@ if [[ -e "$dest" ]]; then
 fi
 
 github=false
-if gum confirm "Create a GitHub repo?"; then
+if gum confirm "Create a public GitHub repo?"; then
   github=true
   repo="$(gh api user --jq .login)/$name"
   if gh repo view "$repo" >/dev/null 2>&1; then
     echo "The GitHub repo $repo already exists." >&2
     exit 2
   fi
-  visibility="$(gum choose --header "Visibility" public private)"
   description="$(gum input --header "Description (optional)")"
 elif [[ $? -ne 1 ]]; then
   # gum confirm exits 1 for "No" and 130 for a cancel.
@@ -67,7 +66,7 @@ if [[ "$github" == false ]]; then
 fi
 
 # ===== GitHub =====
-gh repo create "$repo" "--$visibility" --description "$description" --source . --remote origin
+gh repo create "$repo" --public --description "$description" --source . --remote origin
 # The ruleset blocks the creation of main, so push main before the ruleset exists.
 jj git push --remote origin --bookmark main
 
@@ -80,13 +79,5 @@ ruleset_body="$(jq --argjson ci "$(jq -c '.checks | map({context: .})' <<<"$temp
     |= $ci + map(select(has("integration_id")))
 ' "$config_dir/ruleset-main.json")"
 
-gh_err="$(mktemp)"
-trap 'rm -f "$gh_err"' EXIT
-if gh api --method POST "repos/$repo/rulesets" --input - <<<"$ruleset_body" >/dev/null 2>"$gh_err"; then
-  echo "Created the main ruleset on $repo."
-elif grep -q 'Upgrade to GitHub Pro or make this repository public' "$gh_err"; then
-  echo "Skipped the main ruleset: GitHub Free has no rulesets on private repos." >&2
-else
-  cat "$gh_err" >&2
-  exit 1
-fi
+gh api --method POST "repos/$repo/rulesets" --input - <<<"$ruleset_body" >/dev/null
+echo "Created the main ruleset on $repo."
