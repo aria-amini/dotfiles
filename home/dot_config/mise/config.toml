@@ -50,7 +50,7 @@ shellcheck = "latest"
 
 # AI
 "opencode" = "latest"
-"npm:@openai/codex" = "latest"
+codex = "latest"
 pi = "latest"
 claude = "latest"
 
