@@ -34,54 +34,58 @@ validate_optional_steps() {
   [[ $PROFILE == full || -z $OPTIONAL_STEPS ]] || die '--with requires the full profile'
 }
 
+choose_setup_steps() {
+  local selection label step status version action row header requested="$OPTIONAL_STEPS"
+  local -a selected=() options=()
+  local -a ready=()
+  for step in mise_tools "${SETUP_STEPS[@]}"; do
+    setup_step_available "$step" || continue
+    label="$(setup_step_label "$step")"
+    if setup_step_installed "$step"; then
+      version="$(setup_step_version "$step")"
+      printf -v row '    ✓ %-20s %-28s %s' "$label" "${version:-Version unavailable}" 'Ready'
+      ready+=("$row")
+      continue
+    fi
+    action=Install
+    case "$step" in
+    mise_tools)
+      status="$(managed_tools_status)"
+      [[ $status != *'; sync' ]] || action=Sync
+      status="${status%%;*}"
+      ;;
+    *) status='Not installed' ;;
+    esac
+    printf -v row '%-20s %-28s %s' "$label" "$status" "$action"
+    options+=("$row|$step")
+    [[ $step != mise_tools || $SKIP_MANAGED_TOOLS != true ]] || continue
+    ! setup_step_default_selected "$step" "$requested" || selected+=("$row")
+  done
+  printf -v row '      %-20s %-28s %s' 'Tool' 'Version / Status' 'Action'
+  header="$row"
+  for row in "${ready[@]}"; do
+    header+=$'\n\033[38;5;82m'"$row"$'\033[0m'
+  done
+  header+=$'\n\nChoose setup steps'
+  selection="$(gum_ui choose --no-limit --label-delimiter '|' --header "$header" \
+    --cursor-prefix '[ ] ' --selected-prefix '[x] ' --unselected-prefix '[ ] ' \
+    --selected "$(IFS=,; printf '%s' "${selected[*]}")" \
+    "${options[@]}" < /dev/tty 2> /dev/tty)" || return $?
+  OPTIONAL_STEPS=''
+  SKIP_MANAGED_TOOLS=true
+  while IFS= read -r step; do
+    if [[ $step == mise_tools ]]; then
+      SKIP_MANAGED_TOOLS=false
+    elif setup_step_valid "$step"; then
+      OPTIONAL_STEPS+=",$step"
+    fi
+  done <<< "$selection"
+  OPTIONAL_STEPS="${OPTIONAL_STEPS#,}"
+}
+
 configure_sections() {
   if [[ $PROFILE == full && $INTERACTIVE == true ]]; then
-    local selection label step status version action row header requested="$OPTIONAL_STEPS"
-    local -a selected=() options=()
-    local -a ready=()
-    for step in mise_tools "${SETUP_STEPS[@]}"; do
-      setup_step_available "$step" || continue
-      label="$(setup_step_label "$step")"
-      if setup_step_installed "$step"; then
-        version="$(setup_step_version "$step")"
-        printf -v row '    ✓ %-20s %-28s %s' "$label" "${version:-Version unavailable}" 'Ready'
-        ready+=("$row")
-        continue
-      fi
-      action=Install
-      case "$step" in
-      mise_tools)
-        status="$(managed_tools_status)"
-        [[ $status != *'; sync' ]] || action=Sync
-        status="${status%%;*}"
-        ;;
-      *) status='Not installed' ;;
-      esac
-      printf -v row '%-20s %-28s %s' "$label" "$status" "$action"
-      options+=("$row|$step")
-      [[ $step != mise_tools || $SKIP_MANAGED_TOOLS != true ]] || continue
-      ! setup_step_default_selected "$step" "$requested" || selected+=("$row")
-    done
-    printf -v row '      %-20s %-28s %s' 'Tool' 'Version / Status' 'Action'
-    header="$row"
-    for row in "${ready[@]}"; do
-      header+=$'\n\033[38;5;82m'"$row"$'\033[0m'
-    done
-    header+=$'\n\nChoose setup steps'
-    selection="$(gum_ui choose --no-limit --label-delimiter '|' --header "$header" \
-      --cursor-prefix '[ ] ' --selected-prefix '[x] ' --unselected-prefix '[ ] ' \
-      --selected "$(IFS=,; printf '%s' "${selected[*]}")" \
-      "${options[@]}" < /dev/tty 2> /dev/tty)" || return $?
-    OPTIONAL_STEPS=''
-    SKIP_MANAGED_TOOLS=true
-    while IFS= read -r step; do
-      if [[ $step == mise_tools ]]; then
-        SKIP_MANAGED_TOOLS=false
-      elif setup_step_valid "$step"; then
-        OPTIONAL_STEPS+=",$step"
-      fi
-    done <<< "$selection"
-    OPTIONAL_STEPS="${OPTIONAL_STEPS#,}"
+    choose_setup_steps || return $?
   fi
   SECTIONS=('System|apt git mise nix' 'Dotfiles|dotfiles')
   if [[ $PROFILE == full ]]; then

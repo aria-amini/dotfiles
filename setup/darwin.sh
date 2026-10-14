@@ -14,7 +14,7 @@ install_script() {
   local url="$1" script rc=0
   shift
   script="$(mktemp "${TMPDIR:-/tmp}/dotfiles-script-XXXXXX")"
-  if curl -fsSL --retry 3 --connect-timeout 10 "$url" -o "$script"; then
+  if fetch "$url" -o "$script"; then
     sh "$script" "$@" || rc=$?
   else
     rc=$?

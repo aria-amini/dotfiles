@@ -119,14 +119,19 @@ Use [my jj-ryu fork](https://github.com/aria-amini/jj-ryu) as the Graphite equiv
 
 `ryu merge <name>` also merges every unmerged PR below it. The immutable-history rules apply to all stack operations.
 
-### Kodus Review
+### CodeRabbit Review
 
-Kodus reviews every PR. The `Kody Code Review` check is required on `main`.
+CodeRabbit reviews are expensive. Request them only for high-risk or large PRs.
+Review settings live in the CodeRabbit dashboard, not in repo files.
 
-- Wait for the `Kody Code Review` check on the latest commit before merge.
-- Read each Kody comment. Validate the finding, test the fix, and explain false positives in the review thread.
-- Fix with jj, then resubmit with `ryu submit`.
-- Before merge, require a Kody review of the latest diff, green required checks, and resolved threads for every affected PR.
+- Skip the review for small, low-risk PRs.
+- Request a review for PRs that change auth, data, migrations, or infrastructure.
+- Request a review for large PRs.
+- Request a review by commenting `@coderabbitai review` on the PR.
+- Request a review on the latest commit before merge, when the PR meets the criteria above.
+- Read each CodeRabbit comment. Validate the finding, test the fix, and explain false positives in the review thread.
+- Fix with jj, then resubmit with `ryu submit`, then request a new review when the PR still meets the criteria.
+- Before merge, confirm green required checks and resolved threads for every affected PR. Require a CodeRabbit review of the latest diff only when the PR was reviewed.
 - Recheck after stack updates. A passing check alone does not authorize merge.
 
 ### Coding Style
