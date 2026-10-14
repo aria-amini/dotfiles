@@ -18,11 +18,13 @@ def main():
     parser.add_argument("--dir", type=Path, default=Path.cwd())
     args = parser.parse_args()
     if (
-        not re.fullmatch(r"[a-zA-Z0-9_](?:[a-zA-Z0-9_.-]*[a-zA-Z0-9_])?", args.slug)
+        not re.fullmatch(r"[a-zA-Z0-9_](?:[a-zA-Z0-9_-]*[a-zA-Z0-9_])?", args.slug)
         or "--" in args.slug
-        or ".." in args.slug
     ):
-        parser.error("The slug must be a valid Pitchfork namespace")
+        # Pitchfork uses slugs as DNS labels, so `proxy add` rejects dots.
+        parser.error(
+            "The slug must be a valid Pitchfork namespace without dots, for example app-worktree"
+        )
 
     root = args.dir.expanduser().resolve(strict=True)
     if not root.is_dir():

@@ -73,6 +73,22 @@ def test_register_preserves_overrides_and_sets_checkout_specific_namespace(
     assert len(calls(pitchfork_env)) == 2
 
 
+def test_register_rejects_dotted_slug_without_changes(
+    tmp_path: Path, pitchfork_env: dict[str, str]
+) -> None:
+    result = run_script(
+        "pitchfork-register",
+        pitchfork_env,
+        "app.worktree",
+        "--dir",
+        str(tmp_path),
+    )
+    assert result.returncode != 0
+    assert "without dots" in result.stderr
+    assert not (tmp_path / "pitchfork.local.toml").exists()
+    assert not calls(pitchfork_env)
+
+
 def test_register_rejects_conflicting_namespace_without_changes(
     tmp_path: Path, pitchfork_env: dict[str, str]
 ) -> None:
