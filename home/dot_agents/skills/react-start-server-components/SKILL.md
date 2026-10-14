@@ -1,5 +1,5 @@
 ---
-name: react-start/server-components
+name: react-start-server-components
 description: >-
   Implement, review, debug, and refactor TanStack Start React Server
   Components in React 19 apps. Use when tasks mention
