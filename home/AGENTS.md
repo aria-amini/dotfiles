@@ -16,10 +16,14 @@ the VM over Tailscale. Clients and the server share no filesystem.
 - Caddy owns port 443 on the Tailscale IP. Never publish a Tailscale Serve
   mapping on 443.
 - For browser work, follow the `browser-use` skill.
+- In zsh, never name a loop variable `path`. zsh ties `path` to `PATH`. Use
+  `file` or another name.
 
 ## Version Control
 
-- Use jujutsu (jj). **Never use git.**
+- Use jujutsu (jj). **Never use git** for writes. Read-only git commands, for
+  example `git log` or `git show`, are allowed. Never stage, commit, or push
+  with git.
 - Treat commits protected by the local jj `immutable_heads()` revset as shared
   history. Never rewrite, rebase, squash, abandon, or bypass that protection
   without the user's explicit permission for that exact operation. Do not add
