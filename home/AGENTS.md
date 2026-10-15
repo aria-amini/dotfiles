@@ -59,6 +59,12 @@ example checks, labels, and review comments.
 
 To publish, review, or merge a PR, follow the `ship-pr` skill.
 
+Own each PR until it is merge-ready. After you push, do not end the task. Watch
+every check, deploy status, and requested review until they settle. Fix
+failures and review findings without a prompt from the user. Tell the user when
+the PR is merge-ready or when you are blocked. The `ship-pr` skill defines each
+step.
+
 ## Code
 
 - When making technical decisions, do not give much weight to development cost.
