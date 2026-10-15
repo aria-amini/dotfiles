@@ -19,7 +19,9 @@ the VM over Tailscale. Clients and the server share no filesystem.
 
 ## Version Control
 
-- Use jujutsu (jj). **Never use git.**
+- Use jujutsu (jj). **Never use git** for writes. Read-only git commands, for
+  example `git log` or `git show`, are allowed. Never stage, commit, or push
+  with git.
 - Treat commits protected by the local jj `immutable_heads()` revset as shared
   history. Never rewrite, rebase, squash, abandon, or bypass that protection
   without the user's explicit permission for that exact operation. Do not add
@@ -44,8 +46,8 @@ Stack PRs in two cases only:
 
 - Dependent work must continue while the previous PR waits for review or CI.
 - The main PR has a lot of churn, and cleanups or small unrelated fixes
-  accumulate in it. These changes are ready to merge now. Move them to one PR
-  at the bottom of the stack. Merge it first while the rest iterates.
+  accumulate in it. These changes are ready to merge now. Move them to one PR at
+  the bottom of the stack. Merge it first while the rest iterates.
 
 Do not stack PRs for other reasons.
 
@@ -58,6 +60,11 @@ GitHub stack. Use `gh` only for operations that ryu does not support, for
 example checks, labels, and review comments.
 
 To publish, review, or merge a PR, follow the `ship-pr` skill.
+
+Own each PR until it is merge-ready. After you push, do not end the task. Watch
+every check, deploy status, and requested review until they settle. Fix failures
+and review findings without a prompt from the user. Tell the user when the PR is
+merge-ready or when you are blocked. The `ship-pr` skill defines each step.
 
 ## Code
 
