@@ -49,7 +49,7 @@ shellcheck = "latest"
 "oh-my-posh" = "latest"
 
 # AI
-"opencode" = "latest"
+"npm:@opencode/cli" = { version = "2", allow_builds = ["@opencode/cli"] }
 codex = "latest"
 pi = "latest"
 claude = "latest"
