@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Mint a T3 Code pairing QR over Tailscale Serve"
+#MISE quiet=true
+#
+# mise run t3-pair                      pair with the default label and a 5 minute token
+# mise run t3-pair -- --label phone     extra flags go straight to `t3 pair`
+#
+# Port 8443 is the existing Serve mapping for this server. Caddy owns 443, so never let `t3 pair`
+# fall back to its default of 443.
+set -euo pipefail
+
+exec t3 pair --tailscale --tailscale-serve-port "${T3_SERVE_PORT:-8443}" "$@"
