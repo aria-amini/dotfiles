@@ -1059,3 +1059,132 @@ esac
     assert "<DOTFILES_PROFILE=full>" in result.stdout
     assert "<TERM=xterm-256color>" in result.stdout
     assert "<COLORTERM=truecolor>" in result.stdout
+
+
+def run_age_setup(
+    tmp_path: Path, *, key_file: bool, config: str | None = None, encrypted: bool = True
+) -> tuple[subprocess.CompletedProcess[str], Path]:
+    home = tmp_path / "home"
+    source = tmp_path / "source"
+    home.mkdir()
+    source.mkdir()
+    if encrypted:
+        (source / "encrypted_token.age").write_text("ciphertext")
+    env = {
+        **{k: v for k, v in os.environ.items() if k != "XDG_CONFIG_HOME"},
+        "HOME": str(home),
+        "DOTFILES_DIR": str(source),
+        "DOTFILES_ASSUME_YES": "true",
+    }
+    if config is not None:
+        (home / ".config/chezmoi").mkdir(parents=True)
+        (home / ".config/chezmoi/chezmoi.toml").write_text(config)
+    if key_file:
+        key = tmp_path / "key.txt"
+        subprocess.run(
+            ["chezmoi", "age-keygen", "--output", str(key)], check=True, env=env
+        )
+        env["DOTFILES_AGE_KEY_FILE"] = str(key)
+    result = subprocess.run(
+        ["bash", "-c", f'source "{ROOT}/setup/common.sh"; ensure_age_identity'],
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return result, home / ".config/chezmoi"
+
+
+def test_age_key_file_configures_encryption(tmp_path: Path) -> None:
+    result, chezmoi_dir = run_age_setup(tmp_path, key_file=True)
+    assert result.returncode == 0, result.stderr
+    assert (chezmoi_dir / "age-key.txt").stat().st_mode & 0o777 == 0o600
+    config = tomllib.loads((chezmoi_dir / "chezmoi.toml").read_text())
+    assert config["encryption"] == "age"
+    assert config["age"]["recipient"].startswith("age1")
+    assert "skipped" not in result.stderr
+
+
+def test_missing_age_key_skips_with_hint(tmp_path: Path) -> None:
+    result, chezmoi_dir = run_age_setup(tmp_path, key_file=False)
+    assert result.returncode == 0
+    assert "Encrypted credentials skipped" in result.stderr
+    assert not (chezmoi_dir / "chezmoi.toml").exists()
+
+
+def test_existing_config_is_not_overwritten(tmp_path: Path) -> None:
+    result, chezmoi_dir = run_age_setup(tmp_path, key_file=True, config="[data]\n")
+    assert result.returncode == 0
+    assert (chezmoi_dir / "chezmoi.toml").read_text() == "[data]\n"
+    assert 'encryption = "age"' in result.stderr
+
+
+def test_age_setup_ignores_repos_without_encrypted_files(tmp_path: Path) -> None:
+    result, chezmoi_dir = run_age_setup(tmp_path, key_file=True, encrypted=False)
+    assert result.returncode == 0
+    assert result.stderr == ""
+    assert not chezmoi_dir.exists()
+
+
+def test_invalid_age_key_file_is_rejected_and_replaceable(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.txt"
+    bad.write_text("not a key\n")
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "x.age").write_text("c")
+    chezmoi_dir = tmp_path / "home/.config/chezmoi"
+    env = {
+        **{k: v for k, v in os.environ.items() if k != "XDG_CONFIG_HOME"},
+        "HOME": str(tmp_path / "home"),
+        "DOTFILES_DIR": str(source),
+        "DOTFILES_ASSUME_YES": "true",
+        "DOTFILES_AGE_KEY_FILE": str(bad),
+    }
+    run = lambda: subprocess.run(  # noqa: E731
+        ["bash", "-c", f'source "{ROOT}/setup/common.sh"; ensure_age_identity'],
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    first = run()
+    assert first.returncode == 0
+    assert "Age key is invalid" in first.stderr
+    assert not (chezmoi_dir / "age-key.txt").exists()
+    good = tmp_path / "good.txt"
+    subprocess.run(
+        ["chezmoi", "age-keygen", "--output", str(good)], check=True, env=env
+    )
+    env["DOTFILES_AGE_KEY_FILE"] = str(good)
+    assert run().returncode == 0
+    assert (chezmoi_dir / "chezmoi.toml").exists()
+
+
+def test_age_config_follows_xdg_config_home(tmp_path: Path) -> None:
+    xdg = tmp_path / "xdg"
+    key = tmp_path / "key.txt"
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "x.age").write_text("c")
+    subprocess.run(["chezmoi", "age-keygen", "--output", str(key)], check=True)
+    result = subprocess.run(
+        ["bash", "-c", f'source "{ROOT}/setup/common.sh"; ensure_age_identity'],
+        env={
+            **os.environ,
+            "HOME": str(tmp_path / "home"),
+            "XDG_CONFIG_HOME": str(xdg),
+            "DOTFILES_DIR": str(source),
+            "DOTFILES_AGE_KEY_FILE": str(key),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (xdg / "chezmoi/chezmoi.toml").exists()
+
+
+def test_non_age_encryption_config_is_reported(tmp_path: Path) -> None:
+    result, _ = run_age_setup(tmp_path, key_file=True, config='encryption = "gpg"\n')
+    assert result.returncode == 0
+    assert 'encryption = "age"' in result.stderr
