@@ -26,7 +26,7 @@ workspace_picker = "prefix+w"
 # goto = "prefix+g"
 # new_workspace = "prefix+shift+n"
 # new_worktree = "prefix+shift+g"
-# open_worktree = ""    # optional, unset by default
+open_worktree = "prefix+shift+o"
 # rename_workspace = "prefix+shift+w"
 # prefix+d closes/detaches the workspace (worktree stays on disk);
 # prefix+shift+d removes the worktree
