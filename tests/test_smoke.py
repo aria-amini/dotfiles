@@ -59,7 +59,7 @@ chezmoi --source /dotfiles --no-tty --error-on-conflict apply --include scripts 
 test ! -s /tmp/hook-reapply.txt
 test -z "$(chezmoi --source /dotfiles \\
   --override-data '{"chezmoi":{"os":"darwin"}}' execute-template \\
-  < /dotfiles/home/run_after_herdr_jj_plugin.sh.tmpl)"
+  < /dotfiles/home/run_onchange_after_herdr_jj_plugin.sh.tmpl)"
 """
 
 VERIFY_FULL_PLUGIN = """

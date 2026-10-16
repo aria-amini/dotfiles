@@ -12,6 +12,27 @@ from conftest import ROOT
 Shell = Callable[[str], subprocess.CompletedProcess[str]]
 
 
+def herdr_hook(profile: str = "full", skip: str = "false") -> str:
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "execute-template",
+            "--override-data",
+            '{"chezmoi":{"os":"linux"}}',
+        ],
+        input=(ROOT / "home/run_onchange_after_herdr_jj_plugin.sh.tmpl").read_text(),
+        env={
+            **os.environ,
+            "DOTFILES_PROFILE": profile,
+            "DOTFILES_SKIP_MANAGED_TOOLS": skip,
+        },
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return result.stdout
+
+
 @pytest.fixture
 def linux(tmp_path: Path) -> Shell:
     proc_version = tmp_path / "proc-version"
@@ -53,10 +74,7 @@ def linux(tmp_path: Path) -> Shell:
 def test_herdr_jj_hook_retries_failures_and_is_idempotent(
     linux: Shell, stage: str
 ) -> None:
-    template = (ROOT / "home/run_after_herdr_jj_plugin.sh.tmpl").read_text()
-    hook = template.removeprefix('{{ if eq .chezmoi.os "linux" -}}\n').removesuffix(
-        "{{ end -}}\n"
-    )
+    hook = herdr_hook()
     assert "{{" not in hook
     result = linux(
         f"HOOK={shlex.quote(hook)}\nFAIL_STAGE={stage}\n"
@@ -124,10 +142,8 @@ current=$(grep -c link "$HOME/calls")
 def test_herdr_jj_hook_respects_setup_selection(
     linux: Shell, profile: str, skip: str
 ) -> None:
-    template = (ROOT / "home/run_after_herdr_jj_plugin.sh.tmpl").read_text()
-    hook = template.removeprefix('{{ if eq .chezmoi.os "linux" -}}\n').removesuffix(
-        "{{ end -}}\n"
-    )
+    hook = herdr_hook(profile, skip)
+    assert hook == ""
     result = linux(
         f"HOOK={shlex.quote(hook)}\n"
         f"export DOTFILES_PROFILE={profile} DOTFILES_SKIP_MANAGED_TOOLS={skip}\n"
@@ -143,10 +159,7 @@ test ! -e "$HOME/tools/herdr-jj-workspaces"
 
 
 def test_herdr_jj_hook_shellcheck() -> None:
-    template = (ROOT / "home/run_after_herdr_jj_plugin.sh.tmpl").read_text()
-    hook = template.removeprefix('{{ if eq .chezmoi.os "linux" -}}\n').removesuffix(
-        "{{ end -}}\n"
-    )
+    hook = herdr_hook()
     result = subprocess.run(
         ["shellcheck", "--shell=bash", "-"],
         input=hook,
@@ -155,6 +168,63 @@ def test_herdr_jj_hook_shellcheck() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_herdr_jj_hook_runs_only_on_content_changes(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    name = "run_onchange_after_herdr_jj_plugin.sh.tmpl"
+    hook = source / name
+    hook.write_text((ROOT / "home" / name).read_text())
+    home = tmp_path / "home"
+    binaries = home / ".local/bin"
+    binaries.mkdir(parents=True)
+    (home / "tools/herdr-jj-workspaces/.git").mkdir(parents=True)
+    for tool in ("mise", "herdr", "herdr-jj"):
+        binary = binaries / tool
+        binary.write_text('#!/bin/sh\nprintf "%s\\n" "$0 $*" >> "$HOME/calls"\n')
+        binary.chmod(0o755)
+
+    def apply(profile: str) -> None:
+        subprocess.run(
+            [
+                "chezmoi",
+                "--config",
+                str(tmp_path / "config.toml"),
+                "--source",
+                str(source),
+                "--destination",
+                str(home),
+                "--persistent-state",
+                str(tmp_path / "state.boltdb"),
+                "--override-data",
+                '{"chezmoi":{"os":"linux"}}',
+                "apply",
+            ],
+            env={
+                **os.environ,
+                "HOME": str(home),
+                "DOTFILES_PROFILE": profile,
+                "DOTFILES_SKIP_MANAGED_TOOLS": "false",
+            },
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+    apply("core")
+    calls = home / "calls"
+    assert not calls.exists()
+    apply("full")
+    first_calls = calls.read_text()
+    assert "plugin link" in first_calls
+    apply("full")
+    (source / "dot_unrelated").write_text("unrelated change\n")
+    apply("full")
+    assert calls.read_text() == first_calls
+    hook.write_text(hook.read_text().replace("ready", "updated"))
+    apply("full")
+    assert calls.read_text() == first_calls * 2
 
 
 def test_transcripts_are_private_and_unique(linux: Shell) -> None:
