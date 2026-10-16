@@ -107,7 +107,6 @@ fastfetch = "latest"
 "github:alexpasmantier/television" = "latest"
 "github:EzraCerpac/jj-waltz" = "0.7.0"
 "gum" = "latest"
-"aqua:openbao/openbao/bao" = "latest"
 chezmoi = "latest"
 wrangler = "4.149.0"
 

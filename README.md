@@ -38,10 +38,15 @@ The `wsl_interop` step turns off Windows PATH interop and Windows drive automoun
 Full-profile plugin failures stop apply. Correct the failure, then repeat setup or Chezmoi apply to retry.
 Direct Linux Chezmoi apply installs the plugin unless `DOTFILES_PROFILE=core` or `DOTFILES_SKIP_MANAGED_TOOLS=true`.
 
+## Caddy credential
+
+Caddy loads its Cloudflare token from `~/.config/personal-secrets/caddy.env`. Chezmoi stores that file age-encrypted.
+See [the credential guide](docs/secrets.md) for setup and restore steps.
+
 ## Host kinds
 
 Chezmoi derives a host kind in `home/.chezmoitemplates/host-kind`. The kinds are `mac`, `wsl`, `linux` (the Lima VM), and `other`.
-Ignore rules and `TAILSCALE_IP` read the host kind. WSL skips the Caddy, OpenBao agent, and Pitchfork config files.
+Ignore rules and `TAILSCALE_IP` read the host kind. WSL skips the Caddy and Pitchfork config files.
 
 On WSL, the setup menu does not preselect Docker. Docker Desktop provides the client.
 To install the Docker engine, select Docker in the menu or pass `--with docker`.

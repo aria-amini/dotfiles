@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+home/**/age-key.txt
+home/**/private_age-key.txt

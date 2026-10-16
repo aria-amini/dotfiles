@@ -1,0 +1,6 @@
+.env.schema
+.config/openbao/caddy-agent.hcl
+.config/openbao/caddy-role.json
+.config/openbao/policies/caddy-reader.hcl
+.config/openbao/README.md
+.local/bin/personal-secrets
