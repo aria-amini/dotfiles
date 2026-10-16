@@ -3,7 +3,7 @@
 
 [--scope.revset-aliases]
 "tools_log()" = '''
-working_copies() | (main@upstream..main) |
+mine() | working_copies() | (main@upstream..main) |
 (main@upstream..tools_work()) |
-(tags(regex:"^v0[.]0[.][0-9]+$") & ::main@upstream)
+(tags(regex:"^v0[.][0-9]+[.][0-9]+$") & ::main@upstream)
 '''
