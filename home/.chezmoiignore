@@ -7,13 +7,11 @@
 .config/lima
 .lima
 .config/caddy-lab
-.config/openbao/caddy-agent.hcl
 .config/pitchfork/config.toml
 .local/bin/caddy-start
 .local/bin/caddy-health
 {{ else if eq $host "mac" }}
 .config/caddy-lab
-.config/openbao/caddy-agent.hcl
 .config/pitchfork/config.toml
 .local/bin/caddy-start
 .local/bin/caddy-health
@@ -24,4 +22,7 @@
 !.ssh{,/**}
 !.config
 !.config/{opencode,wezterm}{,/**}
+{{ end }}
+{{ if ne (get .chezmoi.config "encryption" | default "") "age" }}
+.config/personal-secrets
 {{ end }}

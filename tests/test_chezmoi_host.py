@@ -71,3 +71,26 @@ def test_ignore_rules_follow_the_host(host: str, ignored: dict[str, bool]) -> No
 @pytest.mark.parametrize(("host", "exported"), [("linux", True), ("wsl", False)])
 def test_tailscale_ip_only_on_the_vm(host: str, exported: bool) -> None:
     assert ("TAILSCALE_IP" in render("dot_zprofile.tmpl", host)) is exported
+
+
+@pytest.mark.parametrize(
+    ("config", "ignored"), [("", True), ('encryption = "age"\n', False)]
+)
+def test_credentials_wait_for_age(tmp_path, config: str, ignored: bool) -> None:
+    config_file = tmp_path / "chezmoi.toml"
+    config_file.write_text(config)
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            str(config_file),
+            "--source",
+            str(ROOT),
+            "execute-template",
+        ],
+        input=(HOME_SOURCE / ".chezmoiignore").read_text(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert (".config/personal-secrets" in result.stdout.split()) is ignored

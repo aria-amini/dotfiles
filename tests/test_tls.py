@@ -1,7 +1,5 @@
-import json
 import os
 import pwd
-import re
 import shlex
 import shutil
 import subprocess
@@ -120,55 +118,24 @@ def test_tls_modifier_rejects_invalid_input_without_output(
     assert target.read_text() == invalid
 
 
-@pytest.mark.parametrize("available", [True, False])
-def test_agent_resolves_mise_from_path(
-    tmp_path: Path, chezmoi_binary: str, available: bool
-) -> None:
-    system_bin = tmp_path / "system bin"
-    system_bin.mkdir()
-    mise = system_bin / "mise"
-    if available:
-        mise.write_text("#!/bin/sh\nexit 0\n")
-        mise.chmod(0o755)
-    template = (ROOT / "home/dot_config/openbao/caddy-agent.hcl.tmpl").read_text()
-    config = tmp_path / "chezmoi.toml"
-    config.write_text("")
-    result = subprocess.run(
-        [chezmoi_binary, "--config", str(config), "execute-template"],
-        input=template,
-        env={**os.environ, "PATH": str(system_bin)},
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if not available:
-        assert result.returncode != 0
-        assert "Mise must be on PATH" in result.stderr
-        return
-    assert result.returncode == 0, result.stderr
-    match = re.search(r"command = (\[.*\])", result.stdout)
-    assert match is not None
-    assert json.loads(match[1])[0] == str(mise)
-
-
-def test_caddy_start_uses_live_address_and_excludes_cli_tokens(linux: Shell) -> None:
+def test_caddy_start_uses_live_address_and_local_token(linux: Shell) -> None:
     result = linux(r"""
-mkdir -p "$HOME/.config/openbao" "$HOME/bin"
-printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'bao "$@"' > "$HOME/bin/bao"
-chmod +x "$HOME/bin/bao"
+mkdir -p "$HOME/.config/personal-secrets" "$HOME/bin"
+printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'mise "$@"' > "$HOME/bin/mise"
+chmod +x "$HOME/bin/mise"
 export PATH="$HOME/bin:$PATH"
-printf role > "$HOME/.config/openbao/caddy-role-id"
-printf secret > "$HOME/.config/openbao/caddy-secret-id"
-export CF_API_TOKEN=old BAO_TOKEN=human VAULT_TOKEN=human
-mise() { [[ $MISE_AUTO_INSTALL == false && "$*" == 'which caddy-cf' ]]; }
+printf 'export CF_API_TOKEN=local-token\n' > "$HOME/.config/personal-secrets/caddy.env"
+export CF_API_TOKEN=old
 tailscale() { printf '100.64.0.2\n'; }
 ip() { printf '    inet 100.64.0.2/32 scope global tailscale0\n'; }
-bao() {
+mise() {
+  [[ $MISE_AUTO_INSTALL == false ]]
   [[ $CADDY_BIND == 100.64.0.2 ]]
-  [[ ! -v CF_API_TOKEN && ! -v BAO_TOKEN && ! -v VAULT_TOKEN ]]
-  [[ "$*" == "agent -config=$HOME/.config/openbao/caddy-agent.hcl -log-format=json" ]]
+  [[ $CF_API_TOKEN == local-token ]]
+  [[ "$*" == "exec http:caddy-cf -- caddy-cf run --config "* ]]
+  [[ ${!#} == "$HOME/.config/caddy-lab/Caddyfile" ]]
 }
-export -f mise tailscale ip bao
+export -f mise tailscale ip
 bash "$DOTFILES_DIR/home/dot_local/bin/executable_caddy-start"
 """)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -177,7 +144,17 @@ bash "$DOTFILES_DIR/home/dot_local/bin/executable_caddy-start"
 def test_caddy_start_requires_enrollment(linux: Shell) -> None:
     result = linux('bash "$DOTFILES_DIR/home/dot_local/bin/executable_caddy-start"')
     assert result.returncode != 0
-    assert "OpenBao credential caddy-role-id is unavailable" in result.stderr
+    assert "caddy.env is missing or empty" in result.stderr
+
+
+def test_caddy_start_rejects_empty_token(linux: Shell) -> None:
+    result = linux("""
+mkdir -p "$HOME/.config/personal-secrets"
+printf 'export CF_API_TOKEN=\\n' > "$HOME/.config/personal-secrets/caddy.env"
+CF_API_TOKEN=inherited bash "$DOTFILES_DIR/home/dot_local/bin/executable_caddy-start"
+""")
+    assert result.returncode != 0
+    assert "local CF_API_TOKEN is empty" in result.stderr
 
 
 def test_pitchfork_setup_starts_supervisor_and_trusts_ca(linux: Shell) -> None:

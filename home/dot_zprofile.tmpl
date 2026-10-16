@@ -17,13 +17,3 @@ esac
 # devices can reach them. Projects fall back to `tailscale ip -4`.
 export TAILSCALE_IP="{{ .vm.ip }}"
 {{ end }}
-
-# Personal secret vault (self-hosted OpenBao via varlock; schema in
-# ~/.env.schema). Keys resolve into login-shell env so every
-# project and tool sees process env; BAO_* plumbing stays internal.
-# Failures stay silent so a broken vault never blocks a shell.
-_varlock="$HOME/.local/share/mise/shims/varlock"
-if [ -f "$HOME/.env.schema" ] && [ -x "$_varlock" ]; then
-  eval "$("$_varlock" load -p "$HOME" --format shell --compact --filter '!BAO_*' 2>/dev/null)"
-fi
-unset _varlock
