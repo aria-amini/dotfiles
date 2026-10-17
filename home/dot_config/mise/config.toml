@@ -109,6 +109,7 @@ fastfetch = "latest"
 "gum" = "latest"
 chezmoi = "latest"
 wrangler = "4.149.0"
+"npm:cf" = "1.0.0-beta.18"
 
 [tools."http:caddy-cf"]
 version = "2.11.6"
