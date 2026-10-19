@@ -2,6 +2,7 @@
 
 managed_tool_names() {
   awk '
+    FNR == 1 { tools = 0 }
     /^\[tools\.("[^"]+"|[A-Za-z0-9_-]+)\][[:space:]]*(#.*)?$/ {
       name = $0
       sub(/^\[tools\./, "", name)
@@ -16,7 +17,7 @@ managed_tool_names() {
       gsub(/["[:space:]]/, "")
       if (!seen[$0]++) print
     }
-  ' "$DOTFILES_DIR/mise-global.toml"
+  ' "$DOTFILES_DIR/mise-global/config.toml" "$DOTFILES_DIR"/mise-global/conf.d/*.toml
 }
 
 managed_tools_status() {

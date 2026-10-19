@@ -7,7 +7,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from conftest import ROOT
+from conftest import ROOT, mise_tools
 from test_setup import Shell
 from test_setup import linux as linux
 
@@ -189,8 +189,7 @@ cat "$HOME/calls"
 def test_caddy_install_grants_bind_permission_when_required(
     linux: Shell, first_port: int
 ) -> None:
-    config = tomllib.loads((ROOT / "mise-global.toml").read_text())
-    hook = config["tools"]["http:caddy-cf"]["postinstall"]
+    hook = mise_tools()["http:caddy-cf"]["postinstall"]
     result = linux(
         f"FIRST_PORT={first_port}\nHOOK={shlex.quote(hook)}\n"
         + r"""
