@@ -17,7 +17,8 @@ useradd --create-home --shell /bin/bash smoke
 printf 'smoke ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/smoke
 chmod 0440 /etc/sudoers.d/smoke
 mkdir /dotfiles
-cp -r /source/home /source/setup /source/.chezmoiroot /dotfiles/
+cp -r /source/home /source/setup /source/.chezmoiroot /source/mise-global.toml \\
+  /dotfiles/
 chown -R smoke:smoke /dotfiles
 """
 
