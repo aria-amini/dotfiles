@@ -1,0 +1,28 @@
+[env]
+_.file = [{ path = "~/.env" }]
+
+[settings]
+experimental = true
+minimum_release_age = "1d"
+idiomatic_version_file_enable_tools = ["node"]
+
+[plugins]
+nix = "https://github.com/jbadeau/mise-nix.git"
+vite-plus = "https://github.com/markmals/mise-vite-plus"
+
+[tools]
+python = "3.14"
+uv = "latest"
+"pipx:basedpyright" = "latest"
+"pipx:ruff" = "latest"
+
+rust = "latest"
+
+dotnet = "10"
+
+vite-plus = "latest"
+node = "22"
+bun = "latest"
+"npm:corepack" = "latest"
+"npm:pnpm" = "latest"
+"npm:typescript" = "latest"

@@ -1,0 +1,46 @@
+[tools]
+# Shell
+"github:herdrdev/herdr" = "0.9.1"
+"oh-my-posh" = "latest"
+
+# nvim
+neovim = "0.12.5"
+"nix:tree-sitter" = "latest"
+"nix:gnumake" = "latest"
+"nix:unzip" = "latest"
+"nix:xclip" = "latest"
+make = "latest"
+"nix:gcc" = "16.2.0"
+
+# database 
+"nix:postgresql_18" = "latest"
+sqlite = "latest"
+
+# images
+imagemagick = "latest"
+"github:danielgatis/imgcat" = "latest"
+"nix:chafa" = "latest"
+
+# CLIs 
+"bat" = "latest"
+jq = "latest"
+fd = "latest"
+"nix:eza" = "latest"
+"just" = "latest"
+"fzf" = "latest"
+"yazi" = "latest"
+"zoxide" = "latest"
+"delta" = "latest"
+"ripgrep" = "latest"
+"nix:erdtree" = "latest"
+pitchfork = "2.28.0"
+fastfetch = "latest"
+
+"npm:chrome-devtools-axi" = "latest"
+"github:alexpasmantier/television" = "latest"
+"github:EzraCerpac/jj-waltz" = "0.7.0"
+"gum" = "latest"
+chezmoi = "latest"
+wrangler = "4.149.0"
+"npm:cf" = "1.0.0-beta.18"
+

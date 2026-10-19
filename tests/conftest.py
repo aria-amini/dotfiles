@@ -1,8 +1,21 @@
+import tomllib
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def mise_tools() -> dict[str, Any]:
+    tools: dict[str, Any] = {}
+    files = [
+        ROOT / "mise-global/config.toml",
+        *sorted(ROOT.glob("mise-global/conf.d/*.toml")),
+    ]
+    for file in files:
+        tools |= tomllib.loads(file.read_text()).get("tools", {})
+    return tools
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

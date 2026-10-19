@@ -1,0 +1,17 @@
+[tools]
+# TODO: only needed for `tsgo --lsp` (TS7 language server). Stable typescript@7
+# ships tsc but no LSP binary yet — drop this once TS 7.1 (~Oct 2026) folds the
+# language server into the main `typescript` package. Referenced by opencode.json.
+"npm:@typescript/native-preview" = "7.0.0-dev.20260707.2"
+"npm:@tailwindcss/language-server" = "latest"
+"npm:vscode-langservers-extracted" = "latest"
+"github:LuaLS/lua-language-server" = "3.19.1"
+"npm:markdownlint-cli2" = "latest"
+"npm:oxfmt" = "latest"
+"github:JohnnyMorganz/StyLua" = "latest"
+"github:tamasfe/taplo" = "latest"
+tflint = "0.64.0"
+hadolint = "2.15.1"
+"npm:jsonlint" = "1.6.3"
+shellcheck = "latest"
+

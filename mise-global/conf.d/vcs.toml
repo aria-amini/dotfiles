@@ -1,0 +1,9 @@
+[tools]
+"github:aria-amini/jj" = "v0.46.0-adopt.20260908.1"
+"github:aria-amini/jj-ryu" = "0.2.4-fork.5"
+"nix:jjui" = "latest"
+"npm:hunkdiff" = "latest"
+"difftastic" = "latest"
+"github-cli" = "latest"
+"nix:gh-dash" = "latest"
+
