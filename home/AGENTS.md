@@ -1,16 +1,16 @@
 # aamini coding
 
-This document outlines global rules for Aria's agents to follow.
+Global rules for Aria's agents.
 
 ## Environment
 
-My main coding sessions run on a lima Ubuntu VM on my MacBook Pro. I SSH into
-the VM over Tailscale. Clients and the server share no filesystem.
+Main coding sessions run on a lima Ubuntu VM on a MacBook Pro. Aria connects
+over Tailscale SSH. Clients and the server share no filesystem.
 
-- Manage home-directory dotfiles with Chezmoi. Edit source files under
-  `~/.local/share/chezmoi/home`. Then apply only the changed targets with
-  `chezmoi apply`.
-- URLs that a client must load stay reachable from the client network, never
+- Manage home-directory dotfiles with Chezmoi. Edit sources under
+  `~/.local/share/chezmoi/home`. Then run `chezmoi apply` for the changed
+  targets only.
+- Make each URL that a client must load reachable from the client network, not
   server-side localhost. Follow the `tailnet-publish` skill to share a URL or
   file.
 - Caddy owns port 443 on the Tailscale IP. Never publish a Tailscale Serve
@@ -68,20 +68,19 @@ merge-ready or when you are blocked. The `ship-pr` skill defines each step.
 
 ## Code
 
-- When making technical decisions, do not give much weight to development cost.
+- When you make technical decisions, give little weight to development cost.
   Prefer quality, simplicity, robustness, scalability, and long-term
   maintainability.
-- Never write comments that restate what the code already says. If a comment
-  explains _what_ the code does, delete it and rename or restructure the code
-  instead. Comments must add information the code cannot express. Allowed:
-  - **Critical context**: why a non-obvious decision was made, constraints
-    imposed by external systems, or links to reference material.
-  - **Section markers**: short labels (often one word) like `// Shared`, or the
-    banner style `// ===== Section =====`, to annotate blocks of code.
+- Never write comments that restate what the code says. Rename or restructure
+  the code instead. Allowed comments:
+  - **Critical context**: why a non-obvious decision was made, constraints from
+    external systems, or links to reference material.
+  - **Section markers**: short labels like `// Shared`, or the banner style
+    `// ===== Section =====`.
 
 ## Writing
 
-- Keep plans terse. Long, detailed plans are difficult to read.
+- Keep plans terse. Long plans are difficult to read.
 - For technical text, use ASD-STE100 style. Max 20 words per sentence in
   instructions, 25 in descriptions. Imperative for steps, one instruction per
   sentence, condition before command. Simple tenses only — no present perfect,
