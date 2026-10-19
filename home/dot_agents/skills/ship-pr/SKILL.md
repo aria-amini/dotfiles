@@ -11,7 +11,7 @@ user-invocable: false
 # ship-pr
 
 Use [the jj-ryu fork](https://github.com/aria-amini/jj-ryu) as the Graphite
-equivalent for jj. The immutable-history rules in AGENTS.md apply to all stack
+equivalent for jj. The Version Control rules in AGENTS.md apply to all stack
 operations.
 
 ## Publish
@@ -65,8 +65,9 @@ thread and offer the user an issue in the template repository.
 
 ## Fix
 
-1. Update the affected bookmarks with jj.
-2. Resubmit with `ryu submit`.
+1. Amend the commit that owns each fix with `jj squash --into <rev>` or
+   `jj absorb`. Do not append a commit to a PR that already covers the concern.
+2. Resubmit with `ryu submit`. ryu force-pushes the rewritten bookmarks.
 3. If the PR meets the review criteria, request a new CodeRabbit review.
 4. Watch the PR again.
 
