@@ -42,11 +42,23 @@ task after the first CI run.
 - If you cannot read a log, report it at once. For example, `railway` is not
   logged in. Name the exact access that you need. Do not guess the cause.
 
+## Local review
+
+Run this before any CodeRabbit review. The Review rules in AGENTS.md apply.
+
+1. Ask the user for feedback on the change. Apply it before cleanup.
+2. Start a cheap adversarial review with a subagent or the `code-review` skill.
+3. Check that each commit matches its description and that the stack is in sync.
+4. Spot test the change. Run the affected tests and the changed behavior.
+5. Fix real findings in the commit that owns the change. Repeat only while
+   findings remain. Stop after 3 rounds of review and fix.
+
 ## CodeRabbit review
 
-Request a review only for large PRs or PRs that change auth, data, migrations,
-or infrastructure. Review settings live in the CodeRabbit dashboard, not in
-repo files. Request the review yourself. Do not wait for the user to ask.
+CodeRabbit reviews are expensive. Request one review, as the last step before
+merge, only for large PRs or PRs that change auth, data, migrations, or
+infrastructure. Review settings live in the CodeRabbit dashboard, not in repo
+files. Request the review yourself when the local review settles.
 
 1. Comment `@coderabbitai review` on the PR.
 2. Watch for the review to finish.
@@ -56,8 +68,8 @@ repo files. Request the review yourself. Do not wait for the user to ask.
    writes git commits that ignore the jj commit structure.
 5. Reply in each thread with the fix, or with the reason for a false positive.
    Resolve the thread.
-6. Resubmit and request a new review. Repeat until CodeRabbit has no new
-   findings on the latest diff.
+6. Resubmit. Request a new review only if the 3-round limit allows it and a
+   fix changed the PR in a way that needs a new review.
 
 Copier template files, for example `mise-tasks/`, are overwritten on
 `copier update`. Do not fix findings on these files in the app PR. Reply in the
@@ -68,8 +80,7 @@ thread and offer the user an issue in the template repository.
 1. Amend the commit that owns each fix with `jj squash --into <rev>` or
    `jj absorb`. Do not append a commit to a PR that already covers the concern.
 2. Resubmit with `ryu submit`. ryu force-pushes the rewritten bookmarks.
-3. If the PR meets the review criteria, request a new CodeRabbit review.
-4. Watch the PR again.
+3. Watch the PR again.
 
 ## Report
 
@@ -89,7 +100,7 @@ A PR is merge-ready when all of these are true:
 
 - All checks are green, including deploy statuses.
 - All review threads are resolved.
-- If CodeRabbit reviewed the PR, CodeRabbit reviewed the latest diff.
+- If CodeRabbit reviewed the PR, each finding is fixed or answered.
 
 Check every affected PR before merge.
 

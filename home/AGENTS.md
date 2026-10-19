@@ -56,8 +56,19 @@ Stack PRs in two cases only:
 - Cleanups or small unrelated fixes accumulate in a high-churn main PR. Move
   them to one PR at the bottom of the stack. Merge it first.
 
-Request a CodeRabbit review only for large PRs or PRs that change auth, data,
-migrations, or infrastructure. CodeRabbit reviews are expensive.
+### Review
+
+CodeRabbit reviews are expensive. Minimize them and request them last.
+
+- Before review cleanup, show the user the change and ask for feedback.
+- Run cheap adversarial reviews locally as often as needed. Check that each
+  commit matches its description and that the change passes a basic spot test.
+- Never exceed 3 rounds of review and fix on one PR. Local and CodeRabbit
+  rounds count together. A check that needs no fix is not a round. After round
+  3, report the remaining findings to the user.
+- Request one CodeRabbit review, after local review settles and just before
+  merge. Request it only for large PRs or PRs that change auth, data,
+  migrations, or infrastructure.
 
 Use `ryu` to create, update, and merge PRs. Do not use `gh pr create` or
 `gh pr merge`. Use `gh` only for operations that ryu does not support, for
