@@ -19,18 +19,25 @@ over Tailscale SSH. Clients and the server share no filesystem.
 
 ## Version Control
 
-- Use jujutsu (jj). **Never use git** for writes. Read-only git commands, for
-  example `git log` or `git show`, are allowed. Never stage, commit, or push
-  with git.
-- Treat commits protected by the local jj `immutable_heads()` revset as shared
-  history. Never rewrite, rebase, squash, abandon, or bypass that protection
-  without the user's explicit permission for that exact operation. Do not add
-  `remote_bookmarks()` to `immutable_heads()`; a remote bookmark alone does not
-  make a commit immutable.
-- Before an approved immutable-commit operation, identify the affected commits
-  and explain the impact. Rewriting can make parallel workspaces stale or
-  divergent and discard reviewable history. Prefer a new descendant commit and a
-  forward bookmark move when that preserves the intended stack.
+- Use jujutsu (jj) for all reads and writes. Never use git for writes.
+- Keep each PR commit clean. To change existing work, amend the commit that owns
+  the change with `jj squash --into <rev>` or `jj absorb`. Do not append a fixup
+  commit.
+- Rebase, reorder, split, squash, and force-push PR commits and bookmarks
+  without permission. A pushed bookmark does not make a commit immutable.
+- Treat a jj immutable error as a signal to check before you rewrite. Another
+  workspace owns a commit when its working copy sits on or above that commit.
+  Run `jj workspace list` to find the owners. Run `jj status` in each owner
+  workspace to snapshot its files. If the working-copy commit of each owner is
+  empty, rewrite with `--ignore-immutable` without permission. Otherwise ask
+  first. To amend an owned commit, run
+  `jj squash --into <rev> --ignore-immutable`. Do not `jj edit` it.
+- After a rewrite, run `jj workspace update-stale` in each workspace that owns a
+  rewritten commit.
+- Trunk history is immutable: trunk, tags, and untracked remote bookmarks. Never
+  rewrite it, bypass it with `--ignore-immutable`, or change `immutable_heads()`
+  without explicit permission for that exact operation. Add a new commit instead
+  when possible.
 
 ## Pull Requests
 
