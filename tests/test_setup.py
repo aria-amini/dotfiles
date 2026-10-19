@@ -679,7 +679,7 @@ command() {
 managed_tools_status
 """)
     assert result.returncode == 0, result.stdout + result.stderr
-    catalog = tomllib.loads((ROOT / "home/dot_config/mise/config.toml").read_text())
+    catalog = tomllib.loads((ROOT / "mise-global.toml").read_text())
     assert result.stdout == f"0/{len(catalog['tools'])} installed; install"
 
 

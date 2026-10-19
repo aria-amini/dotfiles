@@ -189,7 +189,7 @@ cat "$HOME/calls"
 def test_caddy_install_grants_bind_permission_when_required(
     linux: Shell, first_port: int
 ) -> None:
-    config = tomllib.loads((ROOT / "home/dot_config/mise/config.toml").read_text())
+    config = tomllib.loads((ROOT / "mise-global.toml").read_text())
     hook = config["tools"]["http:caddy-cf"]["postinstall"]
     result = linux(
         f"FIRST_PORT={first_port}\nHOOK={shlex.quote(hook)}\n"

@@ -16,7 +16,7 @@ managed_tool_names() {
       gsub(/["[:space:]]/, "")
       if (!seen[$0]++) print
     }
-  ' "$DOTFILES_DIR/home/dot_config/mise/config.toml"
+  ' "$DOTFILES_DIR/mise-global.toml"
 }
 
 managed_tools_status() {
