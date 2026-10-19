@@ -39,58 +39,73 @@ over Tailscale SSH. Clients and the server share no filesystem.
   without explicit permission for that exact operation. Add a new commit instead
   when possible.
 
-## Pull Requests
+## Shipping PRs
 
-Open one PR for each task. A large PR is acceptable. Each PR uses one review
-from a limited review quota. Do not split a task into more PRs to make each PR
-smaller. Split the work into one jj commit for each concern instead. The
-reviewer reads the PR one commit at a time.
+When a task is complete, ship it without a prompt. Push its bookmarks and open
+or update its PR.
 
-When a task is complete, push its bookmarks and open or update its PR. Do not
-ask for permission first. Ask before you push to the default branch or merge.
+### Ship Lanes
 
-Stack PRs in two cases only:
+Each task uses one lane:
+
+- **full-send**: Merge the PR without a prompt when it is merge-ready.
+- **full-review**: After the first push, ask the user for feedback. Ask before
+  merge.
+
+Use full-review by default. Use full-send only when the user names it for the
+task (for example with "full send" in the prompt). Never select full-send on
+your own. And move back to full-review and tell the user if the change grows to
+touch: auth, secrets, user data, migrations, production, or if a change cannot
+be easily reverted. Just alert the user if you feel the need to.
+
+### jj-ryu (Stacked PRs)
+
+ryu maps each bookmark in a jj stack to one PR. It sets the base of each PR to
+the bookmark below it and registers the GitHub stack. Create one bookmark for
+each PR. Track the bookmarks with `ryu track --all`. Publish and update with
+`ryu submit`.
+
+Open one PR for each task. A large PR is acceptable. Each PR costs one review,
+so do not split a task into more PRs. Split the work into one jj commit for each
+concern. The reviewer reads one commit at a time.
+
+Stack PRs in two cases only. Keep dependencies below consumers.
 
 - Dependent work must continue while the previous PR waits for review or CI.
-- The main PR has a lot of churn, and cleanups or small unrelated fixes
-  accumulate in it. These changes are ready to merge now. Move them to one PR at
-  the bottom of the stack. Merge it first while the rest iterates.
+- Cleanups accumulate in a high-churn PR. Move them to one PR at the bottom of
+  the stack and merge it first.
 
-Do not stack PRs for other reasons.
+Use [the jj-ryu fork](https://github.com/aria-amini/jj-ryu) to submit and merge
+PRs. Do not use `gh pr create` or `gh pr merge`. Use `gh` only for checks,
+labels, and review comments.
 
-Request a CodeRabbit review only for large PRs or PRs that change auth, data,
-migrations, or infrastructure. CodeRabbit reviews are expensive.
+Own each PR until it is merged or merge-ready. Fix failures without a prompt.
+Wait on checks with `gh pr checks <pr> --watch`, not chained `sleep` calls.
 
-Use `ryu` to create, update, and merge PRs. Do not use `gh pr create` or
-`gh pr merge`. ryu sets the PR base for each stack layer and registers the
-GitHub stack. Use `gh` only for operations that ryu does not support, for
-example checks, labels, and review comments.
+### Code Review
 
-To publish, review, or merge a PR, follow the `ship-pr` skill.
+If the changes are large and need a second pass, run 1 to 3 adversarial reviews
+with a subagent. Never run more than 3 reviews, findings degrade into noise
+after 3 rounds. CodeRabbit does not count, this is only a limit for local
+code-review.
 
-Own each PR until it is merge-ready. After you push, do not end the task. Watch
-every check, deploy status, and requested review until they settle. Fix failures
-and review findings without a prompt from the user. Tell the user when the PR is
-merge-ready or when you are blocked. The `ship-pr` skill defines each step.
+Request a CodeRabbit review with `@coderabbitai review`. In full-send, request
+it after green CI. In full-review, request it after the user gives feedback. Do
+not use CodeRabbit autofix. It writes git commits that ignore the jj commit
+structure. Fix real findings by hand. Reply in each thread with the fix or the
+false-positive reason, then resolve it. After each round of fixes, request
+another review. CodeRabbit reviews only the new commits. Continue until
+CodeRabbit approves the PR.
 
-## Code
+### Clean Up
 
-- When you make technical decisions, give little weight to development cost.
-  Prefer quality, simplicity, robustness, scalability, and long-term
-  maintainability.
-- Never write comments that restate what the code says. Rename or restructure
-  the code instead. Allowed comments:
-  - **Critical context**: why a non-obvious decision was made, constraints from
-    external systems, or links to reference material.
-  - **Section markers**: short labels like `// Shared`, or the banner style
-    `// ===== Section =====`.
+A PR is merge-ready when CodeRabbit approved it, all checks and deploys are
+green, and all threads are resolved. After a stack update, recheck each affected
+PR. Merge bottom-up with `ryu merge --yes <name>`, then run `ryu sync`.
 
-## Writing
+After the merge, remove the task workspace as the last action of the task:
 
-- Keep plans terse. Long plans are difficult to read.
-- For technical text, use ASD-STE100 style. Max 20 words per sentence in
-  instructions, 25 in descriptions. Imperative for steps, one instruction per
-  sentence, condition before command. Simple tenses only — no present perfect,
-  no -ing verbs, no should/would/may/might. Active voice. One word per meaning —
-  no synonym rotation. No contractions, keep articles and "that". Delete filler:
-  simply, robust, seamlessly, leverage. Code and identifiers stay exact.
+1. Run `jw current` to get the workspace name.
+2. Run `cd "$(jw path default)" && jw remove --delete-bookmark <name>`. Never
+   remove the default workspace.
+3. Use the t3 MCP to settle the thread. archive.
