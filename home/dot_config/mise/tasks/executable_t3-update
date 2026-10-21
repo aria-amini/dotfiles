@@ -4,6 +4,7 @@
 #
 # mise run t3-update              update, restart the service, verify, follow the log
 # mise run t3-update -- --status  print what is running now and change nothing
+# mise run t3-update -- 0.1.1-fork.37  install an exact version (also works with older updaters)
 #
 # The update runs in its own systemd unit. A shell started by an agent lives inside the service's
 # cgroup, so stopping the service would otherwise kill the update halfway. Every run is logged to
@@ -34,15 +35,26 @@ snapshot() {
 }
 
 run_update() {
-  local before after rc bin
+  local before after rc bin requested="${1:-}"
+  if [ -n "$requested" ] && [[ ! "$requested" =~ ^[0-9]+\.[0-9]+\.[0-9]+-fork\.[0-9]+$ ]]; then
+    log "ERROR: expected an exact fork version, got: $requested"
+    exit 2
+  fi
   before="$(active_version)"
   [ -n "$before" ] || { log "ERROR: no activeVersion in $state_file"; exit 2; }
   bin="$versions_dir/$before/t3"
   [ -x "$bin" ] || { log "ERROR: $bin is not executable"; exit 2; }
   log "update started from t3 $before"
   snapshot before
-  "$bin" update --yes 2>&1 | sed 's/^/    /'
-  rc="${PIPESTATUS[0]}"
+  if [ -n "$requested" ]; then
+    # Older runtimes resolve automatic updates and downloads through the retired rolling release.
+    T3CODE_RELEASE_BASE_URL="https://github.com/aria-amini/t3code/releases/download" \
+      "$bin" update "$requested" --yes 2>&1 | sed 's/^/    /'
+    rc="${PIPESTATUS[0]}"
+  else
+    "$bin" update --yes 2>&1 | sed 's/^/    /'
+    rc="${PIPESTATUS[0]}"
+  fi
   log "t3 update exit=$rc"
   # Give the service up to 30s to come back on the new version before judging it.
   for _ in $(seq 1 30); do
@@ -64,7 +76,7 @@ run_update() {
 
 case "${1:-}" in
   --status) snapshot now; exit 0 ;;
-  --run) run_update; exit $? ;;
+  --run) run_update "${2:-}"; exit $? ;;
 esac
 
 mkdir -p "$log_root"
@@ -76,7 +88,7 @@ unit="t3-update-$stamp"
 log "starting $unit; log: $log_file"
 systemd-run --user --collect --unit="$unit" \
   --property=StandardOutput=append:"$log_file" --property=StandardError=append:"$log_file" \
-  "$(readlink -f "$0")" --run >/dev/null || { log "ERROR: could not start $unit"; exit 2; }
+  "$(readlink -f "$0")" --run "${1:-}" >/dev/null || { log "ERROR: could not start $unit"; exit 2; }
 tail -n +1 -f "$log_file" &
 tail_pid=$!
 while systemctl --user is-active --quiet "$unit"; do sleep 1; done
