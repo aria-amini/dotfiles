@@ -22,7 +22,7 @@ git_push_bookmark = '"aamini/" ++ change_id.short()'
 
 [--scope.revset-aliases]
 "trunk()" = "main"
-"immutable_heads()" = "builtin_immutable_heads() | present(main) | (working_copies() ~ @)"
+"immutable_heads()" = "builtin_immutable_heads() | present(main)"
 "tools_work()" = '''
 working_copies() |
 bookmarks("aamini/*" ~ "aamini/archive-*") |

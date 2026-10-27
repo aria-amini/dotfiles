@@ -25,15 +25,22 @@ over Tailscale SSH. Clients and the server share no filesystem.
   commit.
 - Rebase, reorder, split, squash, and force-push PR commits and bookmarks
   without permission. A pushed bookmark does not make a commit immutable.
-- Treat a jj immutable error as a signal to check before you rewrite. Another
-  workspace owns a commit when its working copy sits on or above that commit.
-  Run `jj workspace list` to find the owners. Run `jj status` in each owner
-  workspace to snapshot its files. If the working-copy commit of each owner is
-  empty, rewrite with `--ignore-immutable` without permission. Otherwise ask
-  first. To amend an owned commit, run
-  `jj squash --into <rev> --ignore-immutable`. Do not `jj edit` it.
-- After a rewrite, run `jj workspace update-stale` in each workspace that owns a
-  rewritten commit.
+- Workspace commits are mutable; protect active work through coordination, not
+  workspace-based `immutable_heads()` rules. Keep `snapshot.auto-update-stale`
+  disabled so stale working copies require explicit reconciliation.
+- Before rewriting history shared with another workspace, run `jj workspace
+  list` to find affected workspaces (their working copies sit on or above a
+  rewritten commit). Run `jj status` in each to snapshot its files. If one is
+  already stale, coordinate its reconciliation before continuing. If another
+  agent or user is actively editing there, coordinate a pause before rewriting
+  or updating its files, even if its working-copy commit is empty. Otherwise,
+  proceed without permission when its working-copy commit is empty; ask first
+  when it is nonempty. Amend shared commits with `jj squash --into <rev>` or
+  `jj absorb`, not `jj edit` in another workspace.
+- After a rewrite, explicitly run `jj workspace update-stale` in affected,
+  paused or idle workspaces before resuming work there. Never auto-update and
+  retry a stale-workspace error blindly; inspect the rewrite first. Editors and
+  dev servers can still read stale files until the update.
 - Trunk history is immutable: trunk, tags, and untracked remote bookmarks. Never
   rewrite it, bypass it with `--ignore-immutable`, or change `immutable_heads()`
   without explicit permission for that exact operation. Add a new commit instead

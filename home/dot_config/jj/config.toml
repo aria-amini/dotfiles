@@ -17,13 +17,14 @@ diff-invocation-mode = "file-by-file"
 
 [snapshot]
 max-new-file-size = "10MiB"
+# Reconcile rewritten workspace history explicitly, never during an ordinary command.
 auto-update-stale = false
 
 [revsets]
 log = 'builtin_log()'
 
 [revset-aliases]
-"immutable_heads()" = "builtin_immutable_heads() | (working_copies() ~ @)"
+"immutable_heads()" = "builtin_immutable_heads()"
 
 [template-aliases]
 'format_short_commit_header(commit)' = '''
