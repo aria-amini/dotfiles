@@ -237,6 +237,27 @@ switch_t3_to_fork() {
     "$HOME/.t3/runtime/versions/$active/t3" update --yes --allow-downgrade "$T3_FORK_VERSION"
 }
 
+setup_t3_browser() {
+  local active runtime_home runtime_bin
+  active="$(setup_step_version t3)"
+  runtime_home="$HOME/.t3"
+  runtime_bin="$runtime_home/runtime/versions/$active/t3"
+  if [[ -z $active || ! -x $runtime_bin ]]; then
+    detail 'T3 runtime is not available; skipping browser setup'
+    return
+  fi
+  # Older runtimes predate this command; upgrading T3 enables host provisioning.
+  if ! "$runtime_bin" browser setup --help > /dev/null 2>&1; then
+    detail 'This T3 runtime has no browser setup command; upgrade T3 to enable its browser'
+    return
+  fi
+  # sudo changes HOME to /root. Keep the user's runtime/data path explicit so
+  # setup installs the browser-specific AppArmor profile for the right instance.
+  run_task 'Preparing the T3 browser sandbox and libraries' --sudo \
+    env "PATH=$PATH" "T3CODE_HOME=$runtime_home" \
+    "$runtime_bin" browser setup --base-dir "$runtime_home"
+}
+
 phase_t3() {
   if ! host_has_systemd; then
     detail 'no systemd; skipping T3 Code'
@@ -267,4 +288,5 @@ phase_t3() {
     NOTES+=($'Pair a device:\n  t3 pair --tailscale --tailscale-serve-port 8443\n  then scan the QR code')
   fi
   switch_t3_to_fork
+  setup_t3_browser
 }
