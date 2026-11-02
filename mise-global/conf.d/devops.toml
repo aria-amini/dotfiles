@@ -3,6 +3,7 @@ kubectl = "latest"
 helm = "latest"
 pulumi = "latest"
 railway = "5.62.1"
+"npm:sentry" = "0.47.0"
 "npm:varlock" = "1.21.0"
 
 [tools."http:caddy-cf"]
