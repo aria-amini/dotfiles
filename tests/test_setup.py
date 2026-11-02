@@ -1187,3 +1187,45 @@ def test_non_age_encryption_config_is_reported(tmp_path: Path) -> None:
     result, _ = run_age_setup(tmp_path, key_file=True, config='encryption = "gpg"\n')
     assert result.returncode == 0
     assert 'encryption = "age"' in result.stderr
+
+
+@pytest.mark.parametrize("supported", [True, False])
+def test_t3_browser_setup_preserves_user_runtime_under_sudo(
+    linux: Shell, supported: bool
+) -> None:
+    result = linux(f"""
+setup_step_version() {{ printf '0.1.1-fork.37\\n'; }}
+runtime="$HOME/.t3/runtime/versions/0.1.1-fork.37/t3"
+mkdir -p "$(dirname "$runtime")"
+cat > "$runtime" <<'SCRIPT'
+#!/bin/sh
+[ "$*" = 'browser setup --help' ] || exit 99
+exit {0 if supported else 1}
+SCRIPT
+chmod +x "$runtime"
+run_task() {{ printf '<%s>\\n' "$@"; }}
+setup_t3_browser
+""")
+    assert result.returncode == 0, result.stdout + result.stderr
+    if supported:
+        assert "<--sudo>" in result.stdout
+        assert "<T3CODE_HOME=" in result.stdout
+        assert "/.t3/runtime/versions/0.1.1-fork.37/t3>" in result.stdout
+        assert "<browser>\n<setup>\n<--base-dir>" in result.stdout
+        assert "/root/.t3" not in result.stdout
+    else:
+        assert "upgrade T3" in result.stdout
+        assert "<--sudo>" not in result.stdout
+
+
+def test_t3_browser_setup_reports_provisioning_failure(linux: Shell) -> None:
+    result = linux("""
+setup_step_version() { printf '0.1.1-fork.37\\n'; }
+runtime="$HOME/.t3/runtime/versions/0.1.1-fork.37/t3"
+mkdir -p "$(dirname "$runtime")"
+printf '#!/bin/sh\\nexit 0\\n' > "$runtime"
+chmod +x "$runtime"
+run_task() { return 17; }
+setup_t3_browser
+""")
+    assert result.returncode == 17, result.stdout + result.stderr

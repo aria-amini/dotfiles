@@ -50,3 +50,19 @@ Ignore rules and `TAILSCALE_IP` read the host kind. WSL skips the Caddy and Pitc
 
 On WSL, the setup menu does not preselect Docker. Docker Desktop provides the client.
 To install the Docker engine, select Docker in the menu or pass `--with docker`.
+
+### T3 browser on Linux
+
+The optional T3 setup step also runs `t3 browser setup` on runtimes that support
+it. This installs the browser libraries and the browser-specific AppArmor rule
+needed on Ubuntu hosts that restrict unprivileged user namespaces. It leaves the
+system-wide restriction enabled and is safe to repeat.
+
+For an existing installation, run:
+
+```sh
+sudo env "PATH=$PATH" "T3CODE_HOME=${T3CODE_HOME:-$HOME/.t3}" t3 browser setup
+```
+
+Keep `T3CODE_HOME` explicit under sudo: the dotfiles launcher otherwise looks for
+its active runtime under `/root/.t3`.
