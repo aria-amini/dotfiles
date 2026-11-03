@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#MISE description="Print the dev URL of the app in this directory and check that it answers"
+#MISE quiet=true
+#MISE dir="{{cwd}}"
+#USAGE flag "--no-check" help="Print the URL without probing it"
+#
+# mise run get-url              print the URL, then probe the local port and the URL itself
+# mise run get-url --no-check   print the URL only
+#
+# Reads the BASE_URL and APP_PORT that `mise run bootstrap` wrote to .env.workspace.local, so it
+# changes nothing and starts nothing. Only the URL goes to stdout (`url=$(mise run get-url)` works);
+# the checks go to stderr. Exits 2 when the app was never bootstrapped, and 1 when a check fails
+# (the URL is still printed).
+set -euo pipefail
+
+env_file=".env.workspace.local"
+
+# The app may be run from a subdirectory, so walk up to the workspace root.
+dir="$PWD"
+while [[ ! -f "$dir/$env_file" && "$dir" != "/" ]]; do
+  dir="$(dirname "$dir")"
+done
+if [[ ! -f "$dir/$env_file" ]]; then
+  echo "No $env_file found here or above. Run: mise run bootstrap" >&2
+  exit 2
+fi
+
+# Read a KEY="value" line without sourcing the file: it also holds ${...} references and secrets.
+env_value() {
+  sed -n "s/^$1=\"\{0,1\}\([^\"]*\)\"\{0,1\}\$/\1/p" "$dir/$env_file" | head -1
+}
+
+base_url="$(env_value BASE_URL)"
+app_port="$(env_value APP_PORT)"
+if [[ -z "$base_url" ]]; then
+  echo "BASE_URL is missing from $dir/$env_file. Run: mise run bootstrap" >&2
+  exit 2
+fi
+
+printf '%s\n' "$base_url"
+[[ "${usage_no_check:-false}" == "true" ]] && exit 0
+
+# Mirrors the bootstrap readiness probe: any status below 400 counts as answering. -k accepts the
+# local dev certificate, and no -L, so a login redirect is reported as the app answering.
+probe() {
+  curl -sk --max-time 10 --retry 2 --retry-connrefused --retry-delay 1 \
+    -o /dev/null -w '%{http_code}' "$1" 2>/dev/null || true
+}
+
+check() {
+  local label="$1" url="$2" status
+  status="$(probe "$url")"
+  if [[ "$status" =~ ^[23][0-9][0-9]$ ]]; then
+    printf '  ✓ %s answers (%s)\n' "$label" "$status" >&2
+    return 0
+  fi
+  if [[ "$status" =~ ^[1-5][0-9][0-9]$ ]]; then
+    printf '  ✗ %s returned %s\n' "$label" "$status" >&2
+  else
+    printf '  ✗ %s gave no response\n' "$label" >&2
+  fi
+  return 1
+}
+
+failed=false
+local_ok=true
+if [[ -n "$app_port" ]]; then
+  if ! check "dev server on port $app_port" "http://127.0.0.1:$app_port/"; then
+    failed=true
+    local_ok=false
+    echo "    Start the dev daemon with: pitchfork start dev   (or: mise run bootstrap)" >&2
+  fi
+fi
+
+# With no proxy, BASE_URL is the local server that was just probed.
+if [[ -z "$app_port" || "$base_url" != "http://localhost:$app_port" ]]; then
+  if ! check "$base_url" "$base_url"; then
+    failed=true
+    if [[ "$local_ok" == "true" ]]; then
+      echo "    The dev server is up, so the problem is the proxy or DNS. Run: caddy-health" >&2
+    fi
+  fi
+fi
+
+[[ "$failed" == "false" ]]
