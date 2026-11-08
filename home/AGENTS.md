@@ -62,9 +62,9 @@ GitHub or the tool itself fails, stop and report the error.
 
 Never wait with `sleep` loops. In T3 Code, use `watch_pull_request` for checks
 and reviews and `schedule_task` for a timed retry. Outside T3, use
-`gh pr checks <pr> --watch --fail-fast`, then, even if the watch failed, read
-the PR's new review comments and check results before you reply. Tell the user
-what you are waiting on.
+`gh pr checks <pr> --watch --fail-fast`, then run `pr-pending` in the checkout,
+even if the watch failed, to list the review threads and checks that still need
+you. Tell the user what you are waiting on.
 
 ### Code Review
 

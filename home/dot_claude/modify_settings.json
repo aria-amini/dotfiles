@@ -1,0 +1,7 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Keep Claude Code's own settings; manage only the Stop hook that runs pr-pending. */ -}}
+{{- $settings := dict -}}
+{{- if .chezmoi.stdin -}}{{- $settings = .chezmoi.stdin | fromJson -}}{{- end -}}
+{{- $hook := dict "type" "command" "command" (printf "%s/.local/bin/pr-pending" .chezmoi.homeDir) "timeout" 30 -}}
+{{- $settings = setValueAtPath "hooks.Stop" (list (dict "hooks" (list $hook))) $settings -}}
+{{- $settings | toPrettyJson -}}
