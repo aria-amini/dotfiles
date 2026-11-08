@@ -9,12 +9,12 @@ version="v0.3.0"
 # Setup applies dotfiles before it installs mise tools, so install gh here if it is missing;
 # otherwise this script would exit early and never run again.
 command -v gh > /dev/null 2>&1 || mise install --quiet github-cli
-# Accept only github/gh-stack pinned at exactly this tag, read from gh's install manifest.
+# Accept only github.com/github/gh-stack pinned at exactly this tag, read from gh's install manifest.
 manifest="${XDG_DATA_HOME:-$HOME/.local/share}/gh/extensions/gh-stack/manifest.yml"
 field() { sed -n "s/^$1: //p" "$manifest" 2>/dev/null; }
-if [[ "$(field owner)/$(field tag)/$(field ispinned)" != "github/$version/true" ]]; then
+if [[ "$(field host)/$(field owner)/$(field tag)/$(field ispinned)" != "github.com/github/$version/true" ]]; then
   # --force only upgrades in place, so remove any other build first, then install the pin.
   gh extension remove gh-stack > /dev/null 2>&1 || true
-  gh extension install github/gh-stack --pin "$version"
+  gh extension install https://github.com/github/gh-stack --pin "$version"
 fi
 {{ end -}}
