@@ -19,9 +19,8 @@ share no filesystem with it.
 
 ## Version Control
 
-- Use git. Each task works on its own branch in its own worktree; T3 Code
-  creates one per thread, and `wt switch --create <branch>` creates one outside
-  T3.
+- Each task works on its own branch in its own worktree. T3 Code creates one
+  per thread, and `wt switch --create <branch>` creates one outside T3.
 - Before review starts, keep each PR commit clean: one commit per concern.
   Amend, reorder, and force-push (`--force-with-lease`) freely until then.
 - Once a reviewer has seen a PR, do not rewrite its commits. Add each round of
