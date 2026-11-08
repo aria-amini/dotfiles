@@ -28,8 +28,12 @@ setopt EXTENDED_HISTORY INC_APPEND_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE HI
 eval "$(mise activate zsh)"
 
 # ── Completion ────────────────────────────────────────────────
+# Completions that CLIs install themselves (sentry). Must precede compinit.
+fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
 autoload -Uz compinit
 compinit
+# mise completes its subcommands, task names, and task flags (#USAGE lines).
+source <(mise completion zsh)
 
 # ── FZF ───────────────────────────────────────────────────────
 source <(fzf --zsh)
