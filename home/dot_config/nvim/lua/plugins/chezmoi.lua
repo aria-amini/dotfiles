@@ -9,7 +9,7 @@ return { -- Treat chezmoi source files as their resolved targets, with template 
   config = function()
     -- Worktrees of this repo: herdr's (dotfiles), worktrunk's and T3's (named after the repo folder).
     local pattern = {}
-    for _, root in ipairs { '~/.herdr/workspaces/dotfiles', '~/.herdr/workspaces/chezmoi', '~/.t3/worktrees/chezmoi' } do
+    for _, root in ipairs { '~/.herdr/workspaces/dotfiles', '~/.herdr/workspaces/chezmoi', '~/.t3/worktrees/chezmoi', '~/.t3/worktrees/dotfiles' } do
       local worktrees = vim.fn.expand(root) .. '/*'
       vim.list_extend(pattern, { worktrees .. '/*', worktrees .. '/*/*', worktrees .. '/*/**' })
     end
