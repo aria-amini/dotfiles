@@ -1,0 +1,602 @@
+#!/usr/bin/env python3
+#MISE description="Remove finished jj workspaces, their merged bookmarks, and their dev servers"
+#MISE raw=true
+#MISE dir="{{cwd}}"
+#USAGE flag "--all" help="Every repo under the roots, plus orphan folders and dev servers"
+#USAGE flag "-y --yes" help="Remove without asking; skips workspaces with ignored files"
+#USAGE flag "--dry-run" help="Show the plan and change nothing"
+#USAGE flag "--min-age <hours>" default="24" help="With --all, skip workspaces changed in the last N hours"
+#USAGE arg "[target]..." help="Project names, repo folders, or workspace folders; default: the repo you are in"
+#USAGE complete "target" run="~/.config/mise/tasks/ws-gc --list-projects"
+#
+# mise run ws-gc                     the repo you are in: show the plan, then ask
+# mise run ws-gc cocochef infra      those projects, from anywhere
+# mise run ws-gc --yes <workspace>   one workspace, without asking (the T3 settle hook)
+# mise run ws-gc --all --yes         every repo, plus orphans (the nightly timer)
+# mise run ws-gc --dry-run ...       show the plan only
+#
+# A workspace is removed only when nothing in it is unique. After a snapshot, every commit
+# between trunk and its working copy, including a non-empty working copy, must either sit under
+# a bookmark whose PR merged at that exact commit, or the workspace's files must match trunk.
+# A bookmark that moved after its merge counts as unmerged work.
+#
+# Removal stops the workspace's pitchfork daemons, deletes its merged bookmarks locally and on
+# GitHub (unless another workspace still builds on them), forgets the workspace, deletes its
+# folder, and abandons the commits it leaves behind, which the plan lists. Files that jj
+# ignores, such as .env files, are deleted with the folder, so the plan lists them too, and
+# --yes keeps any workspace that has them. Build caches do not count. Abandoned commits stay
+# recoverable through `jj op log`; the folder does not.
+#
+# Each project also gets its leftover folders under the worktree roots deleted when they hold
+# only build caches. --all also stops pitchfork daemons whose folder was deleted. Stale
+# workspaces and anything else unknown are reported and left alone.
+#
+# Without a terminal and without --yes, it prints the plan and changes nothing. Triggers run
+# this file directly, so a broken project mise config cannot block it.
+# Roots: $WS_GC_ROOTS (colon-separated), default ~/apps:~/tools:~/toolkit:~/.local/share/chezmoi.
+# Worktree roots: $WS_GC_WORKTREE_ROOTS, default ~/.t3/worktrees.
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+HOME = Path.home()
+DEFAULT_ROOTS = ["~/apps", "~/tools", "~/toolkit", "~/.local/share/chezmoi"]
+DEFAULT_WORKTREE_ROOTS = ["~/.t3/worktrees"]
+# Folders that tools rebuild on their own. They never count as work.
+CACHE_DIRS = {
+    ".astro", ".cache", ".fallow", ".next", ".output", ".pytest_cache", ".ruff_cache",
+    ".svelte-kit", ".turbo", ".venv", ".vite", ".vitest", ".wrangler", "__pycache__",
+    "build", "coverage", "dist", "node_modules", "playwright-report", "target", "test-results",
+}
+# Ignored files that setup scripts regenerate in every new workspace.
+REGENERATED_FILES = {".env.workspace.local"}
+SHOWN = 5
+
+
+class CommandError(Exception):
+    pass
+
+
+_pending_header: str | None = None
+
+
+def section(title: str, always: bool = False) -> None:
+    """Start an output section; its header prints with its first line, or now if always."""
+    global _pending_header
+    _pending_header = f"\n── {title} " + "─" * max(4, 62 - len(title))
+    if always:
+        out(None)
+
+
+def out(line: str | None) -> None:
+    global _pending_header
+    if _pending_header is not None:
+        print(_pending_header)
+        _pending_header = None
+    if line is not None:
+        print(line)
+
+
+def run(args: list[str], cwd: Path, check: bool = True) -> str:
+    try:
+        proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
+    except OSError as err:  # missing folder or missing tool
+        raise CommandError(str(err)) from err
+    if check and proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).strip().splitlines()
+        raise CommandError(detail[0] if detail else f"{args[0]} exited {proc.returncode}")
+    return proc.stdout
+
+
+def jj(repo: Path, *args: str) -> str:
+    # Queries run from the default workspace without snapshotting it.
+    return run(["jj", "--ignore-working-copy", *args], cwd=repo)
+
+
+def revs(repo: Path, revset: str, template: str) -> list[str]:
+    out = jj(repo, "log", "--no-graph", "-r", revset, "-T", template + ' ++ "\\n"')
+    return [line for line in out.splitlines() if line]
+
+
+def quote_name(name: str) -> str:
+    return '"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def env_paths(var: str, default: list[str]) -> list[Path]:
+    raw = os.environ.get(var)
+    items = raw.split(":") if raw else default
+    return [Path(os.path.expanduser(item)) for item in items if item]
+
+
+@dataclass
+class Repo:
+    root: Path
+    prs: dict[str, dict[str, str]] | None = None
+    slug: str | None = None
+    # None when jj never recorded the folder (workspaces from older jj versions).
+    workspaces: dict[str, Path | None] = field(default_factory=dict)
+
+    @property
+    def name(self) -> str:
+        return self.root.name
+
+    def load_workspaces(self) -> None:
+        self.workspaces.clear()
+        template = 'name ++ "\\t" ++ self.root() ++ "\\n"'
+        for line in jj(self.root, "workspace", "list", "-T", template).splitlines():
+            name, _, path = line.partition("\t")
+            self.workspaces[name] = Path(path) if path else None
+
+    def pull_requests(self) -> dict[str, dict[str, str]]:
+        if self.prs is None:
+            self.prs = {}
+            try:
+                fields = "number,state,headRefName,headRefOid"
+                out = run(
+                    ["gh", "pr", "list", "--state", "all", "--limit", "500", "--json", fields],
+                    cwd=self.root,
+                )
+                for pr in json.loads(out):
+                    # Newest first: keep the latest PR for a reused branch name.
+                    self.prs.setdefault(pr["headRefName"], pr)
+                self.slug = run(
+                    ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+                    cwd=self.root,
+                ).strip()
+            except CommandError:
+                pass
+        return self.prs
+
+
+@dataclass
+class Removal:
+    repo: Repo
+    name: str
+    path: Path | None
+    wc_commit: str
+    reason: str
+    delete_bookmarks: list[str] = field(default_factory=list)
+    # (commit id, change id, first line) of commits the removal abandons
+    hides: list[tuple[str, str, str]] = field(default_factory=list)
+    ignored: list[str] = field(default_factory=list)
+
+    @property
+    def label(self) -> str:
+        return f"{self.repo.name}/{self.name}"
+
+
+@dataclass
+class Target:
+    repo: Repo
+    names: list[str]  # workspaces to evaluate
+    whole_repo: bool  # also sweep the project's leftover folders
+
+
+# ── Choosing what to look at ────────────────────────────────────────────────────────────
+
+
+def find_repos(roots: list[Path]) -> list[Path]:
+    repos: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for candidate in [root, *sorted(p for p in root.iterdir() if p.is_dir())]:
+            # The default workspace holds the repo store as a directory; other workspaces
+            # hold a file that points at it.
+            if (candidate / ".jj" / "repo").is_dir():
+                repos.append(candidate)
+    return repos
+
+
+def target_for_path(path: Path) -> Target:
+    """A repo folder means the whole repo; any other workspace folder means just it."""
+    root = Path(run(["jj", "workspace", "root"], cwd=path).strip())
+    default = Path(run(["jw", "path", "default"], cwd=root).strip())
+    repo = Repo(default)
+    repo.load_workspaces()
+    if root.resolve() == default.resolve():
+        return Target(repo, list(repo.workspaces), whole_repo=True)
+    for name, ws_path in repo.workspaces.items():
+        if ws_path is not None and ws_path.resolve() == root.resolve():
+            return Target(repo, [name], whole_repo=False)
+    raise CommandError(f"{root} is not a workspace of {default}")
+
+
+def resolve_targets(args: argparse.Namespace, roots: list[Path]) -> list[Target]:
+    if args.all:
+        found: list[Target] = []
+        for root in find_repos(roots):
+            repo = Repo(root)
+            repo.load_workspaces()
+            found.append(Target(repo, list(repo.workspaces), whole_repo=True))
+        return found
+    if not args.targets:
+        try:
+            target = target_for_path(Path.cwd())
+        except CommandError:
+            raise CommandError(
+                "not in a jj repo; pass a project name, a folder, or --all"
+            ) from None
+        # Run from inside a task workspace, look at its whole repo.
+        if not target.whole_repo:
+            target = Target(target.repo, list(target.repo.workspaces), whole_repo=True)
+        return [target]
+    by_name = {p.name: p for p in find_repos(roots)}
+    found = []
+    for raw in args.targets:
+        path = Path(raw).expanduser()
+        if path.is_dir():
+            found.append(target_for_path(path.resolve()))
+        elif raw in by_name:
+            found.append(target_for_path(by_name[raw]))
+        else:
+            known = ", ".join(sorted(by_name))
+            raise CommandError(f"{raw}: no such folder or project (projects: {known})")
+    return found
+
+
+# ── Deciding ────────────────────────────────────────────────────────────────────────────
+
+
+def ignored_files(repo: Repo, ws: str, path: Path) -> list[str]:
+    """Files on disk that the working-copy commit does not track, minus caches."""
+    tracked = set(jj(repo.root, "file", "list", "-r", ws).splitlines())
+    found: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(path):
+        dirnames[:] = [d for d in dirnames if d not in CACHE_DIRS and d not in (".jj", ".git")]
+        for filename in filenames:
+            if filename == ".git":  # a colocated workspace's pointer to the git repo
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, filename), path)
+            if rel not in tracked and filename not in REGENERATED_FILES:
+                found.append(rel)
+    return sorted(found)
+
+
+def evaluate(repo: Repo, name: str, min_age_hours: float | None) -> tuple[Removal | None, str]:
+    """Return a removal, or None with the reason to keep the workspace."""
+    path = repo.workspaces[name]
+    ws = f"{quote_name(name)}@"
+
+    if path is not None and path.is_dir():
+        try:
+            run(["jj", "status"], cwd=path)  # snapshot, so unsaved edits count
+        except CommandError as err:
+            if "stale" in str(err):
+                return None, "working copy is stale; reconcile it with jj workspace update-stale"
+            return None, f"jj status failed: {err}"
+
+    wc_commit, wc_empty, wc_time = revs(
+        repo.root, ws, 'commit_id ++ " " ++ empty ++ " " ++ committer.timestamp().format("%s")'
+    )[0].split()
+
+    # Every non-empty commit beyond trunk, the working copy included.
+    work = set(revs(repo.root, f"(trunk()..{ws}) ~ (empty() ~ merges())", "commit_id"))
+    bookmarks = jj(
+        repo.root, "bookmark", "list", "-r", f"trunk()..{ws}", "-T",
+        'name ++ "\\t" ++ if(normal_target, normal_target.commit_id(), "conflicted") ++ "\\n"',
+    ).splitlines()
+    merged: list[str] = []
+    notes: list[str] = []
+    if work and bookmarks:
+        prs = repo.pull_requests()
+        for line in bookmarks:
+            bookmark, _, target = line.partition("\t")
+            pr = prs.get(bookmark)
+            if pr is None:
+                notes.append(f"{bookmark}: no PR")
+            elif pr["state"] != "MERGED":
+                notes.append(f"{bookmark}: PR #{pr['number']} {pr['state'].lower()}")
+            elif pr["headRefOid"] != target:
+                notes.append(f"{bookmark}: moved after PR #{pr['number']} merged")
+            else:
+                merged.append(bookmark)
+
+    covered: set[str] = set()
+    if merged:
+        heads = " | ".join(quote_name(b) for b in merged)
+        covered = set(revs(repo.root, f"::({heads})", "commit_id"))
+    leftover = work - covered
+
+    if not work:
+        reason = "nothing beyond trunk"
+    elif not leftover:
+        reason = f"merged: {', '.join(merged)}"
+    elif not jj(repo.root, "diff", "--from", "trunk()", "--to", ws, "--summary").strip():
+        # Squash merges and rebases leave commits behind whose changes trunk already has.
+        reason = "files match trunk"
+    elif wc_empty != "true" and wc_commit in leftover:
+        return None, "working copy has uncommitted changes"
+    else:
+        detail = "; ".join(notes) if notes else "no bookmark"
+        return None, f"{len(leftover)} commit(s) not in a merged PR ({detail})"
+
+    if min_age_hours is not None:
+        age_hours = (time.time() - int(wc_time)) / 3600
+        if age_hours < min_age_hours:
+            return None, f"changed {age_hours:.1f}h ago (under --min-age {min_age_hours:g}h)"
+
+    removal = Removal(repo, name, path, wc_commit, reason)
+    others = f"working_copies() ~ {ws}"
+    for bookmark in merged:
+        if not revs(repo.root, f"{quote_name(bookmark)} & ::({others})", "commit_id"):
+            removal.delete_bookmarks.append(bookmark)
+    kept = [b for b in merged if b not in removal.delete_bookmarks]
+    if kept:
+        removal.reason += f", keeping {', '.join(kept)} (another workspace builds on it)"
+
+    # Commits nothing else will hold once the workspace and its deleted bookmarks are gone.
+    holders = [others]
+    remaining = "bookmarks()"
+    if removal.delete_bookmarks:
+        remaining += " ~ (" + " | ".join(quote_name(b) for b in removal.delete_bookmarks) + ")"
+    holders.append(remaining)
+    hides = revs(
+        repo.root,
+        f"(trunk()..{ws}) ~ ::({' | '.join(holders)})",
+        'commit_id ++ "\\t" ++ change_id.short(8) ++ "\\t" ++ '
+        'if(empty, "(empty)", description.first_line())',
+    )
+    removal.hides = [tuple(h.split("\t", 2)) for h in hides]  # type: ignore[misc]
+    if path is not None and path.is_dir():
+        removal.ignored = ignored_files(repo, ws, path)
+    return removal, removal.reason
+
+
+def orphan_folders(repo_name: str, known: set[Path], worktree_roots: list[Path]) -> list[Path]:
+    """Print unknown folders under <worktree root>/<repo_name>; return the cache-only ones."""
+    leftovers: list[Path] = []
+    for root in worktree_roots:
+        project = root / repo_name
+        if not project.is_dir():
+            continue
+        for folder in sorted(p for p in project.iterdir() if p.is_dir()):
+            if folder.resolve() in known:
+                continue
+            if all(entry.name in CACHE_DIRS for entry in folder.iterdir()):
+                out(f"  REMOVE folder {folder.name}: leftover with only build caches")
+                leftovers.append(folder)
+            elif (folder / ".jj" / "repo").is_file():
+                store = folder / ".jj" / (folder / ".jj" / "repo").read_text().strip()
+                why = "its repo no longer exists" if not store.exists() else "repo not swept"
+                out(f"  KEEP folder {folder.name}: jj workspace whose {why}; check it by hand")
+            elif (folder / ".git").is_file():
+                out(f"  KEEP folder {folder.name}: git worktree, not a jj workspace; check it by hand")
+            else:
+                out(f"  KEEP folder {folder.name}: no repo lists it; check it by hand")
+    return leftovers
+
+
+def orphan_daemons() -> list[str]:
+    """Print and return running pitchfork daemons whose working folder was deleted."""
+    if not shutil.which("pitchfork"):
+        return []
+    listing = run(["pitchfork", "list", "--json"], cwd=HOME, check=False)
+    found: list[str] = []
+    for daemon in json.loads(listing or "[]"):
+        pid = daemon.get("pid")
+        if not pid:
+            continue
+        try:
+            cwd = os.readlink(f"/proc/{pid}/cwd")
+        except OSError:
+            continue
+        if cwd.endswith(" (deleted)"):
+            out(f"  STOP {daemon['id']}: its folder {cwd.removesuffix(' (deleted)')} is gone")
+            found.append(daemon["id"])
+    return found
+
+
+# ── Acting ──────────────────────────────────────────────────────────────────────────────
+
+
+def stop_daemons(namespace: str) -> None:
+    """Stop the pitchfork daemons of a project, named after its folder."""
+    if not shutil.which("pitchfork"):
+        return
+    listing = run(["pitchfork", "list", "--json"], cwd=HOME, check=False)
+    for daemon in json.loads(listing or "[]"):
+        if daemon.get("namespace") == namespace and daemon.get("pid"):
+            run(["pitchfork", "stop", daemon["id"]], cwd=HOME, check=False)
+            print(f"    stopped {daemon['id']}")
+
+
+def remove(removal: Removal) -> None:
+    repo = removal.repo
+    if removal.path is not None:
+        stop_daemons(removal.path.name)
+
+    if removal.delete_bookmarks:
+        jj(repo.root, "bookmark", "delete", *removal.delete_bookmarks)
+        print(f"    deleted bookmarks {', '.join(removal.delete_bookmarks)}")
+        remote = jj(
+            repo.root, "bookmark", "list", "--all-remotes",
+            "-T", 'if(remote == "origin", name ++ "\\n", "")',
+        ).split()
+        for bookmark in removal.delete_bookmarks:
+            if bookmark in remote and repo.slug:
+                ref = f"repos/{repo.slug}/git/refs/heads/{bookmark}"
+                run(["gh", "api", "-X", "DELETE", ref], cwd=repo.root, check=False)
+                print(f"    deleted remote branch {bookmark}")
+
+    # jw exits nonzero on some successful removals, so judge by the result instead.
+    run(["jw", "remove", "--keep-bookmark", removal.name], cwd=repo.root, check=False)
+    repo.load_workspaces()
+    if removal.name in repo.workspaces:
+        jj(repo.root, "workspace", "forget", removal.name)
+    path = removal.path
+    if path is not None and path.is_dir() and (path / ".jj").exists() and path != repo.root:
+        shutil.rmtree(path)
+    print("    removed workspace and folder")
+
+    # Abandon the commits the plan listed that are still visible.
+    ids = " | ".join(f"present({commit})" for commit, _, _ in removal.hides)
+    if ids:
+        visible = revs(repo.root, f"({ids}) & all()", "commit_id")
+        if visible:
+            jj(repo.root, "abandon", *visible)
+            print(f"    abandoned {len(visible)} commit(s)")
+
+
+# ── Main ────────────────────────────────────────────────────────────────────────────────
+
+
+def print_removal(removal: Removal) -> None:
+    out(f"  REMOVE {removal.name}: {removal.reason}")
+    real = [h for h in removal.hides if h[2] != "(empty)"]
+    if real:
+        out(f"    abandons {len(real)} commit(s) whose changes are in trunk or a merged PR:")
+        for _, change, line in real[:SHOWN]:
+            out(f"      {change} {line}")
+        if len(real) > SHOWN:
+            out(f"      … and {len(real) - SHOWN} more")
+    if removal.ignored:
+        out(f"    deletes {len(removal.ignored)} ignored file(s):")
+        for rel in removal.ignored[:SHOWN]:
+            out(f"      {rel}")
+        if len(removal.ignored) > SHOWN:
+            out(f"      … and {len(removal.ignored) - SHOWN} more")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="ws-gc",
+        description="Remove finished jj workspaces, their merged bookmarks, and their dev servers.",
+    )
+    parser.add_argument("--all", action="store_true")
+    parser.add_argument("-y", "--yes", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--min-age", type=float, default=24.0, metavar="HOURS")
+    parser.add_argument("--list-projects", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("targets", nargs="*")
+    args = parser.parse_args()
+    roots = env_paths("WS_GC_ROOTS", DEFAULT_ROOTS)
+
+    if args.list_projects:  # for shell completion
+        print("\n".join(sorted({p.name for p in find_repos(roots)})))
+        return 0
+    if args.all and args.targets:
+        parser.error("--all takes no targets")
+
+    lock_dir = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp")
+    lock = (lock_dir / "ws-gc.lock").open("w")
+    fcntl.flock(lock, fcntl.LOCK_EX)
+
+    try:
+        targets = resolve_targets(args, roots)
+    except CommandError as err:
+        print(f"ws-gc: {err}", file=sys.stderr)
+        return 2
+    # Only an unattended sweep needs the age guard; a named target was chosen on purpose.
+    min_age: float | None = args.min_age if args.all else None
+    worktree_roots = env_paths("WS_GC_WORKTREE_ROOTS", DEFAULT_WORKTREE_ROOTS)
+    known = {
+        p.resolve() for t in targets for p in t.repo.workspaces.values() if p is not None
+    }
+
+    # Plan everything first, so nothing changes before the user has seen it all.
+    removals: list[Removal] = []
+    folders: list[Path] = []
+    failures = 0
+    seen: set[str] = set()
+    for target in targets:
+        repo = target.repo
+        section(repo.name, always=not args.all)
+        seen.add(repo.name)
+        try:
+            jj(repo.root, "git", "fetch")
+        except CommandError as err:
+            out(f"  WARN fetch failed ({err}); deciding from local state")
+        names = [n for n in target.names if n != "default"]
+        if not names and not args.all:
+            out("  no workspaces besides default")
+        for name in names:
+            try:
+                removal, reason = evaluate(repo, name, min_age)
+            except CommandError as err:
+                out(f"  ERROR {name}: {err}")
+                failures += 1
+                continue
+            if removal is None:
+                out(f"  KEEP {name}: {reason}")
+                continue
+            print_removal(removal)
+            removals.append(removal)
+        if target.whole_repo:
+            folders += orphan_folders(repo.name, known, worktree_roots)
+
+    daemons: list[str] = []
+    if args.all:
+        # Worktree folders of projects whose repo is gone or outside the roots.
+        for root in worktree_roots:
+            if not root.is_dir():
+                continue
+            for project in sorted(p for p in root.iterdir() if p.is_dir()):
+                if project.name in seen:
+                    continue
+                seen.add(project.name)
+                section(f"{project.name} (no repo)")
+                if not any(project.iterdir()):
+                    out("  REMOVE empty project folder")
+                    folders.append(project)
+                else:
+                    folders += orphan_folders(project.name, known, worktree_roots)
+        section("dev servers")
+        daemons = orphan_daemons()
+    print()
+
+    if not (removals or folders or daemons):
+        print("Nothing to remove.")
+        return 1 if failures else 0
+    if args.dry_run:
+        return 1 if failures else 0
+    if args.yes:
+        for r in [r for r in removals if r.ignored]:
+            print(f"KEEP {r.label}: has ignored files; remove it by hand after checking them")
+        removals = [r for r in removals if not r.ignored]
+    elif sys.stdin.isatty():
+        summary = f"{len(removals)} workspace(s), {len(folders)} folder(s)"
+        if daemons:
+            summary += f", and stop {len(daemons)} dev server(s)"
+        try:
+            answer = input(f"Remove {summary}? [y/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() not in ("y", "yes"):
+            print("Nothing changed.")
+            return 1 if failures else 0
+    else:
+        print("No terminal to confirm. Rerun with --yes to remove, or in a terminal.")
+        return 1 if failures else 0
+
+    for removal in removals:
+        print(f"Removing {removal.label}")
+        try:
+            remove(removal)
+        except CommandError as err:
+            print(f"ERROR {removal.label}: {err}")
+            failures += 1
+    for folder in folders:
+        stop_daemons(folder.name)
+        shutil.rmtree(folder)
+        print(f"Removed {folder}")
+    for daemon_id in daemons:
+        run(["pitchfork", "stop", daemon_id], cwd=HOME, check=False)
+        print(f"Stopped {daemon_id}")
+    if args.all and shutil.which("pitchfork"):
+        run(["pitchfork", "clean"], cwd=HOME, check=False)
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
