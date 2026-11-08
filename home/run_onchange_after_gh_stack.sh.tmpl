@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Install the gh-stack extension (`gh stack`) at a pinned version. gh keeps extensions in its own
+# folder, so mise cannot manage this one; changing the version below reruns this script.
+set -euo pipefail
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+version="v0.3.0"
+command -v gh > /dev/null 2>&1 || exit 0
+if [[ "$(gh stack --version 2>/dev/null)" != *"${version#v}"* ]]; then
+  gh extension remove gh-stack > /dev/null 2>&1 || true
+  gh extension install github/gh-stack --pin "$version"
+fi

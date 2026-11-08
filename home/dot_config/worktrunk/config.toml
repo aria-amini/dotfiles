@@ -1,0 +1,11 @@
+# Worktrees made outside T3 Code. T3 keeps its own under ~/.t3/worktrees.
+worktree-path = "~/.herdr/workspaces/{{ repo }}/{{ branch | sanitize_hash }}"
+
+[post-start]
+copy = "wt step copy-ignored"
+
+[list]
+json-schema = 2
+
+[step.copy-ignored]
+exclude = [".env.compose", "**/.venv/", "*node_modules/*"]
