@@ -4,115 +4,97 @@ Global rules for Aria's agents.
 
 ## Environment
 
-Main coding sessions run on a lima Ubuntu VM on a MacBook Pro. Aria connects
-over Tailscale SSH. Clients and the server share no filesystem.
+Sessions run on a lima Ubuntu VM (arm64). Clients reach it over Tailscale and
+share no filesystem with it.
 
-- Manage home-directory dotfiles with Chezmoi. Edit sources under
-  `~/.local/share/chezmoi/home`. Then run `chezmoi apply` for the changed
-  targets only.
+- Manage home-directory dotfiles with Chezmoi. Edit the sources in your task's
+  checkout of the dotfiles repo, never the deployed targets. Then run
+  `chezmoi apply --source <checkout>/home` for the changed targets only.
 - Make each URL that a client must load reachable from the client network, not
   server-side localhost. Follow the `tailnet-publish` skill to share a URL or
   file.
-- Caddy owns port 443 on the Tailscale IP. Never publish a Tailscale Serve
-  mapping on 443.
-- For browser work, follow the `browser-use` skill.
+- The VM has limited memory. Run heavy checks one at a time.
 
 ## Version Control
 
-- Use jujutsu (jj) for all reads and writes. Never use git for writes.
-- Keep each PR commit clean. To change existing work, amend the commit that owns
-  the change with `jj squash --into <rev>` or `jj absorb`. Do not append a fixup
-  commit.
-- Rebase, reorder, split, squash, and force-push PR commits and bookmarks
-  without permission. A pushed bookmark does not make a commit immutable.
-- Workspace commits are mutable; protect active work through coordination, not
-  workspace-based `immutable_heads()` rules. Keep `snapshot.auto-update-stale`
-  disabled so stale working copies require explicit reconciliation.
-- Before rewriting history shared with another workspace, run `jj workspace
-  list` to find affected workspaces (their working copies sit on or above a
-  rewritten commit). Run `jj status` in each to snapshot its files. If one is
-  already stale, coordinate its reconciliation before continuing. If another
-  agent or user is actively editing there, coordinate a pause before rewriting
-  or updating its files, even if its working-copy commit is empty. Otherwise,
-  proceed without permission when its working-copy commit is empty; ask first
-  when it is nonempty. Amend shared commits with `jj squash --into <rev>` or
-  `jj absorb`, not `jj edit` in another workspace.
-- After a rewrite, explicitly run `jj workspace update-stale` in affected,
-  paused or idle workspaces before resuming work there. Never auto-update and
-  retry a stale-workspace error blindly; inspect the rewrite first. Editors and
-  dev servers can still read stale files until the update.
-- Trunk history is immutable: trunk, tags, and untracked remote bookmarks. Never
-  rewrite it, bypass it with `--ignore-immutable`, or change `immutable_heads()`
-  without explicit permission for that exact operation. Add a new commit instead
-  when possible.
+- Use git. Each task works on its own branch in its own worktree; T3 Code
+  creates one per thread, and `wt switch --create <branch>` creates one outside
+  T3.
+- Before review starts, keep each PR commit clean: one commit per concern.
+  Amend, reorder, and force-push (`--force-with-lease`) freely until then.
+- Once a reviewer has seen a PR, do not rewrite its commits. Add each round of
+  review fixes as new commits whose message starts with `[review]`, for example
+  `[review] Handle an empty shelf in the finder`.
+- Do not create scratch commits (`wip`, `tmp`) or backup branches.
+- Never rewrite the default branch or tags, and never force-push them.
 
 ## Shipping PRs
 
-When a task is complete, ship it without a prompt. Push its bookmarks and open
-or update its PR.
+When a task is complete, ship it without a prompt: push its branch and open its
+PR with `gh pr create --title <title> --body-file <file>`, or update it with
+`gh pr edit`.
 
 ### Ship Lanes
 
 Each task uses one lane:
 
 - **full-send**: Merge the PR without a prompt when it is merge-ready.
-- **full-review**: After the first push, ask the user for feedback. Ask before
+- **full-stop**: After the first push, ask the user for feedback. Ask before
   merge.
 
-Use full-review by default. Use full-send only when the user names it for the
+Use full-stop by default. Use full-send only when the user names it for the
 task (for example with "full send" in the prompt). Never select full-send on
-your own. And move back to full-review and tell the user if the change grows to
-touch: auth, secrets, user data, migrations, production, or if a change cannot
-be easily reverted. Just alert the user if you feel the need to.
+your own. Move back to full-stop and tell the user if the change grows to
+touch auth, secrets, user data, migrations, or production, or cannot be easily
+reverted.
 
-### jj-ryu (Stacked PRs)
+### One PR per task
 
-ryu maps each bookmark in a jj stack to one PR. It sets the base of each PR to
-the bookmark below it and registers the GitHub stack. Create one bookmark for
-each PR. Track the bookmarks with `ryu track --all`. Publish and update with
-`ryu submit`.
-
-Open one PR for each task. A large PR is acceptable. Each PR costs one review,
-so do not split a task into more PRs. Split the work into one jj commit for each
-concern. The reviewer reads one commit at a time.
-
-Stack PRs in two cases only. Keep dependencies below consumers.
-
-- Dependent work must continue while the previous PR waits for review or CI.
-- Cleanups accumulate in a high-churn PR. Move them to one PR at the bottom of
-  the stack and merge it first.
-
-Use [the jj-ryu fork](https://github.com/aria-amini/jj-ryu) to submit and merge
-PRs. Do not use `gh pr create` or `gh pr merge`. Use `gh` only for checks,
-labels, and review comments.
+Default to a single PR for each task. A large PR is acceptable; the reviewer
+reads one commit at a time. Stack PRs only when the user asks, and build the
+stack with `gh stack` (`init`, `add`, `submit --auto`, `sync`,
+`merge --yes --squash`).
 
 Own each PR until it is merged or merge-ready. Fix failures without a prompt.
-Wait on checks with `gh pr checks <pr> --watch`, not chained `sleep` calls.
+If a tool fails because of your branch or repo state, fix that and rerun. If
+GitHub or the tool itself fails, stop and report the error.
+
+Never wait with `sleep` loops. In T3 Code, use `watch_pull_request` for checks
+and reviews and `schedule_task` for a timed retry. Outside T3, use
+`gh pr checks <pr> --watch --fail-fast`, then, even if the watch failed, read
+the PR's new review comments and check results before you reply. Tell the user
+what you are waiting on.
 
 ### Code Review
 
 If the changes are large and need a second pass, run 1 to 3 adversarial reviews
-with a subagent. Never run more than 3 reviews, findings degrade into noise
-after 3 rounds. CodeRabbit does not count, this is only a limit for local
-code-review.
+with a subagent. CodeRabbit does not count toward this limit.
 
-Request a CodeRabbit review with `@coderabbitai review`. In full-send, request
-it after green CI. In full-review, request it after the user gives feedback. Do
-not use CodeRabbit autofix. It writes git commits that ignore the jj commit
-structure. Fix real findings by hand. Reply in each thread with the fix or the
-false-positive reason, then resolve it. After each round of fixes, request
-another review. CodeRabbit reviews only the new commits. Continue until
-CodeRabbit approves the PR.
+Request a CodeRabbit review with `@coderabbitai review`: in full-send after
+green CI, in full-stop after the user gives feedback. Defer it when the task
+says so, but never merge to the default branch without its approval unless the
+user says to skip it for that PR. Do not use CodeRabbit autofix. Fix real
+findings in `[review]` commits, reply in each thread with the fix or the
+false-positive reason, resolve it, and request another review. Continue until
+CodeRabbit approves.
 
-### Clean Up
+A round is done when CodeRabbit submits a review on the current head commit
+after your request, or its summary reports no actionable comments for that
+head. A thread reply is not a review. When it is rate limited, find its newest
+comment that states a wait ("available in N minutes"), either its reply or its
+summary, add N to that comment's `updated_at`, and retry once at that time. Do
+not post probe comments.
 
-A PR is merge-ready when CodeRabbit approved it, all checks and deploys are
-green, and all threads are resolved. After a stack update, recheck each affected
-PR. Merge bottom-up with `ryu merge --yes <name>`, then run `ryu sync`.
+### Merge and clean up
 
-After the merge, remove the task workspace as the last action of the task:
+A PR is merge-ready when CodeRabbit approved its head commit, all checks and
+deploys are green, and no review thread is unresolved. Merge with
+`gh pr merge --squash --delete-branch`, or `gh stack merge --yes --squash` for
+a stack. Close any PR your task superseded, with a comment linking its
+replacement.
 
-1. Run `jw current` to get the workspace name.
-2. Run `cd "$(jw path default)" && jw remove --delete-bookmark <name>`. Never
-   remove the default workspace.
-3. Use the t3 MCP to settle the thread. archive.
+When you finish, stop the dev servers you started, unless the user is still
+using a preview. T3 Code removes a thread's worktree after its PR merges; the
+user runs `mise run repo-prune` to clear other merged worktrees and branches.
+Copy out any untracked or ignored files you still need, such as `.env` files,
+before the merge.
