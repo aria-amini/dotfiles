@@ -9,7 +9,8 @@
     "ready_cmd" (dict "run" "\"$HOME/.local/bin/caddy-health\"" "timeout" "180s")
     "health_cmd" (dict "run" "\"$HOME/.local/bin/caddy-health\"" "interval" "30s" "timeout" "5s" "retries" 3)
 -}}
-{{- /* Caddy terminates TLS and proxies to this loopback-only port. */ -}}
+{{- /* Caddy terminates TLS and proxies to this loopback-only port. A dev server
+     with no proxy traffic for 30 minutes stops; the next request starts it. */ -}}
 {{- $config = $config
     | setValueAtPath "daemons.tls" $tls
     | setValueAtPath "settings.proxy.enable" true
@@ -17,6 +18,7 @@
     | setValueAtPath "settings.proxy.port" 9443
     | setValueAtPath "settings.proxy.sync_hosts" false
     | setValueAtPath "settings.proxy.tld" .proxy.tld
+    | setValueAtPath "settings.proxy.idle_timeout" "30m"
     | setValueAtPath "settings.supervisor.user" .chezmoi.username
 -}}
 {{- $config | toToml -}}
