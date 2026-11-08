@@ -69,7 +69,8 @@ what you are waiting on.
 ### Code Review
 
 If the changes are large and need a second pass, run 1 to 3 adversarial reviews
-with a subagent. CodeRabbit does not count toward this limit.
+with a subagent. Stop after 3; later rounds find mostly noise. This cap does
+not apply to CodeRabbit.
 
 Request a CodeRabbit review with `@coderabbitai review`: in full-send after
 green CI, in full-stop after the user gives feedback. Defer it when the task
