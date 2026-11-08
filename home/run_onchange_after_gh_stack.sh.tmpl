@@ -13,16 +13,21 @@ command -v gh > /dev/null 2>&1 || mise install --quiet github-cli
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/gh/extensions/gh-stack"
 field() { sed -n "s/^$1: //p" "$dir/manifest.yml" 2>/dev/null; }
 if [[ "$(field host)/$(field owner)/$(field tag)/$(field ispinned)" != "github.com/github/$version/true" ]]; then
-  # --force only upgrades in place, so move any other build aside, install the pin,
-  # and put the old build back if the install fails.
+  # --force only upgrades in place, so move any other build aside and install the pin.
+  # If the install fails or is interrupted, the trap puts the old build back.
   backup="$(mktemp -d)"
-  [[ -e "$dir" ]] && mv "$dir" "$backup/"
-  if ! gh extension install https://github.com/github/gh-stack --pin "$version"; then
-    rm -rf "$dir"
-    [[ -e "$backup/gh-stack" ]] && mv "$backup/gh-stack" "$dir"
+  installed=false
+  restore() {
+    if [[ $installed == false && -e "$backup/gh-stack" ]]; then
+      rm -rf "$dir"
+      mv "$backup/gh-stack" "$dir"
+    fi
     rm -rf "$backup"
-    exit 1
-  fi
-  rm -rf "$backup"
+  }
+  trap restore EXIT
+  trap 'exit 130' INT TERM HUP
+  if [[ -e "$dir" ]]; then mv "$dir" "$backup/"; fi
+  gh extension install https://github.com/github/gh-stack --pin "$version"
+  installed=true
 fi
 {{ end -}}
