@@ -36,7 +36,7 @@ snapshot() {
 
 run_update() {
   local before after rc bin requested="${1:-}"
-  if [ -n "$requested" ] && [[ ! "$requested" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+  if [ -n "$requested" ] && [[ ! "$requested" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
     log "ERROR: expected an exact version, got: $requested"
     exit 2
   fi

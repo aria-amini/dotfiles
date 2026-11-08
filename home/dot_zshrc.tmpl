@@ -67,7 +67,7 @@ lg() {
   new_dir="$(<"$new_dir_file")"
   rm -f "$new_dir_file"
   if [[ -n "$new_dir" && -d "$new_dir" && "$new_dir" != "$start_root" ]]; then
-    cd "$new_dir"
+    cd "$new_dir" || return
   fi
   return $rc
 }

@@ -4,8 +4,11 @@
 set -euo pipefail
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 version="v0.3.0"
-command -v gh > /dev/null 2>&1 || exit 0
-if [[ "$(gh stack --version 2>/dev/null)" != *"${version#v}"* ]]; then
-  gh extension remove gh-stack > /dev/null 2>&1 || true
-  gh extension install github/gh-stack --pin "$version"
+# Setup applies dotfiles before it installs mise tools, so install gh here if it is missing;
+# otherwise this script would exit early and never run again.
+command -v gh > /dev/null 2>&1 || mise install --quiet github-cli
+# Accept only the pinned release from github/gh-stack, not a fork or a dev build.
+if ! gh extension list 2>/dev/null | grep -qE "^gh stack[[:space:]]+github/gh-stack[[:space:]]+${version}\b"; then
+  # --force replaces an existing install in place, so a failed download keeps the old one.
+  gh extension install github/gh-stack --pin "$version" --force
 fi

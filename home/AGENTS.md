@@ -8,8 +8,8 @@ Sessions run on a lima Ubuntu VM (arm64). Clients reach it over Tailscale and
 share no filesystem with it.
 
 - Manage home-directory dotfiles with Chezmoi. Edit the sources in your task's
-  checkout of the dotfiles repo, never the deployed targets. Then run
-  `chezmoi apply --source <checkout>/home` for the changed targets only.
+  checkout of the dotfiles repo, never the deployed targets. Then apply only
+  the changed targets: `chezmoi apply --source <checkout>/home <target>...`.
 - Make each URL that a client must load reachable from the client network, not
   server-side localhost. Follow the `tailnet-publish` skill to share a URL or
   file.
@@ -95,6 +95,7 @@ replacement.
 
 When you finish, stop the dev servers you started, unless the user is still
 using a preview. T3 Code removes a thread's worktree after its PR merges; the
-user runs `mise run repo-prune` to clear other merged worktrees and branches.
+user runs `mise run repo-prune` to clear other merged worktrees and branches
+(it skips any under a day old, so recent ones go on a later run).
 Copy out any untracked or ignored files you still need, such as `.env` files,
 before the merge.

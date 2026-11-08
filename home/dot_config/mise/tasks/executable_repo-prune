@@ -41,7 +41,7 @@ if command -v pitchfork > /dev/null 2>&1; then
       pitchfork stop "$id" || failed=1
     fi
   done <<< "${daemons:-}"
-  pitchfork clean > /dev/null || true
+  pitchfork clean > /dev/null || failed=1
 fi
 
 exit "$failed"
