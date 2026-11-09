@@ -1,1 +1,7 @@
-{{ .chezmoi.workingTree }}/mise-global/conf.d
+{{- /* Point at the main checkout even when applied from a linked worktree, which
+       is deleted after its PR merges. A linked worktree's .git is a file that
+       reads "gitdir: <main>/.git/worktrees/<name>". */ -}}
+{{- $root := .chezmoi.workingTree -}}
+{{- $git := joinPath $root ".git" -}}
+{{- with stat $git }}{{ if not .isDir }}{{ $root = include $git | trim | trimPrefix "gitdir: " | dir | dir | dir }}{{ end }}{{ end -}}
+{{ $root }}/mise-global/conf.d
