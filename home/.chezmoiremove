@@ -4,3 +4,5 @@
 .config/openbao/policies/caddy-reader.hcl
 .config/openbao/README.md
 .local/bin/personal-secrets
+.config/jj
+.config/jjui

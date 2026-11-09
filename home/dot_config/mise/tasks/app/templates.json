@@ -8,7 +8,7 @@
   },
   {
     "name": "empty",
-    "description": "Empty jj repo with a README",
+    "description": "Empty git repo with a README",
     "checks": []
   }
 ]

@@ -30,7 +30,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/aria-amini/dotfiles/main/boo
 Run `bootstrap.sh --help` to list options.
 
 Linux core installs base packages, bootstrap tools, Nix, dotfiles, and the login shell.
-Linux full also installs managed tools and the Herdr jj plugin.
+Linux full also installs managed tools.
 Use `--skip-managed-tools` to skip the managed tool catalog and the plugin during setup.
 Select optional steps with `--with docker,tailscale,pitchfork,t3,wsl_interop` on the full profile.
 The `wsl_interop` step turns off Windows PATH interop and Windows drive automount. It applies to WSL only and needs `wsl.exe --shutdown` to take effect.

@@ -63,9 +63,9 @@ else
 fi
 
 cd "$dest"
-[[ -d .jj ]] || jj git init --colocate
-jj commit -m "Create $name from the $template template"
-jj bookmark create main -r @-
+[[ -d .git ]] || git init --quiet --initial-branch=main
+git add --all
+git commit --quiet -m "Create $name from the $template template"
 
 if [[ "$github" == false ]]; then
   echo "Created $dest without a GitHub repo."
@@ -77,10 +77,9 @@ if ! gh repo create "$repo" --public --description "$description"; then
   echo "GitHub repo creation failed. The local project remains at $dest." >&2
   exit 1
 fi
-jj git remote add origin "https://github.com/$repo.git"
+git remote add origin "https://github.com/$repo.git"
 # The ruleset blocks the creation of main.
-jj git push --remote origin --bookmark main
-jj bookmark track main --remote=origin
+git push --quiet --set-upstream origin main
 
 gh api --method PATCH "repos/$repo" --input "$config_dir/repo.json" >/dev/null
 echo "Applied the repo settings to $repo."
