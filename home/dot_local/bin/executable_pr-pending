@@ -65,7 +65,9 @@ def pending(
         name = check.get("name") or check.get("context") or ""
         started = check.get("startedAt") or check.get("createdAt") or ""
         kept = latest.get(name)
-        if kept is None or started >= (kept.get("startedAt") or kept.get("createdAt") or ""):
+        if kept is None or started >= (
+            kept.get("startedAt") or kept.get("createdAt") or ""
+        ):
             latest[name] = check
     for check in latest.values():
         if (check.get("conclusion") or check.get("state") or "").upper() in FAILED:
@@ -111,7 +113,9 @@ def main() -> int:
             return 0
         if pr.get("state") != "OPEN":
             if not hook:
-                print(f"pr-pending: PR {pr.get('url')} is {pr.get('state', '').lower()}")
+                print(
+                    f"pr-pending: PR {pr.get('url')} is {pr.get('state', '').lower()}"
+                )
             return 0
         # The PR's own repository, from its URL: https://github.com/<owner>/<repo>/pull/<n>
         owner, repo = pr["url"].split("/")[3:5]
@@ -140,7 +144,9 @@ def main() -> int:
         threads = [
             node
             for page in pages
-            for node in page["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+            for node in page["data"]["repository"]["pullRequest"]["reviewThreads"][
+                "nodes"
+            ]
         ]
         try:
             ahead = int(

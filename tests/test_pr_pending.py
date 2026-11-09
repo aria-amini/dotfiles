@@ -40,7 +40,11 @@ def test_nothing_pending() -> None:
 
 def test_judges_each_check_by_its_newest_run() -> None:
     checks = [
-        {"name": "check", "conclusion": "CANCELLED", "startedAt": "2026-11-09T01:12:04Z"},
+        {
+            "name": "check",
+            "conclusion": "CANCELLED",
+            "startedAt": "2026-11-09T01:12:04Z",
+        },
         {"name": "check", "conclusion": "SUCCESS", "startedAt": "2026-11-09T01:12:08Z"},
         {"name": "lint", "conclusion": "SUCCESS", "startedAt": "2026-11-09T01:00:00Z"},
         {"name": "lint", "conclusion": "FAILURE", "startedAt": "2026-11-09T01:05:00Z"},
