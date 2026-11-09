@@ -1,5 +1,4 @@
 [tools]
-"aqua:jj-vcs/jj" = "latest"
 lazygit = "latest"
 "npm:hunkdiff" = "latest"
 "difftastic" = "latest"
