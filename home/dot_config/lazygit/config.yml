@@ -1,0 +1,77 @@
+promptToReturnFromSubprocess: false
+git:
+  pagers:
+    - externalDiffCommand: difft --graph-limit=500000 --byte-limit=500000 --color=always --display=inline
+    - pager: delta --dark --paging=never --line-numbers --side-by-side --tabs 2
+      colorArg: never
+customCommands:
+  - key: '<ctrl+minus>'
+    context: 'files'
+    command: 'yazi {{.SelectedPath | quote}}'
+    description: 'Open in yazi'
+    output: terminal
+  - key: 'I'
+    context: 'files'
+    command: |
+      mise x -- bash -c '
+        set -euo pipefail
+        f="$1"
+        wait_key() { IFS= read -n 1 -s -r -p "Press any key to return..." || true; }
+        cd "$(git rev-parse --show-toplevel)"
+        if ! git ls-files --error-unmatch -- "$f" > /dev/null 2>&1; then
+          echo "No HEAD version for $f (untracked)"
+          wait_key
+          exit 0
+        fi
+        before="$(mktemp -t lazygit-before-XXXXXX.png)"
+        montage="$(mktemp -t lazygit-montage-XXXXXX.png)"
+        cleanup() { rm -f "$before" "$montage"; }
+        trap cleanup EXIT
+        git show HEAD:"$f" > "$before"
+        magick "$before" "$f" +append "$montage"
+        chafa -f kitty --fit-width "$montage" 2>/dev/null || imgcat "$montage" || chafa --fit-width "$montage"
+        echo
+        wait_key
+      ' _ {{.SelectedPath | quote}}
+    description: 'Image diff (single file)'
+    output: terminal
+  - key: 'alt+i'
+    context: 'files'
+    command: |
+      mise x -- bash -c '
+        set -euo pipefail
+        wait_key() { IFS= read -n 1 -s -r -p "Press any key to return..." || true; }
+        cd "$(git rev-parse --show-toplevel)"
+        files=()
+        while IFS= read -r -d "" f; do
+          [[ $f == *__screenshots__* ]] && files+=("$f")
+        done < <(git diff HEAD -z --name-only --diff-filter=M -- "*.png")
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "No modified screenshots to diff"
+          wait_key
+          exit 0
+        fi
+        tmp_dir="$(mktemp -d -t lazygit-bulk-diff-XXXXXX)"
+        cleanup() { rm -rf "$tmp_dir"; }
+        trap cleanup EXIT
+        i=0
+        for f in "${files[@]}"; do
+          i=$((i + 1))
+          p="$(printf "%03d" "$i")"
+          before="$tmp_dir/$p-before.png"
+          pair="$tmp_dir/$p-pair.png"
+          git show HEAD:"$f" > "$before"
+          magick "$before" "$f" +append "$pair"
+          magick -background black -fill white -gravity west -size 1600x30 "label:$f" "$pair" -append "$tmp_dir/$p-row.png"
+        done
+        final="$tmp_dir/final.png"
+        magick "$tmp_dir"/*-row.png -append "$final"
+        echo "Modified screenshots:"
+        printf "%s\n" "${files[@]}"
+        echo
+        chafa -f kitty --fit-width "$final" 2>/dev/null || imgcat "$final" || chafa --fit-width "$final"
+        echo
+        wait_key
+      '
+    description: 'Diff all modified screenshots'
+    output: terminal

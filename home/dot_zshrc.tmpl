@@ -25,11 +25,19 @@ SAVEHIST=100000
 setopt EXTENDED_HISTORY INC_APPEND_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS
 
 # ── Init ──────────────────────────────────────────────────────
-eval "$(mise activate zsh)"
+# Absolute path so non-login shells work before PATH is set; fall back to PATH.
+_mise="$HOME/.local/bin/mise"
+[[ -x $_mise ]] || _mise=mise
+eval "$("$_mise" activate zsh)"
+unset _mise
 
 # ── Completion ────────────────────────────────────────────────
+# Completions that CLIs install themselves (sentry). Must precede compinit.
+fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
 autoload -Uz compinit
 compinit
+# mise completes its subcommands, task names, and task flags (#USAGE lines).
+source <(mise completion zsh)
 
 # ── FZF ───────────────────────────────────────────────────────
 source <(fzf --zsh)
@@ -49,11 +57,24 @@ source ~/.config/fzf/fzf-tab/fzf-tab.plugin.zsh
 # ── Zoxide ────────────────────────────────────────────────────
 eval "$(zoxide init zsh)"
 
-# ── jj-waltz ──────────────────────────────────────────────────
-eval "$(jw shell init zsh)"
+# ── Worktrunk ─────────────────────────────────────────────────
+(( $+commands[wt] )) && eval "$(wt config shell init zsh)"
 
 # ── Aliases ───────────────────────────────────────────────────
-alias lg='jjui'
+# lazygit, then cd into the repo it switched to (LAZYGIT_NEW_DIR_FILE).
+lg() {
+  local new_dir_file start_root new_dir
+  new_dir_file="$(mktemp -t lazygit-newdir.XXXXXX)" || return
+  start_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+  LAZYGIT_NEW_DIR_FILE="$new_dir_file" lazygit "$@"
+  local rc=$?
+  new_dir="$(<"$new_dir_file")"
+  rm -f "$new_dir_file"
+  if [[ -n "$new_dir" && -d "$new_dir" && "$new_dir" != "$start_root" ]]; then
+    cd "$new_dir" || return
+  fi
+  return $rc
+}
 alias ls='eza -1 --icons --group-directories-first'
 alias k='kubectl'
 alias tree='erd'

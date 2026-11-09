@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-#MISE description="Update the T3 Code service to the newest fork runtime, with before/after logging"
+#MISE description="Update the T3 Code service to the newest release, with before/after logging"
 #MISE quiet=true
 #
 # mise run t3-update              update, restart the service, verify, follow the log
-# mise run t3-update -- --status  print what is running now and change nothing
-# mise run t3-update -- 0.1.1-fork.37  install an exact version (also works with older updaters)
+# mise run t3-update --status     print what is running now and change nothing
+# mise run t3-update 0.1.7         install an exact version
 #
 # The update runs in its own systemd unit. A shell started by an agent lives inside the service's
 # cgroup, so stopping the service would otherwise kill the update halfway. Every run is logged to
@@ -36,8 +36,8 @@ snapshot() {
 
 run_update() {
   local before after rc bin requested="${1:-}"
-  if [ -n "$requested" ] && [[ ! "$requested" =~ ^[0-9]+\.[0-9]+\.[0-9]+-fork\.[0-9]+$ ]]; then
-    log "ERROR: expected an exact fork version, got: $requested"
+  if [ -n "$requested" ] && [[ ! "$requested" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+    log "ERROR: expected an exact version, got: $requested"
     exit 2
   fi
   before="$(active_version)"
@@ -47,9 +47,7 @@ run_update() {
   log "update started from t3 $before"
   snapshot before
   if [ -n "$requested" ]; then
-    # Older runtimes resolve automatic updates and downloads through the retired rolling release.
-    T3CODE_RELEASE_BASE_URL="https://github.com/aria-amini/t3code/releases/download" \
-      "$bin" update "$requested" --yes 2>&1 | sed 's/^/    /'
+    "$bin" update "$requested" --yes 2>&1 | sed 's/^/    /'
     rc="${PIPESTATUS[0]}"
   else
     "$bin" update --yes 2>&1 | sed 's/^/    /'
@@ -63,7 +61,8 @@ run_update() {
   done
   after="$(active_version)"
   snapshot after
-  if [ "$rc" -ne 0 ] || [ "$(service_state)" != active ] || [ "$(listener_version)" != "$after" ]; then
+  if [ "$rc" -ne 0 ] || [ "$(service_state)" != active ] || [ "$(listener_version)" != "$after" ] \
+    || { [ -n "$requested" ] && [ "$after" != "$requested" ]; }; then
     log "RESULT: FAILED (exit=$rc, service=$(service_state), active=$after, listening=$(listener_version))"
     exit 1
   fi

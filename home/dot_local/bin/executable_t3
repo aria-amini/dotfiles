@@ -17,7 +17,7 @@ def main():
         binary = home / "runtime/versions" / version / "t3"
         os.execv(str(binary), [str(binary), *sys.argv[1:]])
     except (OSError, ValueError, KeyError) as error:
-        print(f"t3: cannot launch the active fork runtime: {error}", file=sys.stderr)
+        print(f"t3: cannot launch the active runtime: {error}", file=sys.stderr)
         return 1
 
 

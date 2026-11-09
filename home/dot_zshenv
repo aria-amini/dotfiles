@@ -1,0 +1,7 @@
+# Shells without a terminal are agents and scripts: never open an editor or a
+# prompt, and pass unmatched globs through as text, like bash.
+if [[ ! -t 0 ]]; then
+  export GIT_EDITOR="${GIT_EDITOR:-true}" GIT_SEQUENCE_EDITOR="${GIT_SEQUENCE_EDITOR:-true}"
+  export GH_PROMPT_DISABLED=1
+  setopt no_nomatch
+fi

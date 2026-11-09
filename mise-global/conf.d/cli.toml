@@ -38,7 +38,7 @@ fastfetch = "latest"
 
 "npm:chrome-devtools-axi" = "latest"
 "github:alexpasmantier/television" = "latest"
-"github:EzraCerpac/jj-waltz" = "0.7.0"
+"aqua:max-sixty/worktrunk" = "latest"
 "gum" = "latest"
 chezmoi = "latest"
 wrangler = "4.149.0"

@@ -2,7 +2,7 @@
 
 # Optional step catalog. Add a step here and define its label, probes, and phase below.
 SETUP_STEPS=(docker tailscale pitchfork t3 wsl_interop)
-T3_VERSION=0.0.45
+T3_VERSION=0.1.7
 
 setup_step_valid() {
   local step
@@ -224,19 +224,6 @@ write_t3_settings() {
   ' _ "$1" "$2"
 }
 
-# Upstream t3 only follows its own release channel. Fork builds self-update after this one-time switch.
-T3_FORK_VERSION='0.0.45-fork.21001'
-T3_FORK_RELEASE_BASE_URL='https://github.com/aria-amini/t3code/releases/download'
-
-switch_t3_to_fork() {
-  local active
-  active="$(setup_step_version t3)"
-  [[ -n $active && $active != *-fork.* ]] || return 0
-  run_task 'Switching T3 Code to the fork runtime' \
-    env T3CODE_HOME="$HOME/.t3" T3CODE_RELEASE_BASE_URL="$T3_FORK_RELEASE_BASE_URL" \
-    "$HOME/.t3/runtime/versions/$active/t3" update --yes --allow-downgrade "$T3_FORK_VERSION"
-}
-
 setup_t3_browser() {
   local active runtime_home runtime_bin
   active="$(setup_step_version t3)"
@@ -287,6 +274,5 @@ phase_t3() {
   if [[ $fresh == true ]]; then
     NOTES+=($'Pair a device:\n  t3 pair --tailscale --tailscale-serve-port 8443\n  then scan the QR code')
   fi
-  switch_t3_to_fork
   setup_t3_browser
 }

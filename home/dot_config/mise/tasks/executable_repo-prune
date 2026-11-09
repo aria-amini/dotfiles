@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#MISE description="Remove merged worktrees and branches in every repo, and stop dev servers whose folder is gone"
+#MISE quiet=true
+#
+# mise run repo-prune   run by hand when merged worktrees and branches pile up
+#
+# Per repo: drop remote branches that are gone, then let worktrunk remove the worktrees and
+# local branches already merged into the default branch. It skips the main checkout, dirty or
+# locked worktrees, and anything younger than a day. Then stop pitchfork daemons whose working
+# folder was deleted, which happens when T3 removes a worktree while its dev server runs.
+set -uo pipefail
+
+roots=("$HOME/apps" "$HOME/tools" "$HOME/toolkit" "$HOME/.local/share/chezmoi")
+failed=0
+
+for root in "${roots[@]}"; do
+  for repo in "$root" "$root"/*/; do
+    repo="${repo%/}"
+    [[ -d "$repo/.git" ]] || continue
+    printf '== %s\n' "$repo"
+    # Prune only against fresh remote refs; a stale default branch can make work look merged.
+    if ! git -C "$repo" fetch --prune --quiet; then
+      printf '  fetch failed; skipping prune\n'
+      failed=1
+      continue
+    fi
+    wt -C "$repo" step prune --yes --foreground --min-age=1d || { printf '  prune failed\n'; failed=1; }
+  done
+done
+
+if command -v pitchfork > /dev/null 2>&1; then
+  if ! daemons="$(pitchfork list --json | jq -r '.[] | select(.pid != null) | "\(.id) \(.pid)"')"; then
+    printf 'could not list pitchfork daemons\n'
+    failed=1
+  fi
+  while read -r id pid; do
+    [[ -n $id ]] || continue
+    cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null)" || continue
+    if [[ $cwd == *" (deleted)" ]]; then
+      printf 'stopping %s: its folder %s is gone\n' "$id" "${cwd% (deleted)}"
+      pitchfork stop "$id" || failed=1
+    fi
+  done <<< "${daemons:-}"
+  pitchfork clean > /dev/null || failed=1
+fi
+
+exit "$failed"

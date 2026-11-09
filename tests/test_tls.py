@@ -53,6 +53,7 @@ MANAGED_SETTINGS = {
         "host": "127.0.0.1",
         "port": 9443,
         "sync_hosts": False,
+        "idle_timeout": "30m",
         "tld": tomllib.loads((ROOT / "home/.chezmoidata.toml").read_text())["proxy"][
             "tld"
         ],

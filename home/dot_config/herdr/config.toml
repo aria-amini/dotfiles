@@ -44,8 +44,8 @@ height = "90%"
 [[keys.command]]
 key = "prefix+shift+j"
 type = "popup"
-command = "jjui"
-description = "jjui"
+command = "lazygit"
+description = "lazygit"
 width = "90%"
 height = "90%"
 # previous_workspace = "" # optional, unset by default

@@ -1,0 +1,37 @@
+{{ if and (ne (env "DOTFILES_PROFILE") "core") (ne (env "DOTFILES_SKIP_MANAGED_TOOLS") "true") -}}
+#!/usr/bin/env bash
+# Install the gh-stack extension (`gh stack`) at a pinned version. Skipped on the core profile,
+# which installs no managed tools. gh keeps extensions in its own
+# folder, so mise cannot manage this one; changing the version below reruns this script.
+set -euo pipefail
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+version="v0.3.0"
+# Setup applies dotfiles before it installs mise tools, so install gh here if it is missing;
+# otherwise this script would exit early and never run again.
+# A mise shim can exist without its version installed, so check that gh actually runs.
+gh --version > /dev/null 2>&1 || mise install --quiet github-cli
+# Accept only github.com/github/gh-stack (host, owner, and name) pinned at exactly this tag, read from gh's install manifest.
+dir="${XDG_DATA_HOME:-$HOME/.local/share}/gh/extensions/gh-stack"
+field() { sed -n "s/^$1: //p" "$dir/manifest.yml" 2>/dev/null; }
+if [[ "$(field host)/$(field owner)/$(field name)/$(field tag)/$(field ispinned)" != "github.com/github/gh-stack/$version/true" ]]; then
+  # --force only upgrades in place, so move any other build aside and install the pin.
+  # If the install fails or is interrupted, the trap puts the old build back.
+  # Back up next to the extension so the move is an atomic rename. gh only loads
+  # folders named gh-*, so it ignores the dot-prefixed backup.
+  mkdir -p "${dir%/*}"
+  backup="$(mktemp -d "${dir%/*}/.gh-stack-backup.XXXXXX")"
+  installed=false
+  restore() {
+    if [[ $installed == false && -e "$backup/gh-stack" ]]; then
+      rm -rf "$dir"
+      mv "$backup/gh-stack" "$dir"
+    fi
+    rm -rf "$backup"
+  }
+  trap restore EXIT
+  trap 'exit 130' INT TERM HUP
+  if [[ -e "$dir" ]]; then mv "$dir" "$backup/"; fi
+  gh extension install https://github.com/github/gh-stack --pin "$version"
+  installed=true
+fi
+{{ end -}}
