@@ -25,7 +25,11 @@ SAVEHIST=100000
 setopt EXTENDED_HISTORY INC_APPEND_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS
 
 # ── Init ──────────────────────────────────────────────────────
-eval "$("$HOME/.local/bin/mise" activate zsh)"
+# Absolute path so non-login shells work before PATH is set; fall back to PATH.
+_mise="$HOME/.local/bin/mise"
+[[ -x $_mise ]] || _mise=mise
+eval "$("$_mise" activate zsh)"
+unset _mise
 
 # ── Completion ────────────────────────────────────────────────
 # Completions that CLIs install themselves (sentry). Must precede compinit.
