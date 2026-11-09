@@ -58,7 +58,16 @@ def pending(
             items.append(
                 f"unanswered review thread on {thread.get('path')}: {last[0]['url'] if last else ''}"
             )
+    # A rerun or a superseded run (often CANCELLED) shares its name with the newest
+    # run, so judge each check by its newest run only.
+    latest: dict[str, dict] = {}
     for check in checks:
+        name = check.get("name") or check.get("context") or ""
+        started = check.get("startedAt") or check.get("createdAt") or ""
+        kept = latest.get(name)
+        if kept is None or started >= (kept.get("startedAt") or kept.get("createdAt") or ""):
+            latest[name] = check
+    for check in latest.values():
         if (check.get("conclusion") or check.get("state") or "").upper() in FAILED:
             items.append(f"failing check: {check.get('name') or check.get('context')}")
     if ahead:
