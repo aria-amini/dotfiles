@@ -25,7 +25,7 @@ SAVEHIST=100000
 setopt EXTENDED_HISTORY INC_APPEND_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS
 
 # ── Init ──────────────────────────────────────────────────────
-eval "$(mise activate zsh)"
+eval "$("$HOME/.local/bin/mise" activate zsh)"
 
 # ── Completion ────────────────────────────────────────────────
 # Completions that CLIs install themselves (sentry). Must precede compinit.
