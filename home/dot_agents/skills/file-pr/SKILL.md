@@ -47,7 +47,10 @@ every watcher on a GitHub account shares one rate limit:
 - **T3 Code:** call `watch_pull_request` and end your turn; T3 wakes you on
   check results, comments, and conflicts. Only the thread that owns the PR
   watches it; a delegated child never does. Call `unwatch_pull_request` before
-  you stop or ask the user anything.
+  you stop or ask the user anything. "Stopped watching, could not read it"
+  usually means the GitHub rate limit is used up: check
+  `gh api rate_limit --jq .resources.graphql`, wait for `reset` with one
+  background command, then watch again.
 - **Elsewhere:** run `~/.agents/skills/file-pr/scripts/pr-wait <pr> --until green`
   (with the Monitor tool in Claude Code, `timeout_ms: 3600000`). It prints one
   line per event and exits 0 when the condition is met, 1 when it needs you,

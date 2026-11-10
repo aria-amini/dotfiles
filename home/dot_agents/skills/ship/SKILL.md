@@ -8,7 +8,8 @@ description: Take a PR through review to ready ("full stop") or to merged ("full
 Two escalations past `file-pr`. Never pick one on your own.
 
 - **Full stop:** the PR is green and reviewed. Stop at the merge gate and never
-  merge, enable auto-merge, or push to the default branch.
+  merge, enable auto-merge, or push to the default branch. Turn off any
+  auto-merge already on the PR before you start, and tell the user.
 - **Full send:** the same, then merge it and do its Cleanup steps.
 
 Babysitting an existing PR is full stop from step 5.
@@ -36,7 +37,9 @@ reverted.
 
 Either request lets you use any test method Proof needs without asking first,
 even where a project file says to ask, and force-push the PR's branch with
-`--force-with-lease` until a reviewer has seen it.
+`--force-with-lease` until a reviewer has seen it. Rules about how to test still
+apply, the permission covers only this task's tests, and it never bypasses a
+harness approval prompt.
 
 ## Proof
 
@@ -77,9 +80,13 @@ All true on the latest commit:
 - CodeRabbit approved the head, unless the user said to skip it for this PR.
 - Other bots' findings are fixed or dismissed with a reason, and no human
   review still requests changes.
-- The branch is up to date with the default branch and mergeable.
+- The branch is up to date with the default branch and mergeable. A watcher
+  wake is news, not a verdict: `watch_pull_request` reports conflicts but not
+  BEHIND, so check that yourself.
 
-Right before merging, `git fetch` and check the PR again. Merge with
+Right before merging, `git fetch` and check the PR again. If base commits that
+landed after the last green run touch this PR's files, update the branch and
+wait for green again. Merge with
 `gh pr merge --squash --delete-branch` (`gh stack merge --yes --squash` for a
 stack). Never use `--admin` or other bypasses.
 
