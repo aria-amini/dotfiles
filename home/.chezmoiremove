@@ -15,3 +15,12 @@
 .agents/skills/full-stop
 .agents/skills/pr
 .agents/skills/council
+.agents/skills/fork
+.config/caddy-pitchfork-lab
+.config/jjui
+.config/sesh
+.config/television
+.config/workmux
+.config/tools
+.ssh/devboxes.d/wsl.conf
+.ssh/devboxes.d/README.md
