@@ -50,5 +50,5 @@ All three are public. Never commit secrets, tokens, or private details there.
 
 ## Workflows
 
-Shipping is opt-in. When asked, use `file-pr`, `babysit-pr`, `full-stop`, or
-`full-send`. For a second opinion, use `review-loop` or `council`.
+Shipping is opt-in. When asked to file, babysit, full stop, or full send a PR,
+use the `pr` skill. For a second opinion, use `review-loop` or `council`.

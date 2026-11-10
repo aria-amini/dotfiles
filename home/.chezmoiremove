@@ -11,3 +11,7 @@
 .agents/skills/hunk
 .agents/skills/improve-codebase-architecture
 .agents/skills/wayfinder
+.agents/skills/babysit-pr
+.agents/skills/file-pr
+.agents/skills/full-send
+.agents/skills/full-stop
