@@ -266,7 +266,8 @@ class Watcher:
         self.printed: set[str] = set()
         self.events = 0
         self.required: set[str] | None = None
-        self.prev_snapshot: list[tuple[str, str]] | None = None
+        self.required_base: str | None = None
+        self.prev_snapshot: tuple[str, list[tuple[str, str]]] | None = None
         self.pr_files: dict[str, set[str]] = {}
 
     def load(self) -> Json | None:
@@ -357,8 +358,9 @@ class Watcher:
             self.finish(1, [f"closed without merging: {pr['url']}"])
 
         base = pr["baseRefName"]
-        if self.required is None:
+        if self.required is None or self.required_base != base:
             self.required = required_checks(self.repo, base)
+            self.required_base = base
             gate = ", ".join(sorted(self.required)) or "none set, so every CI check gates"
             log(f"watching {self.repo}#{self.pr} until {self.until}; required checks: {gate}")
         checks = self.fetch_checks()
@@ -389,7 +391,7 @@ class Watcher:
         all_done = gate_done and all(c["bucket"] != "pending" for c in watched.values())
         # Checks appear a few seconds after a push. Two identical polls in a row
         # guard against calling a half-registered set of checks finished.
-        snapshot = sorted((name, c["bucket"]) for name, c in watched.items())
+        snapshot = (head, sorted((name, c["bucket"]) for name, c in watched.items()))
         stable = snapshot == self.prev_snapshot
         self.prev_snapshot = snapshot
         green = gate_done and stable and not fail_lines
