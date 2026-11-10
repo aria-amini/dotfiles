@@ -58,7 +58,10 @@ every watcher on a GitHub account shares one rate limit:
   and 2 on bad input. Start it again after each push. `--until ready` also
   waits for review bots, including CodeRabbit's approval.
 
-When an event needs no action, end your turn without a message. If GraphQL is
+When an event needs no action and a watcher will wake you (T3, or a Monitor),
+end your turn without a message. Without one, keep the turn going until
+`pr-wait` exits; in Codex, keep reading its running session with
+`write_stdin`. If GraphQL is
 used up, read the PR with `gh api repos/<owner>/<repo>/pulls/<n>` and checks
 with `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` plus
 `.../commits/<sha>/status` for commit statuses.
