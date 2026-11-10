@@ -64,4 +64,5 @@ end your turn without a message. Without one, keep the turn going until
 `write_stdin`. If GraphQL is
 used up, read the PR with `gh api repos/<owner>/<repo>/pulls/<n>` and checks
 with `gh api --paginate repos/<owner>/<repo>/commits/<sha>/check-runs` plus
-`.../commits/<sha>/statuses` (also `--paginate`) for commit statuses.
+`.../commits/<sha>/statuses` (also `--paginate`) for commit statuses. Statuses
+keep their history, so judge each context by its newest entry.
