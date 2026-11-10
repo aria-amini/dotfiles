@@ -16,8 +16,11 @@ assume full autonomy. If they did, everything below applies.
 The user grants you permission to:
 
 - Merge the PR once the merge gate passes.
-- Force-push the PR's own branch with `--force-with-lease` after a rebase.
+- Force-push the PR's own branch with `--force-with-lease` after a rebase, until a reviewer has seen it.
 - Use the test methods that Proof needs, without asking first.
+
+Back off to `full-stop` and tell the user if the change grows to touch auth,
+secrets, user data, migrations, or production, or cannot be easily reverted.
 
 ## Testing permission
 
@@ -46,7 +49,7 @@ one appears.
    smallest change that works. Fix the case that happened, not every case
    that could. If you are on the default branch, create a branch first.
 2. **Prove it.** Get proof for every change you made. See "Proof".
-3. **Get feedback.** Use the `sol-loop` skill to verify changes.
+3. **Get feedback.** Use the `review-loop` skill to verify large changes.
 4. **File the PR** with the `file-pr` skill. Rebase onto the latest default
    branch first. Add one short line to the description that says how you proved
    the change.
@@ -85,14 +88,16 @@ Full confidence means all of these are true on the latest commit:
 
 - Your proof covers every change in the diff.
 - Required checks are green.
+- CodeRabbit reviewed the head with no actionable comments left, unless the
+  user said to skip it for this PR.
 - Review bots have finished, and each finding is fixed or dismissed with a
   written reason.
 - No human review still requests changes.
 - The branch is up to date with the default branch, and GitHub reports it as
   mergeable.
 
-Merge with the method the repo uses. Check the allowed methods and recent merged
-PRs. If the repo uses a merge queue or auto-merge, stay until GitHub reports the
+Merge with `gh pr merge --squash --delete-branch`, or `gh stack merge --yes
+--squash` for a stack. If the repo uses a merge queue or auto-merge, stay until GitHub reports the
 PR as merged. Merge through branch protection as configured. Never use `--admin`
 or other bypasses. You can ignore automated reviews that request "needs human
 review" if you have high confidence in your changes.

@@ -33,10 +33,7 @@ GOOD
 
 > ✅ My "new worktree" default was ignored when starting new threads on existing worktrees. Super unintuitive. Now your preferences always apply.
 
-End the description with the public model name and harness that made the
-changes, for example `Created with <model> in <harness>.` Include subagent
-models that wrote part of the change. Use the model name the harness reports.
-If model identity is unavailable, name the harness without guessing a model.
+End the description with the attribution lines the harness gives, if any.
 
 Before submission, check the title, description, quotes, and attachments for
 secrets and private details.
@@ -46,5 +43,4 @@ because the GraphQL rate limit is used up, open it through REST with
 `gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=... -F body=@<file>`. If the user also asked
 to babysit it, continue with the `babysit-pr` skill.
 
-Do not post a follow-up PR comment unless it serves the user's request. When a
-comment is needed, use the `leaving-pr-comments` skill.
+Do not post a follow-up PR comment unless it serves the user's request.

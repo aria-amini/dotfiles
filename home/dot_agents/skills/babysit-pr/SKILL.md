@@ -22,7 +22,7 @@ a check fails, the required checks pass, someone comments or reviews, or the
 branch conflicts.
 
 - **Only the thread that owns the PR watches it.** If you are a delegated
-  child task (a reviewer, a Sol round, any `delegate_task` child), never call
+  child task (a reviewer, a review-loop round, any `delegate_task` child), never call
   `watch_pull_request`. The parent owns the PR. Do not watch PRs you are not
   working on.
 - **A wake is news, not a merge decision.** Check the merge gate yourself.
@@ -38,7 +38,7 @@ branch conflicts.
 ### Everywhere else: `pr-wait`
 
 Wait with `scripts/pr-wait` from this skill's directory (use its absolute
-path).
+path, `~/.agents/skills/babysit-pr/scripts/pr-wait`).
 
 ```bash
 pr-wait <pr> [--repo owner/name] [--until ready|green|any-change]
@@ -48,10 +48,10 @@ It prints one line per real event. It exits 0 when the `--until` condition is
 met or the PR merges, 1 when it needs you (a required check failed, conflicts,
 unresolved threads, PR closed), and 2 on bad input.
 
-- `ready` (default): required checks green, Greptile or Macroscope reviewed the
-  head, and no unresolved threads. Use this to babysit.
-- `green`: required checks only. Use it when the repo has no Greptile or
-  Macroscope.
+- `ready`: required checks green, Greptile or Macroscope reviewed the
+  head, and no unresolved threads. Use it when the repo has one of them.
+- `green` (default): required checks only. Afterwards, check CodeRabbit and
+  unresolved threads yourself.
 - `any-change`: exit on the first event.
 
 In Claude Code, run it with the Monitor tool (`timeout_ms: 3600000`), so each
@@ -83,12 +83,20 @@ with a written reason when dismissing false positives.
 If the repo has `.macroscope/check-run-agents/*.md`, read those rules before you
 reply to a Macroscope finding. Its findings cite them.
 
-CodeRabbit is advisory. Treat its findings like any other finding, but never
-wait for it and never hold a merge for it.
+CodeRabbit's approval gates the merge, but `pr-wait` does not wait for it.
+Request a review with `@coderabbitai review` after CI is green. Never use its
+autofix or post probe comments. Fix real findings in new `[review]` commits,
+reply in each thread, resolve it, and request another review until it approves.
+A round is done when it reviews the current head after your request, or its
+summary reports no actionable comments for that head. A thread reply is not a
+review. When it is rate limited, add the "available in N minutes" wait from its
+newest comment to that comment's `updated_at` and retry once at that time
+(`schedule_task` in T3 Code). Skip its approval only when the user says so for
+that PR.
 
 If a review bot leaves feedback you believe is not worth addressing, reply with
-a written reason and resolve the comment. Use the `leaving-pr-comments` skill
-for every comment posted on the user's behalf.
+a written reason and resolve the comment. Lead each comment with the conclusion,
+cite the code or check, and keep secrets and private details out of it.
 
 Screenshots and videos help as well, when you have a way to upload them.
 
@@ -101,7 +109,7 @@ narrows code.
 
 ## Base branch and merging
 
-Keep an eye on changes to `main` and rebase when needed. `pr-wait` reports when
+Keep an eye on changes to `main` and update when needed. `pr-wait` reports when
 new base commits touch this PR's files, and when the PR becomes BEHIND or DIRTY.
 `watch_pull_request` reports conflicts only, so check for BEHIND yourself
 before you call the PR ready.
@@ -110,8 +118,8 @@ user, and ask before closing the PR unless closure was explicitly authorized.
 
 If nothing has changed, stay quiet rather than posting filler comments. Stop
 when `pr-wait` exits 0, or in T3 Code when the merge gate passes on the latest
-head. Merge only when the user explicitly requested it;
+head. Merge only when the user explicitly requested it or said "full send";
 otherwise report that the PR is ready. Right before a merge, run `git fetch` and
 check the PR again. Never merge when it is BEHIND or DIRTY, or when base commits
-that landed after the last green run touch this PR's files. Rebase, push, and
+that landed after the last green run touch this PR's files. Update, push, and
 wait for green again.
