@@ -48,11 +48,20 @@ token is missing, tell the user to run `mise run dev-token` in
 `aria-amini/infra`. `mise run get-url` prints the worktree's dev URL, which the
 user can open over the tailnet.
 
-Dev servers clean up after themselves: pitchfork stops one after 30 minutes
-without traffic and restarts it on the next request, and bootstrap removes the
-Docker stacks of deleted worktrees. Copy out untracked files you still need
-before a merge removes the worktree. The user runs `mise run repo-prune` to
-clear merged worktrees and branches; do not run it yourself.
+Clean up what your task leaves behind:
+
+- GitHub deletes a PR's branch when it merges. Close a PR your task
+  superseded, with a comment linking its replacement, and delete its branch.
+  Ask before closing any other PR.
+- Remove `wt` worktrees and local branches you made once they merge or are
+  abandoned. T3 removes its own worktrees.
+- Copy out untracked files you still need before a merge removes a worktree.
+- `mise run repo-prune` clears merged worktrees, local branches, and orphaned
+  dev servers across all repos. It skips dirty or locked work and anything
+  under a day old, so run it after a merge or when they pile up.
+
+Dev servers need no cleanup: pitchfork stops one after 30 minutes without
+traffic, and the next bootstrap removes the Docker stacks of deleted worktrees.
 
 ## Repos
 

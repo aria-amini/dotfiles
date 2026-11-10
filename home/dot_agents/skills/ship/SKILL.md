@@ -94,7 +94,7 @@ stack). Never use `--admin` or other bypasses.
 
 Ask only when you cannot continue alone: you cannot prove the change, the gate
 cannot pass and you cannot fix it, the next step deletes data, touches
-production or anything outside the repo, closes a PR, or force-pushes another
+production or anything outside the repo, closes a PR this task did not supersede, or force-pushes another
 branch, the goal is ambiguous, or another PR makes this one obsolete. Decide
 everything else yourself and list it in the report.
 
