@@ -447,6 +447,11 @@ class Watcher:
                     rejected.append(bot)
                 if seen:
                     bot_status[bot] = f"{bot} {states[-1].lower().replace('_', ' ') if done else 'pending'}"
+                if not approved and self.until == "ready":
+                    # Rate-limit and "review skipped" notices arrive as new or edited
+                    # comments. Report them, so a wait for approval never goes silent.
+                    for s in summaries:
+                        self.emit(f"notice:{s['id']}:{digest(s['body'])}", f"{bot} comment on {short}: {snippet(s['body'])} {s['url']}")
             elif bot in ADVISORY_BOTS and own_checks:
                 desc = next(iter(own_checks.values()))
                 bot_status[bot] = f"{bot} {desc['description'] or desc['bucket']} (advisory)"
