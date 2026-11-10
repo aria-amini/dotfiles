@@ -33,6 +33,10 @@ GOOD
 
 > ✅ My "new worktree" default was ignored when starting new threads on existing worktrees. Super unintuitive. Now your preferences always apply.
 
+If the change needs work after it merges, such as `chezmoi apply` targets,
+`copier update` in apps, a platform workflow run, or closing a superseded PR,
+list those steps under a `## Cleanup` heading near the end.
+
 End the description with the attribution lines the harness gives, if any.
 
 Before submission, check the title, description, quotes, and attachments for

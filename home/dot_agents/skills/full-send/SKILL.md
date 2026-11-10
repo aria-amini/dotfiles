@@ -55,9 +55,9 @@ one appears.
    the change.
 5. **Babysit the PR** with the `babysit-pr` skill. Fix real findings and CI
    failures. Get proof for each fix before you push it.
-6. **Merge** when the merge gate passes.
+6. **Merge** when the merge gate passes, then do the PR's Cleanup steps.
 7. **Report** in your final message: the PR link, the merge commit, your proof,
-   and each decision you made for the user.
+   each decision you made for the user, and any Cleanup step left for them.
 
 Stay active from step 1 to step 7. If you end your turn while checks or bots are
 pending, the work stops, because nobody will prompt you again. Wait with the
@@ -75,9 +75,8 @@ reproduction, a screenshot. Use the most direct proof the change allows:
 - Run the checks that the repo's CI runs (typecheck, lint, tests).
 - Add one focused test that fails without the fix, when the behavior has none
   and the repo has a test setup.
-- For UI and runtime behavior, run the app and look at the change. Green mocked
-  tests do not prove that the user experience works. Attach screenshots to the
-  PR when they help and you have a way to upload them.
+- For UI, the repo's screenshot tests are the proof. Update their baselines
+  only for changes you intended, and say which ones changed in the PR.
 
 When you cannot find a way to prove a change, you do not have full confidence.
 Ask the user.
