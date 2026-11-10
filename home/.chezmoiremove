@@ -6,3 +6,5 @@
 .local/bin/personal-secrets
 .agents/skills/sol-loop
 .agents/skills/modernize
+.local/bin/pr-pending
+.codex/hooks.json
