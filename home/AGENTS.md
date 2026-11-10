@@ -43,16 +43,16 @@ branch.
 In an app worktree, run `mise run bootstrap` before anything else. It installs
 tools and packages, checks the env, starts the worktree's own Docker services
 and migrations if the app has a database, starts the pitchfork `dev` daemon,
-and checks the app answers. `mise run get-url` prints the worktree's dev URL,
-which the user can open over the tailnet. It needs the OpenBao dev token; if it says the token is
-missing, tell the user to run `mise run dev-token` in `aria-amini/infra`.
+and checks the app answers. It needs the OpenBao dev token; if it says the
+token is missing, tell the user to run `mise run dev-token` in
+`aria-amini/infra`. `mise run get-url` prints the worktree's dev URL, which the
+user can open over the tailnet.
 
-When you finish, unless the user is still using a preview, stop what bootstrap
-started: `pitchfork stop dev`, and `vp run compose:down` if the app has
-Docker services, in that worktree. Copy
-out untracked files you still need before a merge removes the worktree. The
-user runs `mise run repo-prune` to clear merged worktrees, branches, and
-orphaned dev servers in bulk; do not run it yourself.
+Dev servers clean up after themselves: pitchfork stops one after 30 minutes
+without traffic and restarts it on the next request, and bootstrap removes the
+Docker stacks of deleted worktrees. Copy out untracked files you still need
+before a merge removes the worktree. The user runs `mise run repo-prune` to
+clear merged worktrees and branches; do not run it yourself.
 
 ## Repos
 
