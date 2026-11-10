@@ -28,3 +28,27 @@ share no filesystem with it.
   after that, add fixes as new commits starting with `[review]`.
 - No scratch commits (`wip`, `tmp`) or backup branches. Never rewrite or
   force-push the default branch or tags.
+- PRs squash-merge, so the PR title becomes the commit on `main`. Match the
+  repo's recent titles.
+- Before review, rebase onto the default branch. After review, merge it in.
+
+## Repos
+
+My apps live in `~/apps`. Two shared repos sit under them:
+
+- `aria-amini/toolkit`: the Copier app templates (`tanstack`, `astro`) and the
+  `@aamini/config` package. Start new apps with
+  `copier copy --trust https://github.com/aria-amini/toolkit <dir>`. Fix tooling
+  that apps share here, then run `copier update --trust` in each app, rather
+  than patching one app.
+- `aria-amini/infra`: the platform. OpenBao on Railway holds every app's
+  secrets, `apps.json` registers apps, and `mise run onboard <app>` gives an
+  app its login. Never read or print secret values.
+- `aria-amini/dotfiles`: this Chezmoi source.
+
+All three are public. Never commit secrets, tokens, or private details there.
+
+## Workflows
+
+Shipping is opt-in. When asked, use `file-pr`, `babysit-pr`, `full-stop`, or
+`full-send`. For a second opinion, use `review-loop` or `council`.
