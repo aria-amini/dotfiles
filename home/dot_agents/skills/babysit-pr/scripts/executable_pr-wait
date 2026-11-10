@@ -11,15 +11,17 @@ Progress and errors that do not end the run go to stderr.
 --until
   green       required checks passed on the current head (every CI check when
               the base branch requires none)
-  ready      green, Greptile or Macroscope reviewed the current head, and no
-              review thread is unresolved (default)
+  ready      green, Greptile or Macroscope reviewed the current head, CodeRabbit
+              (if it is on the PR) approved it, and no review thread is
+              unresolved (default)
   any-change  stop after the first poll that prints an event
 
 Exit codes
   0  the --until condition is met, or the PR merged
   1  the condition cannot be met without action: a required check failed, the
      branch conflicts with its base, the PR closed, `ready` is blocked by
-     unresolved threads or a BEHIND branch, or GitHub stayed unreachable
+     unresolved threads, a BEHIND branch, or CodeRabbit requesting changes, or
+     GitHub stayed unreachable
   2  bad arguments, unknown PR, or another pr-wait already watches this PR
 
 Events
@@ -33,7 +35,9 @@ Events
   - merge state became BEHIND or DIRTY
   - the PR merged or closed
 
-CodeRabbit is advisory: pr-wait reports it but never waits for it. Comment
+CodeRabbit is judged by its review on the head: APPROVED or CHANGES_REQUESTED.
+Its check run is ignored, because it completes as "skipped" when automatic
+reviews are off. Comment
 edits are never events, and top-level comments from CI and deploy bots
 (github-actions, Vercel) are skipped, because checks already carry that news.
 
@@ -59,8 +63,10 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, NoReturn
 
-GATING_BOTS = ("greptile", "macroscope")
-ADVISORY_BOTS = ("coderabbit",)
+GATING_BOTS = ("greptile", "macroscope", "coderabbit")
+ADVISORY_BOTS: tuple[str, ...] = ()
+# Bots whose verdict is their review state on the head, not their check run.
+APPROVING_BOTS = ("coderabbit",)
 # CI and deploy bots report through checks. Their PR comments are status reports.
 STATUS_BOTS = ("github-actions", "vercel", "netlify", "railway", "cloudflare")
 STATE_DIR = Path.home() / ".local" / "state" / "pr-wait"
@@ -417,24 +423,43 @@ class Watcher:
         # summary names the head.
         bot_status: dict[str, str] = {}
         reviewed: list[str] = []
+        awaiting: list[str] = []  # approving bots on the PR that have not approved the head
+        rejected: list[str] = []  # approving bots that requested changes on the head
         for bot in GATING_BOTS + ADVISORY_BOTS:
             own_checks = {name: c for name, c in checks.items() if bot_name(name) == bot}
             summaries = [c for c in comments if bot_name(who(c)[0]) == bot]
             own_reviews = [r for r in reviews if bot_name(who(r)[0]) == bot]
             on_head = any((r.get("commit") or {}).get("oid") == head for r in own_reviews)
-            if own_checks:
+            states = [r["state"] for r in own_reviews
+                      if (r.get("commit") or {}).get("oid") == head and r["state"] in ("APPROVED", "CHANGES_REQUESTED")]
+            if bot in APPROVING_BOTS:
+                done = bool(states)
+            elif own_checks:
                 done = all(c["bucket"] != "pending" for c in own_checks.values())
             else:
                 done = on_head or any(short in s["body"] for s in summaries)
             seen = bool(own_checks or summaries or own_reviews)
-            if bot in ADVISORY_BOTS and own_checks:
+            if bot in APPROVING_BOTS:
+                approved = done and states[-1] == "APPROVED"
+                if seen and not approved:
+                    awaiting.append(bot)
+                if done and not approved:
+                    rejected.append(bot)
+                if seen:
+                    bot_status[bot] = f"{bot} {states[-1].lower().replace('_', ' ') if done else 'pending'}"
+            elif bot in ADVISORY_BOTS and own_checks:
                 desc = next(iter(own_checks.values()))
                 bot_status[bot] = f"{bot} {desc['description'] or desc['bucket']} (advisory)"
             elif seen:
                 bot_status[bot] = f"{bot} {'done' if done else 'pending'}{' (advisory)' if bot in ADVISORY_BOTS else ''}"
-            key = f"bot:{bot}:{head}"
+            key = f"bot:{bot}:{head}" + (f":{states[-1]}" if bot in APPROVING_BOTS and done else "")
             was_done = key in self.reported
             if done:
+                if bot in APPROVING_BOTS:
+                    self.emit(key, f"{bot} {states[-1].lower().replace('_', ' ')} on {short}")
+                    if states[-1] == "APPROVED":
+                        reviewed.append(bot)
+                    continue
                 if bot in GATING_BOTS:
                     reviewed.append(bot)
                 failed = [name for name, c in own_checks.items() if c["bucket"] in FAILED]
@@ -503,8 +528,10 @@ class Watcher:
             if green and self.until == "green":
                 self.reported.add(checks_key)
                 self.finish(0, [f"green on {short}: {summary}{self.behind(base, base_oid, head)}"])
-            # ready waits for Greptile or Macroscope, never for CodeRabbit.
-            if green and reviewed:
+            # ready waits for Greptile or Macroscope, and for CodeRabbit's approval when it is on the PR.
+            if green and rejected:
+                self.finish(1, [f"{', '.join(rejected)} requested changes on {short}: {summary}"])
+            if green and reviewed and not awaiting:
                 if unresolved:
                     self.finish(1, [f"blocked by {len(unresolved)} unresolved threads on {short}: {' '.join(unresolved)}"])
                 if merge_state == "BEHIND":

@@ -48,10 +48,10 @@ It prints one line per real event. It exits 0 when the `--until` condition is
 met or the PR merges, 1 when it needs you (a required check failed, conflicts,
 unresolved threads, PR closed), and 2 on bad input.
 
-- `ready`: required checks green, Greptile or Macroscope reviewed the
-  head, and no unresolved threads. Use it when the repo has one of them.
-- `green` (default): required checks only. Afterwards, check CodeRabbit and
-  unresolved threads yourself.
+- `ready` (default): required checks green, Greptile or Macroscope reviewed the
+  head, CodeRabbit approved it, and no unresolved threads. Use this to babysit.
+- `green`: required checks only. Use it before you request a CodeRabbit review,
+  or when the user said to skip CodeRabbit.
 - `any-change`: exit on the first event.
 
 In Claude Code, run it with the Monitor tool (`timeout_ms: 3600000`), so each
@@ -83,7 +83,7 @@ with a written reason when dismissing false positives.
 If the repo has `.macroscope/check-run-agents/*.md`, read those rules before you
 reply to a Macroscope finding. Its findings cite them.
 
-CodeRabbit's approval gates the merge, but `pr-wait` does not wait for it.
+CodeRabbit's approval gates the merge, and `pr-wait --until ready` waits for it.
 Request a review with `@coderabbitai review` after CI is green. Never use its
 autofix or post probe comments. Fix real findings in new `[review]` commits,
 reply in each thread, resolve it, and request another review until it approves.
