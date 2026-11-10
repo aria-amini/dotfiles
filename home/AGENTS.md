@@ -100,4 +100,5 @@ opt-in and escalates one step at a time:
    stops when it is ready to merge.
 4. "full send": `ship` then merges it and does its Cleanup steps.
 
-For a second opinion, use `review-loop` or `council`.
+For a second opinion, use `review-loop`. Name a model to get another model's
+view.
