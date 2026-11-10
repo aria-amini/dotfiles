@@ -19,85 +19,86 @@ share no filesystem with it.
 
 ## Version Control
 
-- Each task works on its own branch in its own worktree. T3 Code creates one
-  per thread, and `wt switch --create <branch>` creates one outside T3.
-- Before review starts, keep each PR commit clean: one commit per concern.
-  Amend, reorder, and force-push (`--force-with-lease`) freely until then.
-- Once a reviewer has seen a PR, do not rewrite its commits. Add each round of
-  review fixes as new commits whose message starts with `[review]`, for example
-  `[review] Handle an empty shelf in the finder`.
-- Do not create scratch commits (`wip`, `tmp`) or backup branches.
-- Never rewrite the default branch or tags, and never force-push them.
+- Keep one commit per concern. Rewrite freely until a reviewer has seen the PR;
+  after that, add fixes as new commits starting with `[review]`.
+- No scratch commits (`wip`, `tmp`) or backup branches. Never rewrite or
+  force-push the default branch or tags.
+- PRs squash-merge, so the PR title becomes the commit on `main`. Match the
+  repo's recent titles.
+- Before review, rebase onto the PR's base branch. After review, merge it in.
 
-## Shipping PRs
+## Worktrees
 
-When a task is complete, ship it without a prompt: push its branch and open its
-PR with `gh pr create --title <title> --body-file <file>`, or update it with
-`gh pr edit`.
+Each task works on its own branch in its own worktree. Never work in a main
+checkout (`~/apps/<repo>`, `~/.local/share/chezmoi`); it stays on the default
+branch.
 
-### Ship Lanes
+- **T3 Code** makes one worktree per thread at `~/.t3/worktrees/<repo>/t3-<id>`
+  and removes it after the thread's PR merges. Leave those to T3.
+- **Outside T3**, `wt switch --create <branch>` makes one under
+  `~/.herdr/workspaces/<repo>/` (`wt list` shows its path) and copies ignored files such as `.env`
+  into it. Remove it with `wt remove` when its branch has merged or been
+  abandoned.
 
-Each task uses one lane:
+In an app worktree, run `mise run bootstrap` before anything else. It installs
+tools and packages, checks the env, starts the worktree's own Docker services
+and migrations if the app has a database, starts the pitchfork `dev` daemon,
+and checks the app answers. It needs the OpenBao dev token; if it says the
+token is missing, tell the user to run `mise run dev-token` in
+`aria-amini/infra`. `mise run get-url` prints the worktree's dev URL, which the
+user can open over the tailnet.
 
-- **full-send**: Merge the PR without a prompt when it is merge-ready.
-- **full-stop**: After the first push, ask the user for feedback. Ask before
-  merge.
+Clean up what your task leaves behind:
 
-Use full-stop by default. Use full-send only when the user names it for the
-task (for example with "full send" in the prompt). Never select full-send on
-your own. Move back to full-stop and tell the user if the change grows to
-touch auth, secrets, user data, migrations, or production, or cannot be easily
-reverted.
+- GitHub deletes a PR's branch when it merges. Close a PR your task
+  superseded, with a comment linking its replacement, and delete its branch.
+  Ask before closing any other PR.
+- If a PR you opened will not merge, because the work was dropped or it
+  targets a branch that is gone, tell the user and offer to close it. A merged
+  stacked PR whose base was not the default branch never reached it; report
+  that too.
+- Remove `wt` worktrees and local branches you made once they merge or are
+  abandoned. T3 removes its own worktrees.
+- Copy out untracked files you still need before a merge removes a worktree.
+- `mise run repo-prune` clears merged worktrees, local branches, and orphaned
+  dev servers across all repos. It skips dirty or locked work and anything
+  under a day old, so run it after a merge or when they pile up.
+- When the work is done (just before a full-send merge, or when it is
+  dropped), stop the worktree's services before it is removed:
+  `pitchfork stop dev`, and `vp run compose:down` if the app has Docker
+  services.
 
-### One PR per task
+Between turns, leave services running for the user's preview. The backups
+cover the rest: pitchfork stops a dev server after 30 minutes without traffic
+and restarts it on the next request, and the next bootstrap removes the Docker
+stacks of deleted worktrees.
 
-Default to a single PR for each task. A large PR is acceptable; the reviewer
-reads one commit at a time. Stack PRs only when the user asks, and build the
-stack with `gh stack` (`init`, `add`, `submit --auto`, `sync`,
-`merge --yes --squash`).
+## Repos
 
-Own each PR until it is merged or merge-ready. Fix failures without a prompt.
-If a tool fails because of your branch or repo state, fix that and rerun. If
-GitHub or the tool itself fails, stop and report the error.
+My apps live in `~/apps`. Two shared repos sit under them:
 
-Never wait with `sleep` loops. In T3 Code, use `watch_pull_request` for checks
-and reviews and `schedule_task` for a timed retry. Outside T3, use
-`gh pr checks <pr> --watch --fail-fast`, then, even if the watch failed, read
-the PR's new review comments and check results before you reply. Tell the user
-what you are waiting on.
+- `aria-amini/toolkit`: the Copier app templates (`tanstack`, `astro`) and the
+  `@aamini/config` package. Start new apps with
+  `copier copy --trust https://github.com/aria-amini/toolkit <dir>`. Fix tooling
+  that apps share here, then run `copier update --trust` in each app, rather
+  than patching one app.
+- `aria-amini/infra`: the platform. OpenBao on Railway holds every app's
+  secrets, `apps.json` registers apps, and `mise run onboard <app>` gives an
+  app its login. Never read or print secret values.
+- `aria-amini/dotfiles`: this Chezmoi source.
 
-### Code Review
+All three are public. Never commit secrets, tokens, or private details there.
 
-If the changes are large and need a second pass, run 1 to 3 adversarial reviews
-with a subagent. Stop after 3; later rounds find mostly noise. This cap does
-not apply to CodeRabbit.
+## Workflows
 
-Request a CodeRabbit review with `@coderabbitai review`: in full-send after
-green CI, in full-stop after the user gives feedback. Defer it when the task
-says so, but never merge to the default branch without its approval unless the
-user says to skip it for that PR. Do not use CodeRabbit autofix. Fix real
-findings in `[review]` commits, reply in each thread with the fix or the
-false-positive reason, resolve it, and request another review. Continue until
-CodeRabbit approves.
+Normal work is iteration: change, show, take the next instruction. Shipping is
+opt-in and escalates one step at a time:
 
-A round is done when CodeRabbit submits a review on the current head commit
-after your request, or its summary reports no actionable comments for that
-head. A thread reply is not a review. When it is rate limited, find its newest
-comment that states a wait ("available in N minutes"), either its reply or its
-summary, add N to that comment's `updated_at`, and retry once at that time. Do
-not post probe comments.
+1. "file a PR": `file-pr` opens it, pushes every change, and gets CI green.
+2. "babysit": `ship`, from its review step, gets it reviewed and ready.
+3. "full stop": `ship` also finishes and proves the change, unattended, and
+   stops when it is ready to merge.
+4. "full send": `ship` then merges it and does its Cleanup steps.
 
-### Merge and clean up
-
-A PR is merge-ready when CodeRabbit approved its head commit, all checks and
-deploys are green, and no review thread is unresolved. Merge with
-`gh pr merge --squash --delete-branch`, or `gh stack merge --yes --squash` for
-a stack. Close any PR your task superseded, with a comment linking its
-replacement.
-
-When you finish, stop the dev servers you started, unless the user is still
-using a preview. T3 Code removes a thread's worktree after its PR merges; the
-user runs `mise run repo-prune` to clear other merged worktrees and branches
-(it skips any under a day old, so recent ones go on a later run).
-Copy out any untracked or ignored files you still need, such as `.env` files,
-before the merge.
+For a second opinion, use `review-loop`. Name a model to get another model's
+view.
