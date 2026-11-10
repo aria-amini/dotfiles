@@ -16,14 +16,9 @@ share no filesystem with it.
   server-side localhost. Follow the `tailnet-publish` skill to share a URL or
   file.
 - The VM has limited memory. Run heavy checks one at a time.
-- When you finish, stop the dev servers you started unless the user is still
-  using a preview. A merge removes the thread's worktree, so copy out untracked
-  files you still need, such as `.env`, first.
 
 ## Version Control
 
-- Each task works on its own branch in its own worktree. T3 Code creates one
-  per thread, and `wt switch --create <branch>` creates one outside T3.
 - Keep one commit per concern. Rewrite freely until a reviewer has seen the PR;
   after that, add fixes as new commits starting with `[review]`.
 - No scratch commits (`wip`, `tmp`) or backup branches. Never rewrite or
@@ -31,6 +26,33 @@ share no filesystem with it.
 - PRs squash-merge, so the PR title becomes the commit on `main`. Match the
   repo's recent titles.
 - Before review, rebase onto the default branch. After review, merge it in.
+
+## Worktrees
+
+Each task works on its own branch in its own worktree. Never work in a main
+checkout (`~/apps/<repo>`, `~/.local/share/chezmoi`); it stays on the default
+branch.
+
+- **T3 Code** makes one worktree per thread at `~/.t3/worktrees/<repo>/t3-<id>`
+  and removes it after the thread's PR merges. Leave those to T3.
+- **Outside T3**, `wt switch --create <branch>` makes one at
+  `~/.herdr/workspaces/<repo>/<branch>` and copies ignored files such as `.env`
+  into it. Remove it with `wt remove` when its branch has merged or been
+  abandoned.
+
+In an app worktree, run `mise run bootstrap` before anything else. It installs
+tools and packages, checks the env, starts the worktree's own Docker services
+and migrations if the app has a database, starts the pitchfork `dev` daemon,
+and checks the app answers. `mise run get-url` prints the worktree's dev URL,
+which the user can open over the tailnet. It needs the OpenBao dev token; if it says the token is
+missing, tell the user to run `mise run dev-token` in `aria-amini/infra`.
+
+When you finish, unless the user is still using a preview, stop what bootstrap
+started: `pitchfork stop dev`, and `vp run compose:down` if the app has
+Docker services, in that worktree. Copy
+out untracked files you still need before a merge removes the worktree. The
+user runs `mise run repo-prune` to clear merged worktrees, branches, and
+orphaned dev servers in bulk; do not run it yourself.
 
 ## Repos
 
