@@ -63,5 +63,5 @@ end your turn without a message. Without one, keep the turn going until
 `pr-wait` exits; in Codex, keep reading its running session with
 `write_stdin`. If GraphQL is
 used up, read the PR with `gh api repos/<owner>/<repo>/pulls/<n>` and checks
-with `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` plus
-`.../commits/<sha>/status` for commit statuses.
+with `gh api --paginate repos/<owner>/<repo>/commits/<sha>/check-runs` plus
+`.../commits/<sha>/statuses` (also `--paginate`) for commit statuses.

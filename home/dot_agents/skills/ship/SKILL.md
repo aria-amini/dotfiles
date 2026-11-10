@@ -59,7 +59,8 @@ changes, and say which ones changed. If you cannot prove a change, ask.
 ## Review
 
 If the user said to skip CodeRabbit for this PR, skip this paragraph and wait
-with `pr-wait --until green`. Otherwise, request a CodeRabbit review with
+with `pr-wait --until green`, then for any other review bot to finish.
+Otherwise, request a CodeRabbit review with
 `@coderabbitai review` once CI is green, and
 again after every push, including a base merge, since its approval must be on
 the head. Wait with `file-pr`'s watcher: `watch_pull_request` in T3 (watch
@@ -91,8 +92,8 @@ All true on the latest commit:
 - Your proof covers every change in the diff.
 - Required checks are green.
 - CodeRabbit approved the head, unless the user said to skip it for this PR.
-- Other bots' findings are fixed or dismissed with a reason, and no human
-  review still requests changes.
+- Other review bots have finished, their findings are fixed or dismissed with
+  a reason, and no human review still requests changes.
 - The branch is up to date with the default branch and mergeable. A watcher
   wake is news, not a verdict: `watch_pull_request` reports conflicts but not
   BEHIND, so check that yourself.
