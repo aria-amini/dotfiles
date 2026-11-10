@@ -53,6 +53,10 @@ Clean up what your task leaves behind:
 - GitHub deletes a PR's branch when it merges. Close a PR your task
   superseded, with a comment linking its replacement, and delete its branch.
   Ask before closing any other PR.
+- If a PR you opened will not merge, because the work was dropped or it
+  targets a branch that is gone, tell the user and offer to close it. A merged
+  stacked PR whose base was not the default branch never reached it; report
+  that too.
 - Remove `wt` worktrees and local branches you made once they merge or are
   abandoned. T3 removes its own worktrees.
 - Copy out untracked files you still need before a merge removes a worktree.
@@ -81,6 +85,13 @@ All three are public. Never commit secrets, tokens, or private details there.
 
 ## Workflows
 
-Shipping is opt-in and escalates: `file-pr` opens a PR and gets CI green;
-`ship` takes it through review to ready ("full stop") or merged ("full send").
+Normal work is iteration: change, show, take the next instruction. Shipping is
+opt-in and escalates one step at a time:
+
+1. "file a PR": `file-pr` opens it, pushes every change, and gets CI green.
+2. "babysit": `ship`, from its review step, gets it reviewed and ready.
+3. "full stop": `ship` also finishes and proves the change, unattended, and
+   stops when it is ready to merge.
+4. "full send": `ship` then merges it and does its Cleanup steps.
+
 For a second opinion, use `review-loop` or `council`.
