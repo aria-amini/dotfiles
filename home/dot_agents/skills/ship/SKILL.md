@@ -84,7 +84,8 @@ All true on the latest commit:
   wake is news, not a verdict: `watch_pull_request` reports conflicts but not
   BEHIND, so check that yourself.
 
-Right before merging, `git fetch` and check the PR again. If base commits that
+Right before merging, `git fetch` and check the PR again, and stop the
+worktree's services (see "Worktrees" in AGENTS.md). If base commits that
 landed after the last green run touch this PR's files, update the branch and
 wait for green again. Merge with
 `gh pr merge --squash --delete-branch` (`gh stack merge --yes --squash` for a

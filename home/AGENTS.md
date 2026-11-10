@@ -63,9 +63,15 @@ Clean up what your task leaves behind:
 - `mise run repo-prune` clears merged worktrees, local branches, and orphaned
   dev servers across all repos. It skips dirty or locked work and anything
   under a day old, so run it after a merge or when they pile up.
+- When the work is done (just before a full-send merge, or when it is
+  dropped), stop the worktree's services before it is removed:
+  `pitchfork stop dev`, and `vp run compose:down` if the app has Docker
+  services.
 
-Dev servers need no cleanup: pitchfork stops one after 30 minutes without
-traffic, and the next bootstrap removes the Docker stacks of deleted worktrees.
+Between turns, leave services running for the user's preview. The backups
+cover the rest: pitchfork stops a dev server after 30 minutes without traffic
+and restarts it on the next request, and the next bootstrap removes the Docker
+stacks of deleted worktrees.
 
 ## Repos
 
