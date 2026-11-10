@@ -10,12 +10,17 @@ Two escalations past `file-pr`. Never pick one on your own.
 - **Full stop:** the PR is green and reviewed. Stop at the merge gate and never
   merge, enable auto-merge, or push to the default branch. Turn off any
   auto-merge already on the PR before you start, and tell the user.
-- **Full send:** the same, then merge it and do its Cleanup steps.
+- **Full send:** the same, then merge it and do its Cleanup steps that only
+  touch this machine, such as `chezmoi apply`. Leave the rest, such as
+  `copier update` in apps or a platform workflow run, to the user and list
+  them in the report.
 
-Babysitting an existing PR is full stop from step 5.
+Babysitting an existing PR is full stop from step 5. There, the proof is the
+checks CI runs on the head, plus proof for each fix you push.
 
 The user is not watching. Stay active until the mode ends: if you end your
-turn while checks or bots are pending, nobody will prompt you again. Back off
+turn while checks or bots are pending and no watcher will wake you, nobody
+will prompt you again. Back off
 from full send to full stop, and tell the user, if the change grows to touch
 auth, secrets, user data, migrations, or production, or cannot be easily
 reverted.
@@ -25,7 +30,8 @@ reverted.
 1. **Finish** with the smallest change that works. Fix the case that happened,
    not every case that could.
 2. **Prove** every change. See "Proof".
-3. **Review** large changes with the `review-loop` skill.
+3. **Review** large changes with the `review-loop` skill. Settle any item it
+   leaves disputed yourself, and list it in the report.
 4. **File** with the `file-pr` skill until CI is green. Add one line to the
    description that says how you proved the change.
 5. **Get it reviewed.** See "Review".
@@ -51,11 +57,14 @@ changes, and say which ones changed. If you cannot prove a change, ask.
 
 ## Review
 
-Request a CodeRabbit review with `@coderabbitai review` once CI is green, then
-wait with `file-pr`'s watcher (`pr-wait --until ready`). Never use its
+Request a CodeRabbit review with `@coderabbitai review` once CI is green, and
+again after every push, including a base merge, since its approval must be on
+the head. Wait with `file-pr`'s watcher: `watch_pull_request` in T3 (watch
+again if you unwatched), `pr-wait --until ready` elsewhere. Never use its
 autofix or post probe comments. When it is rate limited, add the "available in
 N minutes" wait from its newest comment to that comment's `updated_at` and
-retry once then (`schedule_task` in T3 Code).
+retry once then (`schedule_task` in T3 Code, one background command that waits
+elsewhere). If it is still rate limited, stop at the gate and report it.
 
 Only act on findings newer than the latest push, and verify each against the
 source. Fix real ones in new `[review]` commits, prove each fix before you
@@ -87,15 +96,15 @@ All true on the latest commit:
 Right before merging, `git fetch` and check the PR again, and stop the
 worktree's services (see "Worktrees" in AGENTS.md). If base commits that
 landed after the last green run touch this PR's files, update the branch and
-wait for green again. Merge with
-`gh pr merge --squash --delete-branch` (`gh stack merge --yes --squash` for a
-stack). Never use `--admin` or other bypasses.
+wait for green again. Merge with `gh pr merge --squash` (GitHub deletes the
+branch; `gh stack merge --yes --squash` for a stack). Never use `--admin` or other bypasses.
 
 ## Asking the user
 
 Ask only when you cannot continue alone: you cannot prove the change, the gate
 cannot pass and you cannot fix it, the next step deletes data, touches
-production or anything outside the repo, closes a PR this task did not supersede, or force-pushes another
+production or anything outside the repo beyond the Cleanup steps full send
+allows, closes a PR this task did not supersede, or force-pushes another
 branch, the goal is ambiguous, or another PR makes this one obsolete. Decide
 everything else yourself and list it in the report.
 

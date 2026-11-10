@@ -52,7 +52,8 @@ every watcher on a GitHub account shares one rate limit:
   `gh api rate_limit --jq .resources.graphql`, wait for `reset` with one
   background command, then watch again.
 - **Elsewhere:** run `~/.agents/skills/file-pr/scripts/pr-wait <pr> --until green`
-  (with the Monitor tool in Claude Code, `timeout_ms: 3600000`). It prints one
+  (with the Monitor tool in Claude Code, `timeout_ms: 1800000`, re-armed when
+  it expires). It prints one
   line per event and exits 0 when the condition is met, 1 when it needs you,
   and 2 on bad input. Start it again after each push. `--until ready` also
   waits for review bots, including CodeRabbit's approval.

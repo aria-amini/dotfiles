@@ -7,7 +7,6 @@
 .agents/skills/sol-loop
 .agents/skills/modernize
 .local/bin/pr-pending
-.codex/hooks.json
 .agents/skills/hunk
 .agents/skills/improve-codebase-architecture
 .agents/skills/wayfinder
