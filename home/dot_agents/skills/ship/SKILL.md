@@ -102,7 +102,8 @@ worktree's services (see "Worktrees" in AGENTS.md). If base commits that
 landed after the last green run touch this PR's files, update the branch and
 wait for green again. Merge with `gh pr merge --squash` (GitHub deletes the
 branch). For a stack, `gh stack merge --yes --squash` merges every PR in it,
-so check the gate on each one first. Never use `--admin` or other bypasses.
+so check the gate on each one first, and stop if the stack holds a PR this
+task was not asked to merge. Never use `--admin` or other bypasses.
 
 ## Asking the user
 
