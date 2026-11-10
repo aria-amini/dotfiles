@@ -53,11 +53,12 @@ every watcher on a GitHub account shares one rate limit:
   background command, then watch again.
 - **Elsewhere:** run `~/.agents/skills/file-pr/scripts/pr-wait <pr> --until green`
   (with the Monitor tool in Claude Code, `timeout_ms: 1800000`, re-armed when
-  it expires). It prints one
-  line per event and exits 0 when the condition is met, 1 when it needs you,
+  it expires; without a monitor, such as in Codex, as one foreground command
+  that ends on its own). It prints one line per event and exits 0 when the condition is met, 1 when it needs you,
   and 2 on bad input. Start it again after each push. `--until ready` also
   waits for review bots, including CodeRabbit's approval.
 
 When an event needs no action, end your turn without a message. If GraphQL is
 used up, read the PR with `gh api repos/<owner>/<repo>/pulls/<n>` and checks
-with `gh api repos/<owner>/<repo>/commits/<sha>/check-runs`.
+with `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` plus
+`.../commits/<sha>/status` for commit statuses.

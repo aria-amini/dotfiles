@@ -25,7 +25,7 @@ share no filesystem with it.
   force-push the default branch or tags.
 - PRs squash-merge, so the PR title becomes the commit on `main`. Match the
   repo's recent titles.
-- Before review, rebase onto the default branch. After review, merge it in.
+- Before review, rebase onto the PR's base branch. After review, merge it in.
 
 ## Worktrees
 
@@ -35,8 +35,8 @@ branch.
 
 - **T3 Code** makes one worktree per thread at `~/.t3/worktrees/<repo>/t3-<id>`
   and removes it after the thread's PR merges. Leave those to T3.
-- **Outside T3**, `wt switch --create <branch>` makes one at
-  `~/.herdr/workspaces/<repo>/<branch>` and copies ignored files such as `.env`
+- **Outside T3**, `wt switch --create <branch>` makes one under
+  `~/.herdr/workspaces/<repo>/` (`wt list` shows its path) and copies ignored files such as `.env`
   into it. Remove it with `wt remove` when its branch has merged or been
   abandoned.
 

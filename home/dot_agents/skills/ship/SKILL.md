@@ -11,7 +11,8 @@ Two escalations past `file-pr`. Never pick one on your own.
   merge, enable auto-merge, or push to the default branch. Turn off any
   auto-merge already on the PR before you start, and tell the user.
 - **Full send:** the same, then merge it and do its Cleanup steps that only
-  touch this machine, such as `chezmoi apply`. Leave the rest, such as
+  touch this machine, such as `chezmoi apply` (pull the main checkout first,
+  then apply the changed targets). Leave the rest, such as
   `copier update` in apps or a platform workflow run, to the user and list
   them in the report.
 
@@ -57,7 +58,9 @@ changes, and say which ones changed. If you cannot prove a change, ask.
 
 ## Review
 
-Request a CodeRabbit review with `@coderabbitai review` once CI is green, and
+If the user said to skip CodeRabbit for this PR, skip this paragraph and wait
+with `pr-wait --until green`. Otherwise, request a CodeRabbit review with
+`@coderabbitai review` once CI is green, and
 again after every push, including a base merge, since its approval must be on
 the head. Wait with `file-pr`'s watcher: `watch_pull_request` in T3 (watch
 again if you unwatched), `pr-wait --until ready` elsewhere. Never use its
@@ -66,7 +69,8 @@ N minutes" wait from its newest comment to that comment's `updated_at` and
 retry once then (`schedule_task` in T3 Code, one background command that waits
 elsewhere). If it is still rate limited, stop at the gate and report it.
 
-Only act on findings newer than the latest push, and verify each against the
+Handle every unresolved thread, whenever it was opened, and checks and
+comments newer than the latest push. Verify each finding against the
 source. Fix real ones in new `[review]` commits, prove each fix before you
 push, and request another review until CodeRabbit approves. Dismiss the rest
 with a one-line reason that leads with the conclusion and cites the code or
@@ -97,7 +101,8 @@ Right before merging, `git fetch` and check the PR again, and stop the
 worktree's services (see "Worktrees" in AGENTS.md). If base commits that
 landed after the last green run touch this PR's files, update the branch and
 wait for green again. Merge with `gh pr merge --squash` (GitHub deletes the
-branch; `gh stack merge --yes --squash` for a stack). Never use `--admin` or other bypasses.
+branch). For a stack, `gh stack merge --yes --squash` merges every PR in it,
+so check the gate on each one first. Never use `--admin` or other bypasses.
 
 ## Asking the user
 
