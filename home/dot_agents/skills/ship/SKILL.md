@@ -118,8 +118,9 @@ landed after the last green run touch this PR's files, update the branch and
 wait for green again. Merge with `gh pr merge --squash` (GitHub deletes the
 branch). For a stack, `gh stack merge <pr> --yes --squash` merges every PR
 up to `<pr>` in one all-or-nothing step, so check the gate on each one first,
-and stop if that range holds a PR this task was not asked to merge. Never use
-`--admin` or other bypasses.
+and stop if that range holds a PR this task was not asked to merge. It reads a
+bare number as a stack number first, so stop if `<pr>` is also a stack number.
+Never use `--admin` or other bypasses.
 
 ## Asking the user
 
