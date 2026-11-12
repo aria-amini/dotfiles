@@ -16,6 +16,8 @@ share no filesystem with it.
   server-side localhost. Follow the `tailnet-publish` skill to share a URL or
   file.
 - The VM has limited memory. Run heavy checks one at a time.
+- GitHub and bot timestamps are in UTC. When you tell the user a time, give it
+  in US Eastern time (`9:18 PM ET`), never UTC or Pacific.
 
 ## Version Control
 
