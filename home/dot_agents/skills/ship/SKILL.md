@@ -19,12 +19,19 @@ Two escalations past `file-pr`. Never pick one on your own.
 Babysitting an existing PR is full stop from step 5. There, the proof is the
 checks CI runs on the head, plus proof for each fix you push.
 
-The user is not watching. Stay active until the mode ends: if you end your
-turn while checks or bots are pending and no watcher will wake you, nobody
-will prompt you again. Back off
-from full send to full stop, and tell the user, if the change grows to touch
-auth, secrets, user data, migrations, or production, or cannot be easily
-reverted.
+The user is not watching, so the mode runs without further prompts until it
+ends. Watcher wakes do most of the work, but some never arrive. In T3 Code,
+also keep one backstop `schedule_task` per PR, 20–30 minutes out, that
+re-reads its CI, reviews, rate limit, and threads, takes the next step, and
+reschedules itself. Delete it when the mode ends or before you ask the user
+anything, and set it again when the work resumes. A delegated task that ends
+with no result has failed: restart it or report it. A Stop in T3 Code silently
+ends every PR watch and delegated task on the thread. After a stop, handle the
+user's message, then, unless they ended the mode, check
+`list_thread_pull_requests`, watch again, and restart any delegated task the
+work still needs. Back off from full send to full stop, and tell the user, if
+the change grows to touch auth, secrets, user data, migrations, or production,
+or cannot be easily reverted.
 
 ## Steps
 
@@ -41,6 +48,8 @@ reverted.
 7. **Report** the PR link, the merge commit or final head, your proof, the
    decisions you made for the user, and any step left for them. For full stop,
    say whether it is ready, waiting only on human approval, or blocked and why.
+   Call a PR reviewed only when a reviewer approved its current head. Pushing
+   `[review]` fixes doesn't make it reviewed.
 
 Either request lets you use any test method Proof needs without asking first,
 even where a project file says to ask, and force-push the PR's branch with
@@ -61,14 +70,16 @@ changes, and say which ones changed. If you cannot prove a change, ask.
 If the user said to skip CodeRabbit for this PR, skip this paragraph and wait
 with `pr-wait --until green`, then for any other review bot to finish.
 Otherwise, request a CodeRabbit review with
-`@coderabbitai review` once CI is green, and
-again after every push, including a base merge, since its approval must be on
-the head. Wait with `file-pr`'s watcher: `watch_pull_request` in T3 (watch
-again if you unwatched), `pr-wait --until ready` elsewhere. Never use its
-autofix or post probe comments. When it is rate limited, add the "available in
-N minutes" wait from its newest comment to that comment's `updated_at` and
-retry once then (`schedule_task` in T3 Code, one background command that waits
-elsewhere). If it is still rate limited, stop at the gate and report it.
+`@coderabbitai review` as soon as CI is green on the head, and again after
+every push, including a base merge, since its approval must be on the head.
+Full stop and full send are the request, so don't ask first. Wait with
+`file-pr`'s watcher: `watch_pull_request` in T3 (watch again if you
+unwatched), `pr-wait --until ready` elsewhere. Never use its autofix or post
+probe comments. When it is rate limited, schedule the retry in the same turn:
+add the "available in N minutes" wait from its newest comment to that
+comment's `updated_at` and retry once then (`schedule_task` in T3 Code, one
+background command that waits elsewhere). If it is still rate limited, stop
+at the gate and report it.
 
 Handle every unresolved thread, whenever it was opened, and checks and
 comments newer than the latest push. Verify each finding against the
@@ -80,7 +91,10 @@ check. Resolve each thread after your reply posts.
 Keep the PR at the size the goal needs. Review loops grow a PR one
 cheap-looking fix at a time. Decline unneeded tests, guards for edge cases
 that do not matter, extra compatibility, and small performance costs; list them
-as follow-ups. Prefer the fix that deletes or narrows code.
+as follow-ups. Prefer the fix that deletes or narrows code. When a finding is
+a heuristic edge case, switch to the conservative behavior at once, or decline
+with a reason after the second round on the same code. Batch fixes into one
+push per review.
 
 Keep up with the base branch: rebase while no reviewer has seen the PR, and
 merge the base in after that.
@@ -102,9 +116,11 @@ Right before merging, `git fetch` and check the PR again, and stop the
 worktree's services (see "Worktrees" in AGENTS.md). If base commits that
 landed after the last green run touch this PR's files, update the branch and
 wait for green again. Merge with `gh pr merge --squash` (GitHub deletes the
-branch). For a stack, `gh stack merge --yes --squash` merges every PR in it,
-so check the gate on each one first, and stop if the stack holds a PR this
-task was not asked to merge. Never use `--admin` or other bypasses.
+branch). For a stack, `gh stack merge <pr> --yes --squash` merges every PR
+up to `<pr>` in one all-or-nothing step, so check the gate on each one first,
+and stop if that range holds a PR this task was not asked to merge. It reads a
+bare number as a stack number first, so stop if `<pr>` is also a stack number.
+Never use `--admin` or other bypasses.
 
 ## Asking the user
 

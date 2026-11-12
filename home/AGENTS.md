@@ -16,16 +16,22 @@ share no filesystem with it.
   server-side localhost. Follow the `tailnet-publish` skill to share a URL or
   file.
 - The VM has limited memory. Run heavy checks one at a time.
+- GitHub and bot timestamps are in UTC. When you tell the user a time, give it
+  in US Eastern time (`9:18 PM ET`), never UTC or Pacific.
 
 ## Version Control
 
-- Keep one commit per concern. Rewrite freely until a reviewer has seen the PR;
-  after that, add fixes as new commits starting with `[review]`.
+- Commit each change once it is checked, one commit per concern, so concerns
+  don't tangle in the same files. Rewrite freely until a reviewer has seen the
+  PR; after that, add fixes as new commits starting with `[review]`.
 - No scratch commits (`wip`, `tmp`) or backup branches. Never rewrite or
   force-push the default branch or tags.
 - PRs squash-merge, so the PR title becomes the commit on `main`. Match the
   repo's recent titles.
 - Before review, rebase onto the PR's base branch. After review, merge it in.
+- Stacked PRs live in one native GitHub stack (`gh stack`). When you close or
+  replace a PR in a stack, unstack or rebuild the stack in the same turn.
+  GitHub won't move a closed PR's base, and new PRs land outside the stack.
 
 ## Worktrees
 
@@ -39,6 +45,10 @@ branch.
   `~/.herdr/workspaces/<repo>/` (`wt list` shows its path) and copies ignored files such as `.env`
   into it. Remove it with `wt remove` when its branch has merged or been
   abandoned.
+
+Never reset, rebase, or commit in another thread's worktree, because it can
+drop that thread's unpushed commits. When you move a branch it has checked
+out, post the old and new SHAs and let that thread rebase.
 
 In an app worktree, run `mise run bootstrap` before anything else. It installs
 tools and packages, checks the env, starts the worktree's own Docker services
@@ -99,6 +109,12 @@ opt-in and escalates one step at a time:
 3. "full stop": `ship` also finishes and proves the change, unattended, and
    stops when it is ready to merge.
 4. "full send": `ship` then merges it and does its Cleanup steps.
+
+Don't report routine watcher wakes (preview deploys, skipped automatic reviews,
+bot summary edits). Report only changes the user would act on.
+
+CodeRabbit reviews are rate limited. Outside `ship`, ask before requesting one
+the user did not ask for.
 
 For a second opinion, use `review-loop`. Name a model to get another model's
 view.
