@@ -116,5 +116,7 @@ bot summary edits). Report only changes the user would act on.
 CodeRabbit reviews are rate limited. Outside `ship`, ask before requesting one
 the user did not ask for.
 
+Compare libraries on fit and capability, not maturity, and give one pick.
+
 For a second opinion, use `review-loop`. Name a model to get another model's
 view.
