@@ -100,5 +100,8 @@ opt-in and escalates one step at a time:
    stops when it is ready to merge.
 4. "full send": `ship` then merges it and does its Cleanup steps.
 
+CodeRabbit reviews are rate limited. Outside `ship`, ask before requesting one
+the user did not ask for.
+
 For a second opinion, use `review-loop`. Name a model to get another model's
 view.

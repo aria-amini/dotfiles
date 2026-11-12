@@ -67,14 +67,16 @@ changes, and say which ones changed. If you cannot prove a change, ask.
 If the user said to skip CodeRabbit for this PR, skip this paragraph and wait
 with `pr-wait --until green`, then for any other review bot to finish.
 Otherwise, request a CodeRabbit review with
-`@coderabbitai review` once CI is green, and
-again after every push, including a base merge, since its approval must be on
-the head. Wait with `file-pr`'s watcher: `watch_pull_request` in T3 (watch
-again if you unwatched), `pr-wait --until ready` elsewhere. Never use its
-autofix or post probe comments. When it is rate limited, add the "available in
-N minutes" wait from its newest comment to that comment's `updated_at` and
-retry once then (`schedule_task` in T3 Code, one background command that waits
-elsewhere). If it is still rate limited, stop at the gate and report it.
+`@coderabbitai review` as soon as CI is green on the head, and again after
+every push, including a base merge, since its approval must be on the head.
+Full stop and full send are the request, so don't ask first. Wait with
+`file-pr`'s watcher: `watch_pull_request` in T3 (watch again if you
+unwatched), `pr-wait --until ready` elsewhere. Never use its autofix or post
+probe comments. When it is rate limited, schedule the retry in the same turn:
+add the "available in N minutes" wait from its newest comment to that
+comment's `updated_at` and retry once then (`schedule_task` in T3 Code, one
+background command that waits elsewhere). If it is still rate limited, stop
+at the gate and report it.
 
 Handle every unresolved thread, whenever it was opened, and checks and
 comments newer than the latest push. Verify each finding against the
