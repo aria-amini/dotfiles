@@ -88,7 +88,10 @@ check. Resolve each thread after your reply posts.
 Keep the PR at the size the goal needs. Review loops grow a PR one
 cheap-looking fix at a time. Decline unneeded tests, guards for edge cases
 that do not matter, extra compatibility, and small performance costs; list them
-as follow-ups. Prefer the fix that deletes or narrows code.
+as follow-ups. Prefer the fix that deletes or narrows code. When a finding is
+a heuristic edge case, switch to the conservative behavior at once, or decline
+with a reason after the second round on the same code. Batch fixes into one
+push per review.
 
 Keep up with the base branch: rebase while no reviewer has seen the PR, and
 merge the base in after that.
