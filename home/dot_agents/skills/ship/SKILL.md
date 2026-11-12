@@ -24,13 +24,14 @@ ends. Watcher wakes do most of the work, but some never arrive. In T3 Code,
 also keep one backstop `schedule_task` per PR, 20–30 minutes out, that
 re-reads its CI, reviews, rate limit, and threads, takes the next step, and
 reschedules itself. Delete it when the mode ends or before you ask the user
-anything. A delegated task that ends with no result has failed: restart it or
-report it. A Stop in T3 Code silently ends every PR watch and delegated task on
-the thread. After a stop, handle the user's message, then, unless they ended
-the mode, check `list_thread_pull_requests`, watch again, and restart any
-delegated task the work still needs. Back off from full send to full stop, and
-tell the user, if the change grows to touch auth, secrets, user data,
-migrations, or production, or cannot be easily reverted.
+anything, and set it again when the work resumes. A delegated task that ends
+with no result has failed: restart it or report it. A Stop in T3 Code silently
+ends every PR watch and delegated task on the thread. After a stop, handle the
+user's message, then, unless they ended the mode, check
+`list_thread_pull_requests`, watch again, and restart any delegated task the
+work still needs. Back off from full send to full stop, and tell the user, if
+the change grows to touch auth, secrets, user data, migrations, or production,
+or cannot be easily reverted.
 
 ## Steps
 
