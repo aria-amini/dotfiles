@@ -107,6 +107,9 @@ opt-in and escalates one step at a time:
    stops when it is ready to merge.
 4. "full send": `ship` then merges it and does its Cleanup steps.
 
+Don't report routine watcher wakes (preview deploys, skipped automatic reviews,
+bot summary edits). Report only changes the user would act on.
+
 CodeRabbit reviews are rate limited. Outside `ship`, ask before requesting one
 the user did not ask for.
 
