@@ -21,8 +21,9 @@ share no filesystem with it.
 
 ## Version Control
 
-- Keep one commit per concern. Rewrite freely until a reviewer has seen the PR;
-  after that, add fixes as new commits starting with `[review]`.
+- Commit each change once it is checked, one commit per concern, so concerns
+  don't tangle in the same files. Rewrite freely until a reviewer has seen the
+  PR; after that, add fixes as new commits starting with `[review]`.
 - No scratch commits (`wip`, `tmp`) or backup branches. Never rewrite or
   force-push the default branch or tags.
 - PRs squash-merge, so the PR title becomes the commit on `main`. Match the
