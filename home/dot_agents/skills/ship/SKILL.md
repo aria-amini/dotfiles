@@ -47,6 +47,8 @@ migrations, or production, or cannot be easily reverted.
 7. **Report** the PR link, the merge commit or final head, your proof, the
    decisions you made for the user, and any step left for them. For full stop,
    say whether it is ready, waiting only on human approval, or blocked and why.
+   Call a PR reviewed only when a reviewer approved its current head. Pushing
+   `[review]` fixes doesn't make it reviewed.
 
 Either request lets you use any test method Proof needs without asking first,
 even where a project file says to ask, and force-push the PR's branch with
@@ -113,9 +115,10 @@ Right before merging, `git fetch` and check the PR again, and stop the
 worktree's services (see "Worktrees" in AGENTS.md). If base commits that
 landed after the last green run touch this PR's files, update the branch and
 wait for green again. Merge with `gh pr merge --squash` (GitHub deletes the
-branch). For a stack, `gh stack merge --yes --squash` merges every PR in it,
-so check the gate on each one first, and stop if the stack holds a PR this
-task was not asked to merge. Never use `--admin` or other bypasses.
+branch). For a stack, `gh stack merge <pr> --yes --squash` merges every PR
+up to `<pr>` in one all-or-nothing step, so check the gate on each one first,
+and stop if that range holds a PR this task was not asked to merge. Never use
+`--admin` or other bypasses.
 
 ## Asking the user
 

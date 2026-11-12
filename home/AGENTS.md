@@ -26,6 +26,9 @@ share no filesystem with it.
 - PRs squash-merge, so the PR title becomes the commit on `main`. Match the
   repo's recent titles.
 - Before review, rebase onto the PR's base branch. After review, merge it in.
+- Stacked PRs live in one native GitHub stack (`gh stack`). When you close or
+  replace a PR in a stack, unstack or rebuild the stack in the same turn.
+  GitHub won't move a closed PR's base, and new PRs land outside the stack.
 
 ## Worktrees
 
