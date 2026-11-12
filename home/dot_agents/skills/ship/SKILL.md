@@ -19,12 +19,15 @@ Two escalations past `file-pr`. Never pick one on your own.
 Babysitting an existing PR is full stop from step 5. There, the proof is the
 checks CI runs on the head, plus proof for each fix you push.
 
-The user is not watching. Stay active until the mode ends: if you end your
-turn while checks or bots are pending and no watcher will wake you, nobody
-will prompt you again. Back off
-from full send to full stop, and tell the user, if the change grows to touch
-auth, secrets, user data, migrations, or production, or cannot be easily
-reverted.
+The user is not watching, so the mode runs without further prompts until it
+ends. Watcher wakes do most of the work, but some never arrive. In T3 Code,
+also keep one backstop `schedule_task` per PR, 20–30 minutes out, that
+re-reads its CI, reviews, rate limit, and threads, takes the next step, and
+reschedules itself. Delete it when the mode ends or before you ask the user
+anything. A delegated task that ends with no result has failed: restart it or
+report it. Back off from full send to full stop, and tell the user, if the
+change grows to touch auth, secrets, user data, migrations, or production, or
+cannot be easily reverted.
 
 ## Steps
 
