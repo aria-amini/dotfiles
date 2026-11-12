@@ -40,6 +40,10 @@ branch.
   into it. Remove it with `wt remove` when its branch has merged or been
   abandoned.
 
+Never reset, rebase, or commit in another thread's worktree, because it can
+drop that thread's unpushed commits. When you move a branch it has checked
+out, post the old and new SHAs and let that thread rebase.
+
 In an app worktree, run `mise run bootstrap` before anything else. It installs
 tools and packages, checks the env, starts the worktree's own Docker services
 and migrations if the app has a database, starts the pitchfork `dev` daemon,
