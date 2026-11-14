@@ -100,7 +100,7 @@ After the merge, remove the task worktree as the last action of the task:
 
 1. Run `wt remove <branch>` from outside the worktree. Never remove the main
    checkout.
-2. Use the t3 MCP to settle the thread: archive.
+2. Use the t3 MCP to settle the thread. Do not archive it.
 
 ## Style
 
