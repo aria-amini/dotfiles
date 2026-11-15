@@ -18,10 +18,10 @@ share no filesystem with it.
 - The VM has limited memory. Run heavy checks one at a time. While
   iterating, run only the tests your change touches (`vp test run --changed`);
   run the full suite once, before pushing.
-- Browser test runs (`vp test`, `vp run test`, `vp run test:browser`) queue
-  machine-wide behind other threads' runs. Give them a ~10 min command
-  timeout. A run that exits 75 gave up while still queued: retry it, and don't
-  treat it as a test failure.
+- Browser test runs (`vp test`, `vp run test`, `vp run test:browser`,
+  `vp run test:update`) queue machine-wide behind other threads' runs. Give
+  them a ~10 min command timeout. A run that exits 75 gave up while still
+  queued: retry it, and don't treat it as a test failure.
 - GitHub and bot timestamps are in UTC. When you tell the user a time, give it
   in US Eastern time (`9:18 PM ET`), never UTC or Pacific.
 

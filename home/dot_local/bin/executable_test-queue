@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # test-queue: run one browser-test suite at a time across this machine.
 #
-# ~/.zshrc routes `vp test …`, `vp run test`, and `vp run test:browser`
-# through it, so parallel agent threads don't slow and time out each other's
-# browser suites.
+# ~/.zshrc routes `vp test …`, `vp run test`, `vp run test:browser`, and
+# `vp run test:update` through it, so parallel agent threads don't slow and
+# time out each other's browser suites.
 #
 # Usage: test-queue <command…>   e.g. test-queue vp test run
 #
