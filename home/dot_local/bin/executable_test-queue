@@ -43,7 +43,9 @@ needs_queue() {
 	return 0
 }
 
-if ! needs_queue "$@"; then
+# Without flock (stock macOS) there is no queue: run now rather than read every
+# failed flock as a held lock and give up after TEST_QUEUE_MAX_WAIT.
+if ! needs_queue "$@" || ! command -v flock >/dev/null 2>&1; then
 	exec "$@"
 fi
 
