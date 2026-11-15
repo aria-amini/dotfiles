@@ -2,7 +2,8 @@
        otherwise the path unchanged. A linked worktree's .git file reads
        "gitdir: <main>/.git/worktrees/<name>", absolute or relative to the worktree.
        Other .git files (--separate-git-dir, or a worktree of a bare repo, even
-       one stored as <dir>/.git) keep the path unchanged. */ -}}
+       one stored as <dir>/.git, which git itself identifies) keep the path
+       unchanged. */ -}}
 {{- $root := . -}}
 {{- $git := joinPath $root ".git" -}}
 {{- with stat $git -}}
@@ -11,7 +12,7 @@
 {{-     if not (isAbs $gitdir) }}{{ $gitdir = joinPath $root $gitdir | clean }}{{ end -}}
 {{-     $common := dir (dir $gitdir) -}}
 {{-     if and (eq (base (dir $gitdir)) "worktrees") (eq (base $common) ".git") -}}
-{{-       if not (include (joinPath $common "config") | regexMatch "(?im)^\\s*bare\\s*(=\\s*(true|yes|on|1)\\s*)?$") }}{{ $root = dir $common }}{{ end -}}
+{{-       if eq (output "git" "--git-dir" $common "rev-parse" "--is-bare-repository" | trim) "false" }}{{ $root = dir $common }}{{ end -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
