@@ -49,8 +49,10 @@ needs_queue() {
 		fi
 		prev="$arg"
 	done
-	# Skip the queue only when every selected project or every filter is light.
-	((projects > 0 && projects == light_projects)) && return 1
+	# Skip the queue only when every selected project or every filter is light,
+	# and no selected project is a browser one.
+	((projects > light_projects)) && return 0
+	((projects > 0)) && return 1
 	((files > 0 && files == light)) && return 1
 	return 0
 }
