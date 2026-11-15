@@ -11,7 +11,7 @@
 {{-     if not (isAbs $gitdir) }}{{ $gitdir = joinPath $root $gitdir | clean }}{{ end -}}
 {{-     $common := dir (dir $gitdir) -}}
 {{-     if and (eq (base (dir $gitdir)) "worktrees") (eq (base $common) ".git") -}}
-{{-       if not (include (joinPath $common "config") | regexMatch "(?m)^\\s*bare\\s*=\\s*true\\s*$") }}{{ $root = dir $common }}{{ end -}}
+{{-       if not (include (joinPath $common "config") | regexMatch "(?im)^\\s*bare\\s*(=\\s*(true|yes|on|1)\\s*)?$") }}{{ $root = dir $common }}{{ end -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
