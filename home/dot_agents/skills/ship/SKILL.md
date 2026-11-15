@@ -79,7 +79,8 @@ Full stop and full send are the request, so don't ask first. Wait with
 unwatched), `pr-wait --until ready` elsewhere. Never use its autofix or post
 probe comments. A cancelled review may only edit CodeRabbit's reply to your
 request to "Action not completed" and leave a `skipped` CodeRabbit check, so
-the backstop re-reads that reply; if it was cancelled, request again. When it
+the backstop re-reads that reply; if it was cancelled, request again
+once, and if that is cancelled too, stop at the gate and report it. When it
 is rate limited, schedule the retry in the same turn: add the "available in N
 minutes" wait from its newest comment to that comment's `updated_at` and retry
 once then (`schedule_task` in T3 Code, one background command that waits
