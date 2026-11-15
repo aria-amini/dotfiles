@@ -17,6 +17,14 @@ export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspace
 # ── Path ──────────────────────────────────────────────────────
 export PATH="$PATH:/usr/sbin:/sbin"
 [[ -f "$HOME/.vite-plus/env" ]] && . "$HOME/.vite-plus/env"
+# Browser test suites run one at a time across the machine (test-queue).
+if [[ -x "$HOME/.local/bin/test-queue" ]] && (( $+functions[vp] )) && (( ! $+functions[_vp_unqueued] )); then
+  functions[_vp_unqueued]=$functions[vp]
+  vp() {
+    if [[ "${1-}" == test ]]; then "$HOME/.local/bin/test-queue" vp "$@"
+    else _vp_unqueued "$@"; fi
+  }
+fi
 
 # ── History ───────────────────────────────────────────────────
 HISTFILE="$HOME/.zsh_history"

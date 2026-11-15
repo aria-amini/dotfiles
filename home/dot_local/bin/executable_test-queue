@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# test-queue: run one browser-test suite at a time across this machine.
+#
+# ~/.zshrc routes `vp test …`, `vp run test`, and `vp run test:browser`
+# through it, so parallel agent threads don't slow and time out each other's
+# browser suites.
+#
+# Usage: test-queue <command…>   e.g. test-queue vp test run
+#
+# Lets through without waiting: watch/dev/UI runs (they never end), CI, and
+# runs limited to the unit or server projects or to *.unit / *.server / *.db
+# test files. Everything else waits for the machine-wide lock.
+#
+# Env: TEST_QUEUE_MAX_WAIT (seconds, default 480) — give up after this long
+# with exit code 75 instead of hanging an agent's command timeout.
+set -uo pipefail
+
+dir="${XDG_CACHE_HOME:-$HOME/.cache}/test-queue"
+lock="$dir/browser.lock"
+holder="$dir/browser.holder"
+# One line per queued run: when, where, waited, ran, exit.
+log="$dir/runs.log"
+max_wait="${TEST_QUEUE_MAX_WAIT:-480}"
+
+say() { printf 'test-queue: %s\n' "$*" >&2; }
+
+needs_queue() {
+	[[ -n "${CI:-}" ]] && return 1
+	local arg prev='' files=0 light=0 project=''
+	for arg in "$@"; do
+		case "$arg" in
+		dev | watch | --watch | -w | --ui) return 1 ;;
+		--project=*) project="${arg#--project=}" ;;
+		*.unit.test.ts | *.server.test.ts | *.db.test.ts | *db.test.ts)
+			files=$((files + 1)) light=$((light + 1)) ;;
+		*.test.ts | *.test.tsx | src/* | tests/*) files=$((files + 1)) ;;
+		esac
+		[[ "$prev" == --project ]] && project="$arg"
+		prev="$arg"
+	done
+	[[ "$project" == unit || "$project" == server ]] && return 1
+	((files > 0 && files == light)) && return 1
+	return 0
+}
+
+if ! needs_queue "$@"; then
+	exec "$@"
+fi
+
+mkdir -p "$dir"
+exec 9>>"$lock"
+
+queued_at=$(date +%s)
+if ! flock -n 9; then
+	started=$queued_at
+	describe() {
+		local who
+		who=$(cat "$holder" 2>/dev/null) || who=''
+		if [[ -n "$who" ]]; then
+			local pid since where
+			read -r pid since where <<<"$who"
+			printf 'browser tests are running in %s (pid %s, %s so far)' \
+				"$where" "$pid" "$(elapsed $(($(date +%s) - since)))"
+		else
+			printf 'another browser-test run holds the queue'
+		fi
+	}
+	elapsed() { printf '%dm %02ds' $(($1 / 60)) $(($1 % 60)); }
+
+	say "$(describe); waiting…"
+	until flock -w 30 9; do
+		waited=$(($(date +%s) - started))
+		if ((waited >= max_wait)); then
+			say "gave up after $(elapsed "$waited"): $(describe). Try again later."
+			exit 75
+		fi
+		say "still waiting ($(elapsed "$waited")): $(describe)"
+	done
+	say "your turn after $(elapsed $(($(date +%s) - started)))"
+fi
+
+where="${PWD#"$HOME"/}"
+where="${where#.t3/worktrees/}"
+where="${where#.herdr/workspaces/}"
+printf '%s %s %s\n' "$$" "$(date +%s)" "$where" >"$holder"
+
+# The suite runs without the lock's descriptor, so a stray browser it leaves
+# behind can't keep the queue held; the lock frees when this script exits.
+ran_at=$(date +%s)
+"$@" 9>&-
+status=$?
+: >"$holder"
+printf '%s\t%s\twaited %ss\tran %ss\texit %s\n' "$(date -Is)" "$where" \
+	$((ran_at - queued_at)) $(($(date +%s) - ran_at)) "$status" >>"$log"
+exit "$status"
