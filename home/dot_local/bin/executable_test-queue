@@ -27,19 +27,30 @@ say() { printf 'test-queue: %s\n' "$*" >&2; }
 
 needs_queue() {
 	[[ -n "${CI:-}" ]] && return 1
-	local arg prev='' files=0 light=0 project=''
+	local arg p prev='' files=0 light=0 projects=0 light_projects=0
 	for arg in "$@"; do
+		p=''
 		case "$arg" in
 		dev | watch | --watch | -w | --ui) return 1 ;;
-		--project=*) project="${arg#--project=}" ;;
-		*.unit.test.ts | *.server.test.ts | *db.test.ts)
-			files=$((files + 1)) light=$((light + 1)) ;;
-		*.test.ts | *.test.tsx | src/* | tests/*) files=$((files + 1)) ;;
+		--project=*) p="${arg#--project=}" ;;
 		esac
-		[[ "$prev" == --project ]] && project="$arg"
+		[[ "$prev" == --project ]] && p="$arg"
+		if [[ -n "$p" ]]; then
+			projects=$((projects + 1))
+			[[ "$p" == unit || "$p" == server ]] && light_projects=$((light_projects + 1))
+		else
+			case "$arg" in
+			vp | test | run | -*) ;;
+			*.unit.test.ts | *.server.test.ts | *db.test.ts)
+				files=$((files + 1)) light=$((light + 1)) ;;
+			# Any other filter (a file, spec, or pattern) may select browser tests.
+			*) files=$((files + 1)) ;;
+			esac
+		fi
 		prev="$arg"
 	done
-	[[ "$project" == unit || "$project" == server ]] && return 1
+	# Skip the queue only when every selected project or every filter is light.
+	((projects > 0 && projects == light_projects)) && return 1
 	((files > 0 && files == light)) && return 1
 	return 0
 }
@@ -71,7 +82,8 @@ if ! flock -n 9; then
 	elapsed() { printf '%dm %02ds' $(($1 / 60)) $(($1 % 60)); }
 
 	say "$(describe); waiting…"
-	until flock -w 30 9; do
+	waited=0
+	until flock -w $((max_wait - waited < 30 ? max_wait - waited : 30)) 9; do
 		waited=$(($(date +%s) - started))
 		if ((waited >= max_wait)); then
 			say "gave up after $(elapsed "$waited"): $(describe). Try again later."
