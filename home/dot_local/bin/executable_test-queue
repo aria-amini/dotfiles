@@ -11,8 +11,9 @@
 # runs limited to the unit or server projects or to *.unit / *.server / *.db
 # test files. Everything else waits for the machine-wide lock.
 #
-# Env: TEST_QUEUE_MAX_WAIT (seconds, default 480) — give up after this long
-# with exit code 75 instead of hanging an agent's command timeout.
+# Env: TEST_QUEUE_MAX_WAIT (seconds, default 360) — give up after this long
+# with exit code 75, leaving a suite (up to ~2 min here) room to finish inside
+# an agent's 10 min command timeout.
 set -uo pipefail
 
 dir="${XDG_CACHE_HOME:-$HOME/.cache}/test-queue"
@@ -20,7 +21,7 @@ lock="$dir/browser.lock"
 holder="$dir/browser.holder"
 # One line per queued run: when, where, waited, ran, exit.
 log="$dir/runs.log"
-max_wait="${TEST_QUEUE_MAX_WAIT:-480}"
+max_wait="${TEST_QUEUE_MAX_WAIT:-360}"
 
 say() { printf 'test-queue: %s\n' "$*" >&2; }
 
@@ -31,7 +32,7 @@ needs_queue() {
 		case "$arg" in
 		dev | watch | --watch | -w | --ui) return 1 ;;
 		--project=*) project="${arg#--project=}" ;;
-		*.unit.test.ts | *.server.test.ts | *.db.test.ts | *db.test.ts)
+		*.unit.test.ts | *.server.test.ts | *db.test.ts)
 			files=$((files + 1)) light=$((light + 1)) ;;
 		*.test.ts | *.test.tsx | src/* | tests/*) files=$((files + 1)) ;;
 		esac
