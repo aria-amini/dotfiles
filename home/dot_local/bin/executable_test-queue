@@ -41,7 +41,7 @@ needs_queue() {
 		else
 			case "$arg" in
 			vp | test | run | -*) ;;
-			*.unit.test.ts | *.server.test.ts | *db.test.ts)
+			*.unit.test.ts | *.server.test.ts | *.db.test.ts)
 				files=$((files + 1)) light=$((light + 1)) ;;
 			# Any other filter (a file, spec, or pattern) may select browser tests.
 			*) files=$((files + 1)) ;;
