@@ -9,7 +9,7 @@ AGE_KEY="$AGE_DIR/age-key.txt"
 AGE_CONFIG="$AGE_DIR/chezmoi.toml"
 
 has_encrypted_sources() {
-  find "$DOTFILES_DIR" \( -name .git -o -name .jj \) -prune -o -name '*.age' -print -quit | grep -q .
+  find "$DOTFILES_DIR" -name .git -prune -o -name '*.age' -print -quit | grep -q .
 }
 
 age_key_valid() {

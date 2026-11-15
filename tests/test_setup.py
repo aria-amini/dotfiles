@@ -100,7 +100,7 @@ def test_dotfile_apply_captures_output_and_preserves_failures(
 [[ "$1" == --source && "$2" == "$DOTFILES_DIR" ]] || exit 99
 [[ "${*:3}" == '--no-tty --error-on-conflict apply' ]] || exit 98
 [[ $DOTFILES_PROFILE == full && $DOTFILES_SKIP_MANAGED_TOOLS == true ]] || exit 97
-printf '{"plugin":"aamini.jj"}\n'
+printf '{"plugin":"aamini.sample"}\n'
 exit "$APPLY_STATUS"
 """)
     binary.chmod(0o755)
@@ -121,18 +121,18 @@ gum() {{
 }}
 if phase_dotfiles; then rc=0; else rc=$?; fi
 [[ $rc == {status} ]]
-grep -q 'aamini.jj' "$LOG_FILE"
+grep -q 'aamini.sample' "$LOG_FILE"
 grep -q 'chezmoi --source' "$LOG_FILE"
 """
     command = shlex.quote("bash -Eeuo pipefail -c " + shlex.quote(script))
     result = linux(f"script -q -e -c {command} /dev/null")
     assert result.returncode == 0, result.stdout + result.stderr
     if status == 0:
-        assert "aamini.jj" not in result.stdout
+        assert "aamini.sample" not in result.stdout
         assert "chezmoi --source" not in result.stdout
         assert re.search(r"✓ Dotfiles\s+applied", result.stdout)
     else:
-        assert "aamini.jj" in result.stdout
+        assert "aamini.sample" in result.stdout
         assert "✓ Dotfiles" not in result.stdout
 
 

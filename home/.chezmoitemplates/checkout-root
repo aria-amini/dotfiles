@@ -1,0 +1,19 @@
+{{- /* Input: a working tree path. Output: the main checkout for a linked worktree,
+       otherwise the path unchanged. A linked worktree's .git file reads
+       "gitdir: <main>/.git/worktrees/<name>", absolute or relative to the worktree.
+       Other .git files (--separate-git-dir, or a worktree of a bare repo, even
+       one stored as <dir>/.git, which git itself identifies) keep the path
+       unchanged. */ -}}
+{{- $root := . -}}
+{{- $git := joinPath $root ".git" -}}
+{{- with stat $git -}}
+{{-   if not .isDir -}}
+{{-     $gitdir := include $git | trim | trimPrefix "gitdir: " -}}
+{{-     if not (isAbs $gitdir) }}{{ $gitdir = joinPath $root $gitdir | clean }}{{ end -}}
+{{-     $common := dir (dir $gitdir) -}}
+{{-     if and (eq (base (dir $gitdir)) "worktrees") (eq (base $common) ".git") -}}
+{{-       if eq (output "git" "--git-dir" $common "rev-parse" "--is-bare-repository" | trim) "false" }}{{ $root = dir $common }}{{ end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $root -}}

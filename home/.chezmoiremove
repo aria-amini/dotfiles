@@ -24,3 +24,4 @@
 .config/tools
 .ssh/devboxes.d/wsl.conf
 .ssh/devboxes.d/README.md
+.config/jj

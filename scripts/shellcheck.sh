@@ -10,6 +10,6 @@ while IFS= read -r -d '' file; do
   if head -n 1 "$file" | grep -Eq '^#!.*[[:space:]/](ba)?sh([[:space:]]|$)'; then
     files+=("$file")
   fi
-done < <(find . \( -name .git -o -name .jj -o -name .venv -o -name node_modules \) -prune -o -type f -print0)
+done < <(find . \( -name .git -o -name .venv -o -name node_modules \) -prune -o -type f -print0)
 
 shellcheck -x "${files[@]}"

@@ -1,1 +1,2 @@
-{{ .chezmoi.workingTree }}/mise-global/config.toml
+{{- /* Link to the main checkout, not a linked worktree that is deleted after merge. */ -}}
+{{ includeTemplate "checkout-root" .chezmoi.workingTree }}/mise-global/config.toml

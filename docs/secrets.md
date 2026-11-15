@@ -37,7 +37,7 @@ The token needs `ariaamini.com` DNS Edit and Zone Read. Then enroll the file:
 chezmoi add --encrypt ~/.config/personal-secrets/caddy.env
 ```
 
-Chezmoi writes only to the local source state. Commit and push the new `.age` file through the normal jj and PR flow.
+Chezmoi writes only to the local source state. Commit and push the new `.age` file through the normal git and PR flow.
 Without that push, a new machine cannot restore the token. Enroll the token by hand there instead.
 
 ## Change or restore

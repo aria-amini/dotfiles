@@ -10,8 +10,8 @@ if (( ! $+commands[infocmp] )) || [[ -z "$TERM" ]] || ! infocmp "$TERM" >/dev/nu
     export TERM=dumb
   fi
 fi
-# Global-only mise setting (kept out of .config/mise/config.toml so jj
-# workspace copies of that file loaded as project configs don't warn).
+# Global-only mise setting (kept out of .config/mise/config.toml so worktree
+# copies of that file loaded as project configs don't warn).
 export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspaces/:$HOME/.t3/worktrees/:$HOME/.t3/workspaces/"
 
 # ── Path ──────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ alias gd='hunk diff --watch'
 
 gr() {
   local root
-  root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(jj root 2>/dev/null) || return 1
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || return 1
   cd "$root"
 }
 

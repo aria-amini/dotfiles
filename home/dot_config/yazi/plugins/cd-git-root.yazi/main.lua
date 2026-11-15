@@ -14,7 +14,6 @@ end
 
 local function get_repo_root()
 	return run_root_command("git rev-parse --show-toplevel 2>/dev/null")
-		or run_root_command("jj root 2>/dev/null")
 end
 
 return {
@@ -27,7 +26,7 @@ return {
 		else
 			ya.notify({
 				title = "Could not change directory!",
-				content = "You are not in a git or jj repository.",
+				content = "You are not in a git repository.",
 				timeout = 3,
 				level = "error",
 			})
