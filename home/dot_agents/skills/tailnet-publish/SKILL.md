@@ -36,14 +36,16 @@ client network (Tailscale or published DNS), never server-side localhost.
 Portless URLs are `https://<name>.lab.sahandamini.dev`. Caddy serves them with a
 public Let's Encrypt certificate, so clients need no CA setup.
 
-- Slugs are single DNS labels. Pitchfork rejects dots in a slug. For a worktree
-  directory `app.worktree`, register the slug `app-worktree`.
+- Slugs are single DNS labels. `pitchfork-register` normalizes each slug, so
+  `app.worktree` registers `app-worktree`.
 - Nested hostnames (`worktree.app.lab…`) do not work. The wildcard certificate
   covers one level.
 - Direct `:9443` access does not work. The proxy binds loopback only.
-- Register a worktree with
-  `pitchfork-register <slug> --daemon dev --dir <worktree-root>`. The helper
-  sets the checkout namespace to the slug, for example `portfolio-contact/dev`.
+- New worktrees of opted-in repos get a URL automatically, and `wt remove`
+  removes it. Register by hand only for a main checkout, with
+  `pitchfork-register <slug> --daemon dev --dir <checkout-root>`. The helper
+  sets the checkout namespace to the slug, for example `portfolio/dev`.
+- A manual `pitchfork-register` exits nonzero on a failure.
 
 ## T3 Code dev servers
 
