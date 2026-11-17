@@ -1,10 +1,19 @@
 worktree-path = "~/.herdr/workspaces/{{ repo }}/{{ branch | sanitize }}"
 
-[post-start]
-copy = "wt step copy-ignored"
+# Pre hooks block, and user pre hooks run before project pre hooks, so the
+# files exist before a project hook starts a daemon. A failed pre hook aborts
+# the operation, so this hook must not fail.
+[pre-start]
+copy = "wt step copy-ignored || echo 'copy-ignored failed; ignored files missing' >&2"
 
 [list]
 json-schema = 2
 
 [step.copy-ignored]
-exclude = [".env.compose", "**/.venv/", "*node_modules/*"]
+exclude = [
+  ".env.compose",
+  "**/.venv/",
+  "*node_modules/*",
+  # pitchfork-register writes a namespace for each checkout.
+  "pitchfork.local.toml",
+]
