@@ -1,80 +1,270 @@
-#!/usr/bin/python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["tomlkit>=0.13"]
+# ///
+"""Register or remove the Pitchfork proxy slugs of one checkout."""
+
 import argparse
-import json
+import fcntl
+import hashlib
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import tomllib
 from pathlib import Path
+from typing import Any, NoReturn
+
+import tomlkit
+
+MAX_LABEL = 63
+HASH_LENGTH = 6
+# Pitchfork reads its global config here and ignores XDG_CONFIG_HOME.
+CONFIG = Path.home() / ".config/pitchfork/config.toml"
+TRACKED = ["pitchfork.toml", ".config/pitchfork.toml"]
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Register a proxy slug and matching daemon namespace"
-    )
-    parser.add_argument("slug")
-    parser.add_argument("--daemon", default="dev")
-    parser.add_argument("--dir", type=Path, default=Path.cwd())
-    args = parser.parse_args()
-    if (
-        not re.fullmatch(r"[a-zA-Z0-9_](?:[a-zA-Z0-9_-]*[a-zA-Z0-9_])?", args.slug)
-        or "--" in args.slug
-    ):
-        # Pitchfork uses slugs as DNS labels, so `proxy add` rejects dots.
-        parser.error(
-            "The slug must be a valid Pitchfork namespace without dots, for example app-worktree"
-        )
+def fail(message: str) -> NoReturn:
+    sys.exit(f"pitchfork-register: {message}")
 
-    root = args.dir.expanduser().resolve(strict=True)
-    if not root.is_dir():
-        parser.error("--dir must be a directory")
+
+def normalize(slug: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", slug.lower()).strip("-")
+    return slug[:MAX_LABEL].strip("-")
+
+
+def hashed(slug: str, root: Path) -> str:
+    digest = hashlib.sha256(str(root).encode()).hexdigest()[:HASH_LENGTH]
+    return f"{slug[: MAX_LABEL - HASH_LENGTH - 1].strip('-')}-{digest}"
+
+
+def load() -> Any:
+    return tomlkit.parse(CONFIG.read_text()) if CONFIG.exists() else tomlkit.document()
+
+
+def write(path: Path, document: Any) -> None:
+    mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w", dir=path.parent, prefix=f".{path.name}.", delete=False
+    ) as file:
+        temporary = Path(file.name)
+    try:
+        temporary.write_text(tomlkit.dumps(document))
+        temporary.chmod(mode)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def resolved(directory: Any) -> Path | None:
+    return Path(str(directory)).expanduser().resolve() if directory else None
+
+
+def namespace_dir(config: Any, namespace: Any) -> Path | None:
+    return resolved(config.get("namespaces", {}).get(str(namespace), {}).get("dir"))
+
+
+def local_namespace(root: Path) -> Any:
     local = root / "pitchfork.local.toml"
-    if local.is_symlink():
-        parser.error("pitchfork.local.toml must be checkout-specific, not a symlink")
-    paths = [
-        root / ".config/pitchfork.toml",
-        root / ".config/pitchfork.local.toml",
-        root / "pitchfork.toml",
-        local,
-    ]
-    for path in paths:
+    return tomllib.loads(local.read_text()).get("namespace") if local.exists() else None
+
+
+def url(config: Any, name: str) -> str:
+    tld = config.get("settings", {}).get("proxy", {}).get("tld", "localhost")
+    return f"https://{name}.{tld}"
+
+
+def pitchfork(*args: str) -> None:
+    result = subprocess.run(
+        ["pitchfork", *args], capture_output=True, text=True, check=False
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stdout + result.stderr)
+        fail(f"pitchfork {' '.join(args)} exited with status {result.returncode}")
+
+
+def drop_namespace(config: Any, namespace: str) -> None:
+    namespaces = config.get("namespaces", {})
+    namespaces.pop(namespace, None)
+    if "namespaces" in config and not namespaces:
+        del config["namespaces"]
+
+
+def drop_slugs(config: Any, namespace: str) -> None:
+    slugs = config.get("slugs", {})
+    for slug in [
+        s for s, entry in slugs.items() if entry.get("namespace") == namespace
+    ]:
+        del slugs[slug]
+    if "slugs" in config and not slugs:
+        del config["slugs"]
+
+
+def taken(config: Any, name: str, root: Path) -> bool:
+    """Return True if a live entry for another directory uses the name.
+
+    Delete each entry that points to a directory that no longer exists.
+    """
+    slug = config.get("slugs", {}).get(name)
+    namespaces = {name} if name in config.get("namespaces", {}) else set()
+    if slug is not None:
+        namespaces.add(str(slug.get("namespace")))
+    for namespace in namespaces:
+        directory = namespace_dir(config, namespace)
+        if directory == root:
+            continue
+        if directory is not None and directory.is_dir():
+            return True
+        drop_slugs(config, namespace)
+        drop_namespace(config, namespace)
+    return False
+
+
+def registered(config: Any, name: str, root: Path, daemon: str) -> bool:
+    entry = config.get("slugs", {}).get(name)
+    return (
+        entry is not None
+        and entry.get("daemon") == daemon
+        and namespace_dir(config, entry.get("namespace")) == root
+        and local_namespace(root) == entry.get("namespace")
+    )
+
+
+def check_tracked(root: Path, name: str) -> None:
+    for path in (root / file for file in TRACKED):
         if path.exists():
             namespace = tomllib.loads(path.read_text()).get("namespace")
-            if namespace is not None and namespace != args.slug:
-                parser.error(
-                    f"{path} declares namespace {namespace!r}; use that namespace or update the file"
+            if namespace is not None and namespace != name:
+                fail(
+                    f"{path} declares namespace {namespace!r}; "
+                    "remove it or update the file"
                 )
 
-    content = local.read_text() if local.exists() else ""
-    if "namespace" not in tomllib.loads(content):
-        content = f"namespace = {json.dumps(args.slug)}\n\n{content}"
-        temporary = None
-        try:
-            with tempfile.NamedTemporaryFile(mode="w", dir=root, delete=False) as file:
-                temporary = Path(file.name)
-                file.write(content)
-            os.chmod(
-                temporary, local.stat().st_mode & 0o777 if local.exists() else 0o644
-            )
-            temporary.replace(local)
-        finally:
-            if temporary is not None:
-                temporary.unlink(missing_ok=True)
 
-    subprocess.run(
-        [
-            "pitchfork",
-            "proxy",
-            "add",
-            args.slug,
-            "--daemon",
-            args.daemon,
-            "--dir",
-            str(root),
-        ],
-        check=True,
+def write_local(root: Path, name: str) -> None:
+    local = root / "pitchfork.local.toml"
+    document = (
+        tomlkit.parse(local.read_text()) if local.exists() else tomlkit.document()
     )
+    if document.get("namespace") == name:
+        return
+    document["namespace"] = name
+    write(local, document)
+
+
+# Pitchfork 2.29 marks slugs as legacy, so this setup must move when slugs go
+# away.
+# Slugs, not automatic nested hostnames: nested names need a certificate for
+# each worktree, and each certificate publishes the branch name in Certificate
+# Transparency logs.
+def add(slug: str, root: Path, daemon: str) -> None:
+    candidates = [slug, hashed(slug, root)]
+    config = load()
+    for name in candidates:
+        if registered(config, name, root, daemon):
+            check_tracked(root, name)
+            print(url(config, name))
+            return
+
+    before = tomlkit.dumps(config)
+    name = slug
+    if taken(config, slug, root):
+        name = candidates[1]
+        if taken(config, name, root):
+            fail(f"{slug!r} and {name!r} both belong to other checkouts")
+    check_tracked(root, name)
+    if tomlkit.dumps(config) != before:
+        write(CONFIG, config)
+    write_local(root, name)
+    pitchfork(
+        "proxy",
+        "add",
+        name,
+        "--daemon",
+        daemon,
+        "--dir",
+        str(root),
+        "--namespace",
+        name,
+    )
+    print(url(config, name))
+    if name != slug:
+        print(
+            f"pitchfork-register: {slug!r} belongs to another checkout; "
+            f"registered {name!r} instead",
+            file=sys.stderr,
+        )
+
+
+def remove(root: Path) -> None:
+    config = load()
+    namespaces = [
+        namespace
+        for namespace, entry in config.get("namespaces", {}).items()
+        if resolved(entry.get("dir")) == root
+    ]
+    slugs = [
+        slug
+        for slug, entry in config.get("slugs", {}).items()
+        if entry.get("namespace") in namespaces
+    ]
+    for slug in slugs:
+        pitchfork("proxy", "remove", slug)
+        print(f"Removed {url(config, slug)}")
+    if not namespaces:
+        return
+    # Pitchfork has no command that removes a namespace.
+    config = load()
+    for namespace in namespaces:
+        drop_namespace(config, namespace)
+    write(CONFIG, config)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Register a proxy slug and a matching daemon namespace, "
+        "or remove the registrations of a checkout"
+    )
+    parser.add_argument("slug", nargs="?")
+    parser.add_argument("--daemon", default="dev")
+    parser.add_argument("--dir", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--remove", action="store_true", help="remove the slugs of --dir"
+    )
+    args = parser.parse_args()
+    if args.remove:
+        if args.slug is not None:
+            parser.error("--remove takes no slug")
+        root = args.dir.expanduser().resolve()
+    else:
+        if args.slug is None:
+            parser.error("a slug is required")
+        slug = normalize(args.slug)
+        if not slug:
+            parser.error(f"the slug {args.slug!r} has no letters or digits")
+        root = args.dir.expanduser().resolve()
+        if not root.is_dir():
+            parser.error(f"{args.dir} is not a directory")
+        if (root / "pitchfork.local.toml").is_symlink():
+            parser.error(
+                "pitchfork.local.toml must be checkout-specific, not a symlink"
+            )
+
+    state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state")
+    state.mkdir(parents=True, exist_ok=True)
+    # Accepted risk: `chezmoi apply` rewrites the config through
+    # modify_config.toml without this lock. A lost write needs an apply during
+    # a `wt switch --create`, so it is rare. A chezmoi template cannot take a
+    # flock.
+    with open(state / "pitchfork-register.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if args.remove:
+            remove(root)
+        else:
+            add(slug, root, args.daemon)
 
 
 if __name__ == "__main__":
