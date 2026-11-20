@@ -25,3 +25,6 @@
 .ssh/devboxes.d/wsl.conf
 .ssh/devboxes.d/README.md
 .config/jj
+.agents/skills/tanstack-react-start
+.agents/skills/tanstack-react-start-server-components
+.agents/skills/varlock

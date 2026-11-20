@@ -1,0 +1,22 @@
+{
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Source control**: Trusted repos are github.com/aria-amini/* only, worked on in git worktrees (the home directory itself is not a repo). dotfiles, toolkit and infra are public; app repos may be private, so treat repo contents as private unless a repo is known to be public",
+      "**Default / protected branches**: main; PRs squash-merge. Never rewrite or force-push main or tags",
+      "**Secrets management**: OpenBao on Railway holds every app's secrets. Never read or print secret values",
+      "**Cloud provider(s)**: Railway",
+      "**Network posture**: Sessions normally run on a Lima Ubuntu VM reached over Tailscale; tailnet hostnames are trusted internal domains",
+      "**Sensitive data locations & audiences**: credentials and similar material, such as .env* files, ~/.claude/.credentials.json, and ~/.config/openbao; do not share them outside the repo owner and the tools that already use them",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development"
+    ]
+  },
+  "model": "opus",
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "theme": "dark"
+}
