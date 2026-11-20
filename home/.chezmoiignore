@@ -15,6 +15,7 @@
 .config/pitchfork/config.toml
 .local/bin/caddy-start
 .local/bin/caddy-health
+.local/bin/test-queue
 .config/herdr
 .config/pi
 {{ else }}

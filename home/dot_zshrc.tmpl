@@ -17,6 +17,20 @@ export MISE_TRUSTED_CONFIG_PATHS="$HOME/.herdr/worktrees/:$HOME/.herdr/workspace
 # ── Path ──────────────────────────────────────────────────────
 export PATH="$PATH:/usr/sbin:/sbin"
 [[ -f "$HOME/.vite-plus/env" ]] && . "$HOME/.vite-plus/env"
+# Browser test suites run one at a time across the machine (test-queue).
+# Re-sourcing redefines vp from .vite-plus/env, so wrap whatever vp is now.
+if [[ -x "$HOME/.local/bin/test-queue" ]] && (( $+functions[vp] )) && [[ $functions[vp] != *test-queue* ]]; then
+  functions[_vp_unqueued]=$functions[vp]
+  # `vp run test`, `test:browser`, and `test:update` reach `vp test run`
+  # through sh, past this function, so they queue here; the other test:*
+  # scripts are watch/UI or unit/server-only runs.
+  vp() {
+    case "${1-}:${2-}" in
+      test:* | run:test | run:test:browser | run:test:update) "$HOME/.local/bin/test-queue" vp "$@" ;;
+      *) _vp_unqueued "$@" ;;
+    esac
+  }
+fi
 
 # ── History ───────────────────────────────────────────────────
 HISTFILE="$HOME/.zsh_history"

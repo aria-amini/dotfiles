@@ -26,12 +26,14 @@ re-reads its CI, reviews, rate limit, and threads, takes the next step, and
 reschedules itself. Delete it when the mode ends or before you ask the user
 anything, and set it again when the work resumes. A delegated task that ends
 with no result has failed: restart it or report it. A Stop in T3 Code silently
-ends every PR watch and delegated task on the thread. After a stop, handle the
-user's message, then, unless they ended the mode, check
-`list_thread_pull_requests`, watch again, and restart any delegated task the
-work still needs. Back off from full send to full stop, and tell the user, if
-the change grows to touch auth, secrets, user data, migrations, or production,
-or cannot be easily reverted.
+ends every PR watch and delegated task on the thread, and the scheduled tasks
+and thread messages that wake you after it don't mention it. So end every turn
+that waits on GitHub with `watch_pull_request`, even if you think a watch is
+on, and start every retry or backstop prompt you schedule with it too. After a
+stop, handle the user's message, then, unless they ended the mode, restart any
+delegated task the work still needs. Back off from full send to full stop, and
+tell the user, if the change grows to touch auth, secrets, user data,
+migrations, or production, or cannot be easily reverted.
 
 ## Steps
 
@@ -75,11 +77,14 @@ every push, including a base merge, since its approval must be on the head.
 Full stop and full send are the request, so don't ask first. Wait with
 `file-pr`'s watcher: `watch_pull_request` in T3 (watch again if you
 unwatched), `pr-wait --until ready` elsewhere. Never use its autofix or post
-probe comments. When it is rate limited, schedule the retry in the same turn:
-add the "available in N minutes" wait from its newest comment to that
-comment's `updated_at` and retry once then (`schedule_task` in T3 Code, one
-background command that waits elsewhere). If it is still rate limited, stop
-at the gate and report it.
+probe comments. A cancelled review may only edit CodeRabbit's reply to your
+request to "Action not completed" and leave a `skipped` CodeRabbit check, so
+the backstop re-reads that reply; if it was cancelled, request again
+once, and if that is cancelled too, stop at the gate and report it. When it
+is rate limited, schedule the retry in the same turn: add the "available in N
+minutes" wait from its newest comment to that comment's `updated_at` and retry
+once then (`schedule_task` in T3 Code, one background command that waits
+elsewhere). If it is still rate limited, stop at the gate and report it.
 
 Handle every unresolved thread, whenever it was opened, and checks and
 comments newer than the latest push. Verify each finding against the
